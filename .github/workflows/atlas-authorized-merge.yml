@@ -82,7 +82,7 @@ jobs:
             return body;
           }
 
-          async function supervisor(path, body) {
+          async function supervisor(path, body, options = {}) {
             const response = await fetch(
               `${SUPERVISOR_API_URL.replace(/\/$/, '')}${path}`,
               {
@@ -100,6 +100,13 @@ jobs:
               try { parsed = JSON.parse(text); } catch { parsed = text; }
             }
             if (!response.ok) {
+              if (
+                options.allowAlreadyConsumed === true &&
+                response.status === 400 &&
+                parsed?.code === 'owner_merge_authorization_already_consumed'
+              ) {
+                return { alreadyConsumed: true };
+              }
               throw new Error(`Supervisor request failed ${response.status}: ${typeof parsed === 'string' ? parsed : JSON.stringify(parsed)}`);
             }
             return parsed;
@@ -144,29 +151,40 @@ jobs:
             }
 
             const associated = await github(`/commits/${HEAD_SHA}/pulls`);
-            const eligible = (Array.isArray(associated) ? associated : []).filter((pr) =>
-              pr?.state === 'open' &&
-              pr?.merged_at == null &&
+            const governed = (Array.isArray(associated) ? associated : []).filter((pr) =>
               pr?.head?.sha === HEAD_SHA &&
               pr?.head?.repo?.full_name === REPOSITORY &&
-              ['production/atlas', 'main'].includes(pr?.base?.ref),
+              ['production/atlas', 'main'].includes(pr?.base?.ref) &&
+              (pr?.state === 'open' || pr?.merged_at != null),
             );
-            if (eligible.length !== 1) {
-              throw new Error(`expected exactly one eligible open pull request, found ${eligible.length}`);
+            if (governed.length !== 1) {
+              throw new Error(`expected exactly one governed pull request, found ${governed.length}`);
             }
 
-            const PR_NUMBER = String(eligible[0].number);
+            const PR_NUMBER = String(governed[0].number);
             const pr = await github(`/pulls/${PR_NUMBER}`);
+            const isOpenCandidate =
+              pr?.state === 'open' &&
+              pr?.merged !== true &&
+              pr?.merged_at == null &&
+              pr?.draft !== true;
+            const isMergedCandidate =
+              pr?.state === 'closed' &&
+              pr?.merged === true &&
+              typeof pr?.merged_at === 'string' &&
+              Boolean(pr.merged_at) &&
+              /^[0-9a-f]{40}$/i.test(pr?.merge_commit_sha ?? '');
+
+            if (!isOpenCandidate && !isMergedCandidate) {
+              throw new Error('pull request is neither an eligible open candidate nor an exact merged candidate');
+            }
             if (
-              pr?.state !== 'open' ||
-              pr?.merged === true ||
-              pr?.draft === true ||
               pr?.head?.sha !== HEAD_SHA ||
               pr?.head?.repo?.full_name !== REPOSITORY ||
               !['production/atlas', 'main'].includes(pr?.base?.ref) ||
               !/^[0-9a-f]{40}$/i.test(pr?.base?.sha ?? '')
             ) {
-              throw new Error('pull request identity drifted or is not merge eligible');
+              throw new Error('pull request identity drifted or is not governed');
             }
 
             const TASK_ID = requireMetadata(
@@ -197,47 +215,58 @@ jobs:
             }
             const normalizedFiles = [...new Set(changedFiles)].sort();
 
-            const review = await supervisor(
-              '/engineering/supervisor/gateway/review-candidate',
-              {
-                taskId: TASK_ID,
-                executionId: EXECUTION_ID,
-                action: 'merge',
-                targetBranch: pr.base.ref,
-                baseSha: pr.base.sha,
-                headSha: HEAD_SHA,
-                changedFiles: normalizedFiles,
-                explicitUserAuthorization: false,
-              },
-            );
-            if (
-              review?.allowed !== true ||
-              review?.taskId !== TASK_ID ||
-              review?.executionId !== EXECUTION_ID
-            ) {
-              throw new Error('fresh signed Owner merge authorization is not valid for the exact candidate');
+            let merged;
+            let mergeCommitSha;
+
+            if (isOpenCandidate) {
+              const review = await supervisor(
+                '/engineering/supervisor/gateway/review-candidate',
+                {
+                  taskId: TASK_ID,
+                  executionId: EXECUTION_ID,
+                  action: 'merge',
+                  targetBranch: pr.base.ref,
+                  baseSha: pr.base.sha,
+                  headSha: HEAD_SHA,
+                  changedFiles: normalizedFiles,
+                  explicitUserAuthorization: false,
+                },
+              );
+              if (
+                review?.allowed !== true ||
+                review?.taskId !== TASK_ID ||
+                review?.executionId !== EXECUTION_ID
+              ) {
+                throw new Error('fresh signed Owner merge authorization is not valid for the exact candidate');
+              }
+
+              const response = await github(
+                `/pulls/${PR_NUMBER}/merge`,
+                {
+                  method: 'PUT',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    merge_method: 'merge',
+                    sha: HEAD_SHA,
+                  }),
+                },
+              );
+              if (response?.merged !== true || !/^[0-9a-f]{40}$/i.test(response?.sha ?? '')) {
+                throw new Error(`GitHub normal merge was not confirmed: ${JSON.stringify(response)}`);
+              }
+              mergeCommitSha = response.sha;
+              merged = await github(`/pulls/${PR_NUMBER}`);
             }
 
-            const response = await github(
-              `/pulls/${PR_NUMBER}/merge`,
-              {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  merge_method: 'merge',
-                  sha: HEAD_SHA,
-                }),
-              },
-            );
-            if (response?.merged !== true || !/^[0-9a-f]{40}$/i.test(response?.sha ?? '')) {
-              throw new Error(`GitHub normal merge was not confirmed: ${JSON.stringify(response)}`);
+            if (isMergedCandidate) {
+              mergeCommitSha = pr.merge_commit_sha;
+              merged = pr;
             }
 
-            const merged = await github(`/pulls/${PR_NUMBER}`);
             if (
               merged?.state !== 'closed' ||
               merged?.merged !== true ||
-              merged?.merge_commit_sha !== response.sha ||
+              merged?.merge_commit_sha !== mergeCommitSha ||
               merged?.head?.sha !== HEAD_SHA ||
               merged?.base?.ref !== pr.base.ref ||
               merged?.base?.sha !== pr.base.sha ||
@@ -247,9 +276,9 @@ jobs:
               throw new Error('merged pull request identity does not match the authorized candidate');
             }
 
-            const mergeCommit = await github(`/commits/${response.sha}`);
+            const mergeCommit = await github(`/commits/${mergeCommitSha}`);
             if (
-              mergeCommit?.sha !== response.sha ||
+              mergeCommit?.sha !== mergeCommitSha ||
               mergeCommit?.parents?.length !== 2 ||
               mergeCommit.parents[0]?.sha !== pr.base.sha ||
               mergeCommit.parents[1]?.sha !== HEAD_SHA
@@ -269,12 +298,20 @@ jobs:
                 changedFiles: normalizedFiles,
                 attestation: {
                   pullRequestNumber: Number(PR_NUMBER),
-                  mergeCommitSha: response.sha,
+                  mergeCommitSha,
                   mergeParents: [pr.base.sha, HEAD_SHA],
                   mergedAt: merged.merged_at,
                 },
               },
+              { allowAlreadyConsumed: isMergedCandidate },
             );
+
+            if (consumption?.alreadyConsumed === true) {
+              console.log(
+                `Trusted exact merged candidate already has a consumed authorization receipt for PR #${PR_NUMBER}.`,
+              );
+              return;
+            }
             if (
               consumption?.allowed !== true ||
               consumption?.taskId !== TASK_ID ||
@@ -283,9 +320,17 @@ jobs:
               throw new Error('trusted merge attestation consumption was not confirmed');
             }
 
+            if (isMergedCandidate) {
+              console.log(
+                `Trusted exact merge recovery consumption confirmed for PR #${PR_NUMBER} ` +
+                `at ${mergeCommitSha}.`,
+              );
+              return;
+            }
+
             console.log(
               `Trusted exact merge and attestation consumption confirmed for PR #${PR_NUMBER} ` +
-              `at ${response.sha}.`,
+              `at ${mergeCommitSha}.`,
             );
           }
 
