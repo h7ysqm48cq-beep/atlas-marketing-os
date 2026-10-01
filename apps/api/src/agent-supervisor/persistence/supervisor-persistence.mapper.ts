@@ -13,6 +13,7 @@ import type {
   SupervisorOwnerDeploymentAuthorizationRevocation,
   SupervisorOwnerMergeAuthorization,
   SupervisorOwnerMergeAuthorizationConsumption,
+  SupervisorOwnerMergeAuthorizationRevocation,
   SupervisorReviewCandidate,
   SupervisorTask,
   SupervisorTaskStatus,
@@ -282,6 +283,57 @@ function mapMergeAttestation(value: unknown): SupervisorMergeAttestation {
   };
 }
 
+function mapOwnerMergeAuthorizationRevocation(
+  value: unknown,
+): SupervisorOwnerMergeAuthorizationRevocation {
+  const object = requireObject(value);
+  const candidate = mapReviewCandidate(object.candidate);
+  const authorizedBy = requireString(object.authorizedBy);
+  const authorizedAt = requireString(object.authorizedAt);
+  const revokedBy = requireString(object.revokedBy);
+  const revokedAt = requireString(object.revokedAt);
+  const reason = requireString(object.reason);
+
+  if (
+    candidate.action !== 'merge' ||
+    !GOVERNED_MERGE_TARGETS.has(
+      candidate.targetBranch as SupervisorMergeTargetBranch,
+    ) ||
+    !authorizedBy.trim() ||
+    authorizedBy !== authorizedBy.trim() ||
+    !authorizedAt.trim() ||
+    authorizedAt !== authorizedAt.trim() ||
+    Number.isNaN(Date.parse(authorizedAt)) ||
+    !revokedBy.trim() ||
+    revokedBy !== revokedBy.trim() ||
+    !revokedAt.trim() ||
+    revokedAt !== revokedAt.trim() ||
+    Number.isNaN(Date.parse(revokedAt)) ||
+    !reason.trim() ||
+    reason !== reason.trim()
+  ) {
+    throw persistenceError();
+  }
+
+  return {
+    candidate,
+    authorizedBy,
+    authorizedAt,
+    revokedBy,
+    revokedAt,
+    reason,
+  };
+}
+
+function mapOwnerMergeAuthorizationRevocations(
+  value: unknown,
+): SupervisorOwnerMergeAuthorizationRevocation[] {
+  if (!Array.isArray(value)) {
+    throw persistenceError();
+  }
+  return value.map(mapOwnerMergeAuthorizationRevocation);
+}
+
 function mapOwnerMergeAuthorizationConsumption(
   value: unknown,
 ): SupervisorOwnerMergeAuthorizationConsumption {
@@ -476,6 +528,12 @@ function mapEvidence(value: unknown): SupervisorEvidence {
       : mapOwnerMergeAuthorizationConsumption(
           object.ownerMergeAuthorizationConsumption,
         );
+  const ownerMergeAuthorizationRevocations =
+    object.ownerMergeAuthorizationRevocations === undefined
+      ? undefined
+      : mapOwnerMergeAuthorizationRevocations(
+          object.ownerMergeAuthorizationRevocations,
+        );
   const ownerDeploymentAuthorization =
     object.ownerDeploymentAuthorization === undefined
       ? undefined
@@ -508,6 +566,9 @@ function mapEvidence(value: unknown): SupervisorEvidence {
     ...(ownerMergeAuthorization ? { ownerMergeAuthorization } : {}),
     ...(ownerMergeAuthorizationConsumption
       ? { ownerMergeAuthorizationConsumption }
+      : {}),
+    ...(ownerMergeAuthorizationRevocations
+      ? { ownerMergeAuthorizationRevocations }
       : {}),
     ...(ownerDeploymentAuthorization ? { ownerDeploymentAuthorization } : {}),
     ...(ownerDeploymentAuthorizationConsumption

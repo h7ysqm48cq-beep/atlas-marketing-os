@@ -519,6 +519,70 @@ export class AgentSupervisorService {
     );
   }
 
+  async revokeMergeAuthorization(
+    id: string,
+    reason: string,
+    revokedBy: string,
+  ): Promise<SupervisorTask> {
+    const task = await this.requireTask(id);
+    const expectedUpdatedAt = new Date(task.updatedAt);
+    this.requireStatus(task, ['READY_FOR_REVIEW', 'APPROVED']);
+
+    if (task.evidence?.ownerMergeAuthorizationConsumption) {
+      throw new BadRequestException({
+        code: 'owner_merge_authorization_already_consumed',
+      });
+    }
+
+    const authorization = task.evidence?.ownerMergeAuthorization;
+    if (!authorization) {
+      throw new BadRequestException({
+        code: 'owner_merge_authorization_not_found',
+      });
+    }
+
+    const revocationReason = reason.trim();
+    if (!revocationReason) {
+      throw new BadRequestException({
+        code: 'merge_authorization_revocation_reason_required',
+      });
+    }
+
+    const ownerId = revokedBy.trim();
+    if (!ownerId) {
+      throw new BadRequestException({
+        code: 'owner_identity_required',
+      });
+    }
+
+    const revokedAt = new Date().toISOString();
+    const {
+      ownerMergeAuthorization: _mergeAuthorization,
+      ...evidence
+    } = task.evidence!;
+
+    task.evidence = {
+      ...evidence,
+      ownerMergeAuthorizationRevocations: [
+        ...(evidence.ownerMergeAuthorizationRevocations ?? []),
+        {
+          candidate: this.cloneCandidate(authorization.candidate),
+          authorizedBy: authorization.authorizedBy,
+          authorizedAt: authorization.authorizedAt,
+          revokedBy: ownerId,
+          revokedAt,
+          reason: revocationReason,
+        },
+      ],
+    };
+
+    task.updatedAt = this.nextMutationTime(expectedUpdatedAt);
+    return this.saveTaskMutationIfUnchanged(
+      task,
+      expectedUpdatedAt,
+    );
+  }
+
   async consumeTrustedMergeAuthorization(
     id: string,
     attestation: SupervisorMergeAttestation,
