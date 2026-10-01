@@ -90,6 +90,7 @@ const PRODUCTION_DEPLOYMENT_SERVICES = new Set<ProductionDeploymentService>([
   'browser-worker',
   'engineering-runner',
   'engineering-verifier',
+  'production-deploy-executor',
 ]);
 
 @Injectable()

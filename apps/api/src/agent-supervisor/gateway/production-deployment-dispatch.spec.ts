@@ -384,6 +384,20 @@ describe('production deployment dispatch reservation', () => {
     });
   });
 
+  it('keeps production-deploy-executor outside the self-dispatch allowlist', async () => {
+    await expect(
+      gateway.claimProductionDeploymentDispatch({
+        service: 'production-deploy-executor' as never,
+        github: CANONICAL_GITHUB,
+        dispatcherId: 'atlas-production-deploy-executor:production-deploy-executor',
+      }),
+    ).rejects.toMatchObject({
+      response: {
+        code: 'production_deployment_dispatch_service_unsupported',
+      },
+    });
+  });
+
   it('blocks deployment authorization revocation after dispatch reservation', async () => {
     const { task } = await createReadyWorkerDeployment();
     await approve(task.id);
