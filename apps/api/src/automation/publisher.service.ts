@@ -753,9 +753,13 @@ export class PublisherService {
             facebookBrowserPublishStarted = true;
             result =
               await this.browserRuntime.publishFacebookPost(
-                  post.channel.id,
-                  "PUBLISH",
-                );
+                post.channel.id,
+                "PUBLISH",
+                {
+                  includeScreenshotBase64:
+                    false,
+                },
+              );
 
             const browserPublishResult =
               result as {

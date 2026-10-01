@@ -72,6 +72,7 @@ import {
   resolveInstagramPublishedPostReference,
 } from "./instagram/published-post.js";
 import {
+  browserScreenshotResponse,
   readBrowserScreenshot,
   saveBrowserScreenshot,
 } from "./browser-screenshot-store.js";
@@ -2279,7 +2280,11 @@ app.post(
     const input =
       request.body as {
         confirmation?: string;
+        includeScreenshotBase64?: boolean;
       };
+
+    const includeScreenshotBase64 =
+      input.includeScreenshotBase64 !== false;
 
     if (
       input.confirmation !==
@@ -3298,34 +3303,24 @@ app.post(
           publishNetworkEvents,
         },
         screenshots: {
-          before: {
-            mimeType:
-              "image/jpeg",
-            base64:
-              beforeScreenshot.toString(
-                "base64",
-              ),
-            absolutePath:
-              savedBeforeScreenshot.absolutePath,
-            relativePath:
-              savedBeforeScreenshot.relativePath,
-            filename:
-              savedBeforeScreenshot.filename,
-          },
-          after: {
-            mimeType:
-              "image/jpeg",
-            base64:
-              afterScreenshot.toString(
-                "base64",
-              ),
-            absolutePath:
-              savedAfterScreenshot.absolutePath,
-            relativePath:
-              savedAfterScreenshot.relativePath,
-            filename:
-              savedAfterScreenshot.filename,
-          },
+          before:
+            browserScreenshotResponse({
+              buffer:
+                beforeScreenshot,
+              saved:
+                savedBeforeScreenshot,
+              includeBase64:
+                includeScreenshotBase64,
+            }),
+          after:
+            browserScreenshotResponse({
+              buffer:
+                afterScreenshot,
+              saved:
+                savedAfterScreenshot,
+              includeBase64:
+                includeScreenshotBase64,
+            }),
         },
         publishedAt:
           new Date()
