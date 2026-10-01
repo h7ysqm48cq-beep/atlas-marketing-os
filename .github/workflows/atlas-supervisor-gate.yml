@@ -12,10 +12,14 @@ permissions:
   pull-requests: read
 
 jobs:
-  atlas-supervisor-gate:
-    name: atlas-supervisor-gate
+  atlas-supervisor-pre-gate:
+    name: atlas-supervisor-pre-gate
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    outputs:
+      task_id: ${{ steps.metadata.outputs.task_id }}
+      execution_id: ${{ steps.metadata.outputs.execution_id }}
+      changed_files_b64: ${{ steps.changes.outputs.changed_files_b64 }}
     steps:
       - name: Collect pull request change set
         id: changes
@@ -650,3 +654,200 @@ jobs:
 
           git diff --exit-code -- "$calendar_page"
           test ! -e "$ci_config"
+
+  atlas-supervisor-gate:
+    name: atlas-supervisor-gate
+    if: github.event.action != 'closed'
+    needs: [atlas-supervisor-pre-gate, api-verification]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Revalidate exact candidate and fresh Owner merge authorization
+        env:
+          SUPERVISOR_API_URL: ${{ secrets.ATLAS_SUPERVISOR_API_URL }}
+          SUPERVISOR_CI_TOKEN: ${{ secrets.ATLAS_SUPERVISOR_CI_TOKEN }}
+          TASK_ID: ${{ needs.atlas-supervisor-pre-gate.outputs.task_id }}
+          EXECUTION_ID: ${{ needs.atlas-supervisor-pre-gate.outputs.execution_id }}
+          TARGET_BRANCH: ${{ github.event.pull_request.base.ref }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          CHANGED_FILES_B64: ${{ needs.atlas-supervisor-pre-gate.outputs.changed_files_b64 }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          node <<'NODE'
+          const fs = require('node:fs');
+          const required = [
+            'TASK_ID',
+            'EXECUTION_ID',
+            'TARGET_BRANCH',
+            'BASE_SHA',
+            'HEAD_SHA',
+            'CHANGED_FILES_B64',
+          ];
+          for (const key of required) {
+            if (!process.env[key]) throw new Error(`${key} is missing`);
+          }
+
+          if (!['production/atlas', 'main'].includes(process.env.TARGET_BRANCH)) {
+            throw new Error('governed target branch required');
+          }
+
+          const changedFiles = JSON.parse(
+            Buffer.from(process.env.CHANGED_FILES_B64, 'base64').toString('utf8'),
+          );
+          if (!Array.isArray(changedFiles) || changedFiles.length === 0) {
+            throw new Error('invalid changed file list');
+          }
+
+          const payload = {
+            taskId: process.env.TASK_ID,
+            executionId: process.env.EXECUTION_ID,
+            action: 'merge',
+            targetBranch: process.env.TARGET_BRANCH,
+            baseSha: process.env.BASE_SHA,
+            headSha: process.env.HEAD_SHA,
+            changedFiles,
+            explicitUserAuthorization: false,
+          };
+          fs.writeFileSync(
+            '/tmp/atlas-supervisor-final-merge-review.json',
+            JSON.stringify(payload),
+          );
+          NODE
+
+          url="${SUPERVISOR_API_URL%/}/engineering/supervisor/gateway/review-candidate"
+          curl \
+            --fail-with-body \
+            --silent \
+            --show-error \
+            --max-time 15 \
+            --request POST \
+            --header 'Content-Type: application/json' \
+            --header "X-Atlas-Supervisor-CI-Token: ${SUPERVISOR_CI_TOKEN}" \
+            --data-binary @/tmp/atlas-supervisor-final-merge-review.json \
+            "$url" \
+            --output /tmp/atlas-supervisor-final-merge-response.json
+
+          node <<'NODE'
+          const fs = require('node:fs');
+          const response = JSON.parse(
+            fs.readFileSync('/tmp/atlas-supervisor-final-merge-response.json', 'utf8'),
+          );
+          if (
+            response?.allowed !== true ||
+            response?.taskId !== process.env.TASK_ID ||
+            response?.executionId !== process.env.EXECUTION_ID
+          ) {
+            throw new Error(
+              'ATLAS Supervisor denied final merge authorization or returned mismatched identity',
+            );
+          }
+          console.log('Fresh signed Owner merge authorization is valid for the exact candidate.');
+          NODE
+
+      - name: Verify current PR identity and enable exact normal auto-merge
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          TARGET_BRANCH: ${{ github.event.pull_request.base.ref }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          CHANGED_FILES_B64: ${{ needs.atlas-supervisor-pre-gate.outputs.changed_files_b64 }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          node <<'NODE'
+          const {
+            GH_TOKEN,
+            REPOSITORY,
+            PR_NUMBER,
+            TARGET_BRANCH,
+            BASE_SHA,
+            HEAD_SHA,
+            CHANGED_FILES_B64,
+          } = process.env;
+          for (const [key, value] of Object.entries({
+            GH_TOKEN,
+            REPOSITORY,
+            PR_NUMBER,
+            TARGET_BRANCH,
+            BASE_SHA,
+            HEAD_SHA,
+            CHANGED_FILES_B64,
+          })) {
+            if (!value) throw new Error(`${key} is missing`);
+          }
+
+          const headers = {
+            Accept: 'application/vnd.github+json',
+            Authorization: `Bearer ${GH_TOKEN}`,
+            'X-GitHub-Api-Version': '2022-11-28',
+          };
+
+          async function github(path) {
+            const response = await fetch(
+              `https://api.github.com/repos/${REPOSITORY}${path}`,
+              { headers },
+            );
+            if (!response.ok) {
+              throw new Error(`GitHub exact-merge identity request failed: ${response.status}`);
+            }
+            return response.json();
+          }
+
+          async function main() {
+            const pr = await github(`/pulls/${PR_NUMBER}`);
+            if (
+              pr?.state !== 'open' ||
+              pr?.merged === true ||
+              pr?.base?.ref !== TARGET_BRANCH ||
+              pr?.base?.sha !== BASE_SHA ||
+              pr?.head?.sha !== HEAD_SHA
+            ) {
+              throw new Error('GitHub pull request identity drifted after final Supervisor review');
+            }
+
+            const currentFiles = [];
+            for (let page = 1; ; page += 1) {
+              const batch = await github(
+                `/pulls/${PR_NUMBER}/files?per_page=100&page=${page}`,
+              );
+              if (!Array.isArray(batch)) {
+                throw new Error('invalid GitHub changed-files response');
+              }
+              currentFiles.push(...batch.map((entry) => entry.filename));
+              if (batch.length < 100) break;
+            }
+
+            const reviewedFiles = JSON.parse(
+              Buffer.from(CHANGED_FILES_B64, 'base64').toString('utf8'),
+            );
+            const normalize = (values) => [...new Set(values)].sort();
+            if (
+              JSON.stringify(normalize(currentFiles)) !==
+              JSON.stringify(normalize(reviewedFiles))
+            ) {
+              throw new Error('GitHub pull request changed-files drifted after final Supervisor review');
+            }
+          }
+
+          main().catch((error) => {
+            console.error(error?.message ?? 'exact merge identity validation failed');
+            process.exit(1);
+          });
+          NODE
+
+          gh pr merge "$PR_NUMBER" \
+            --repo "$REPOSITORY" \
+            --auto \
+            --merge \
+            --match-head-commit "$HEAD_SHA"
+
+          echo 'Exact-head normal auto-merge enabled; branch protection remains authoritative.'
