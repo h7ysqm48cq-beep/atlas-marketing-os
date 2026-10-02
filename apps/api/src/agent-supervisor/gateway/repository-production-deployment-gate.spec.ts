@@ -86,6 +86,39 @@ describe('repository-owned production deployment gate', () => {
     ).rejects.toThrow(/RAILWAY_GIT_COMMIT_SHA/);
   });
 
+  it('forwards missing Railway branch for reservation-backed Supervisor resolution', async () => {
+    const gate = loadGate();
+    const fetchImpl = jest.fn().mockResolvedValue(
+      response(200, {
+        allowed: true,
+        reason: null,
+        taskId: 'ATLAS-BRANCHLESS-DEPLOY-1',
+        executionId: 'ATLAS-BRANCHLESS-DEPLOY-EXEC-1',
+      }),
+    ) as unknown as typeof fetch;
+
+    await expect(
+      gate.checkProductionDeploymentGate({
+        env: validEnv({ RAILWAY_GIT_BRANCH: '' }),
+        fetchImpl,
+      }),
+    ).resolves.toEqual({
+      taskId: 'ATLAS-BRANCHLESS-DEPLOY-1',
+      executionId: 'ATLAS-BRANCHLESS-DEPLOY-EXEC-1',
+    });
+
+    const [, init] = (fetchImpl as unknown as jest.Mock).mock.calls[0] as [
+      string,
+      RequestInit,
+    ];
+    const body = JSON.parse(String(init.body));
+    expect(body.github).toEqual({
+      repositoryOwner: 'h7ysqm48cq-beep',
+      repositoryName: 'atlas-marketing-os',
+      commitSha: 'a'.repeat(40),
+    });
+  });
+
   it('fails closed when the resolver returns HTTP 400', async () => {
     const gate = loadGate();
     const fetchImpl = jest.fn().mockImplementation(async () =>
