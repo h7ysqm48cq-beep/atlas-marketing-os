@@ -30,11 +30,31 @@ import {
 } from "./publisher-result";
 import { NotificationService } from "../notifications/notification.service";
 
+export function sanitizePublishAttemptPayload(
+  value: unknown,
+) {
+  const serialized =
+    JSON.stringify(
+      value,
+      (key, nestedValue) =>
+        key === "base64"
+          ? undefined
+          : nestedValue,
+    );
+
+  return serialized === undefined
+    ? null
+    : JSON.parse(serialized);
+}
+
 @Injectable()
 export class PublisherService {
 
   private readonly logger =
     new Logger(PublisherService.name);
+
+  private publisherScopeLogged =
+    false;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -58,12 +78,18 @@ export class PublisherService {
         process.env.AUTOMATION_PUBLISHER_CHANNEL_IDS,
       );
 
-    if (allowedChannelIds) {
+    if (
+      allowedChannelIds &&
+      !this.publisherScopeLogged
+    ) {
       this.logger.log(
         allowedChannelIds.length > 0
           ? `Publisher channel allowlist is active for ${allowedChannelIds.length} channel(s).`
           : "Publisher channel allowlist is empty; no posts will be selected.",
       );
+
+      this.publisherScopeLogged =
+        true;
     }
 
     const posts =
@@ -99,9 +125,11 @@ export class PublisherService {
         },
       });
 
-    this.logger.log(
-      `Found ${posts.length} scheduled post(s).`,
-    );
+    if (posts.length > 0) {
+      this.logger.log(
+        `Found ${posts.length} scheduled post(s).`,
+      );
+    }
 
     let published = 0;
     let blocked = 0;
@@ -725,9 +753,13 @@ export class PublisherService {
             facebookBrowserPublishStarted = true;
             result =
               await this.browserRuntime.publishFacebookPost(
-                  post.channel.id,
-                  "PUBLISH",
-                );
+                post.channel.id,
+                "PUBLISH",
+                {
+                  includeScreenshotBase64:
+                    false,
+                },
+              );
 
             const browserPublishResult =
               result as {
@@ -1048,7 +1080,10 @@ export class PublisherService {
           data: {
             status:
               PublishAttemptStatus.SUCCESS,
-            responsePayload: result,
+            responsePayload:
+              sanitizePublishAttemptPayload(
+                result,
+              ),
             completedAt:
               new Date(),
           },
@@ -1150,7 +1185,12 @@ export class PublisherService {
             e?.statusCode ??
             e?.response?.status ??
             null,
-          response: responseData,
+          response:
+            responseData
+              ? sanitizePublishAttemptPayload(
+                  responseData,
+                )
+              : responseData,
         };
 
         this.logger.error(
@@ -1168,8 +1208,8 @@ export class PublisherService {
             errorMessage,
             responsePayload:
               responseData
-                ? JSON.parse(
-                    JSON.stringify(responseData),
+                ? sanitizePublishAttemptPayload(
+                    responseData,
                   )
                 : undefined,
             completedAt:
