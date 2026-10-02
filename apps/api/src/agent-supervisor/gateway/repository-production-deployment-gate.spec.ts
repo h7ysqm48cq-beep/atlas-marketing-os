@@ -60,6 +60,7 @@ function validEnv(overrides: NodeJS.ProcessEnv = {}): NodeJS.ProcessEnv {
     RAILWAY_GIT_REPO_NAME: 'atlas-marketing-os',
     RAILWAY_GIT_BRANCH: 'production/atlas',
     RAILWAY_GIT_COMMIT_SHA: 'a'.repeat(40),
+    RAILWAY_DEPLOYMENT_ID: '12345678-1234-4123-8123-123456789abc',
     ...overrides,
   };
 }
@@ -219,6 +220,8 @@ describe('repository-owned production deployment gate', () => {
     });
     expect(JSON.parse(String(init.body))).toEqual({
       service: 'api',
+      phase: 'pre_deploy',
+      deploymentId: '12345678-1234-4123-8123-123456789abc',
       github: {
         repositoryOwner: 'h7ysqm48cq-beep',
         repositoryName: 'atlas-marketing-os',
@@ -256,6 +259,8 @@ describe('repository-owned production deployment gate', () => {
     ];
     expect(JSON.parse(String(init.body))).toEqual({
       service: 'browser-worker',
+      phase: 'pre_deploy',
+      deploymentId: '12345678-1234-4123-8123-123456789abc',
       github: {
         repositoryOwner: 'h7ysqm48cq-beep',
         repositoryName: 'atlas-marketing-os',
