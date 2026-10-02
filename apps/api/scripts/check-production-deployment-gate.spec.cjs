@@ -48,44 +48,6 @@ test('shared deployment gate accepts engineering-verifier and forwards exact pro
   );
 });
 
-
-test('shared deployment gate forwards branchless Railway provenance for Supervisor reservation validation', async () => {
-  const env = {
-    ATLAS_SUPERVISOR_API_URL: 'https://api.example.test',
-    ATLAS_SUPERVISOR_CI_TOKEN: 'token',
-    ATLAS_DEPLOYMENT_SERVICE: 'api',
-    RAILWAY_GIT_REPO_OWNER: 'h7ysqm48cq-beep',
-    RAILWAY_GIT_REPO_NAME: 'atlas-marketing-os',
-    RAILWAY_GIT_COMMIT_SHA: '9'.repeat(40),
-    RAILWAY_DEPLOYMENT_ID: '00000007-1111-4111-8111-111111111111',
-  };
-  let request;
-
-  await checkProductionDeploymentGate({
-    env,
-    fetchImpl: async (url, init) => {
-      request = { url, init };
-      return {
-        ok: true,
-        status: 200,
-        text: async () => JSON.stringify({
-          allowed: true,
-          taskId: 'task-branchless-api',
-          executionId: 'exec-branchless-api',
-        }),
-      };
-    },
-  });
-
-  const requestBody = JSON.parse(request.init.body);
-  assert.equal(requestBody.service, 'api');
-  assert.equal(requestBody.provenanceMode, 'supervisor_dispatch_reservation');
-  assert.equal(requestBody.github.repositoryOwner, 'h7ysqm48cq-beep');
-  assert.equal(requestBody.github.repositoryName, 'atlas-marketing-os');
-  assert.equal(requestBody.github.branch, 'production/atlas');
-  assert.equal(requestBody.github.commitSha, '9'.repeat(40));
-});
-
 test('shared deployment gate retries only unresolved production authorization', async () => {
   const env = {
     ATLAS_SUPERVISOR_API_URL: 'https://api.example.test',
@@ -300,3 +262,88 @@ test('shared deployment gate does not retry service binding failures', async () 
   assert.equal(waits, 0);
 });
 
+
+
+test('shared deployment gate canonicalizes Railway main metadata only for the exact production head', async () => {
+  const sha = '7'.repeat(40);
+  const env = {
+    ATLAS_SUPERVISOR_API_URL: 'https://api.example.test',
+    ATLAS_SUPERVISOR_CI_TOKEN: 'token',
+    ATLAS_DEPLOYMENT_SERVICE: 'api',
+    RAILWAY_GIT_REPO_OWNER: 'h7ysqm48cq-beep',
+    RAILWAY_GIT_REPO_NAME: 'atlas-marketing-os',
+    RAILWAY_GIT_BRANCH: 'main',
+    RAILWAY_GIT_COMMIT_SHA: sha,
+    RAILWAY_DEPLOYMENT_ID: '00000007-1111-4111-8111-111111111111',
+  };
+  let supervisorRequest = null;
+
+  const receipt = await checkProductionDeploymentGate({
+    env,
+    fetchImpl: async (url, init = {}) => {
+      const href = String(url);
+      if (href.includes('.git/info/refs?service=git-upload-pack')) {
+        return {
+          ok: true,
+          status: 200,
+          text: async () =>
+            `001e# service=git-upload-pack\n00000049${sha} refs/heads/production/atlas\n`,
+        };
+      }
+      supervisorRequest = { href, init };
+      return {
+        ok: true,
+        status: 200,
+        text: async () => JSON.stringify({
+          allowed: true,
+          taskId: 'task-detached',
+          executionId: 'exec-detached',
+        }),
+      };
+    },
+  });
+
+  assert.deepEqual(receipt, {
+    taskId: 'task-detached',
+    executionId: 'exec-detached',
+  });
+  const body = JSON.parse(supervisorRequest.init.body);
+  assert.equal(body.github.branch, 'production/atlas');
+  assert.equal(body.github.commitSha, sha);
+});
+
+test('shared deployment gate rejects Railway main metadata when the commit is not the production head', async () => {
+  const env = {
+    ATLAS_SUPERVISOR_API_URL: 'https://api.example.test',
+    ATLAS_SUPERVISOR_CI_TOKEN: 'token',
+    ATLAS_DEPLOYMENT_SERVICE: 'api',
+    RAILWAY_GIT_REPO_OWNER: 'h7ysqm48cq-beep',
+    RAILWAY_GIT_REPO_NAME: 'atlas-marketing-os',
+    RAILWAY_GIT_BRANCH: 'main',
+    RAILWAY_GIT_COMMIT_SHA: '7'.repeat(40),
+    RAILWAY_DEPLOYMENT_ID: '00000008-1111-4111-8111-111111111111',
+  };
+  let supervisorCalls = 0;
+
+  await assert.rejects(
+    checkProductionDeploymentGate({
+      env,
+      fetchImpl: async (url) => {
+        const href = String(url);
+        if (href.includes('.git/info/refs?service=git-upload-pack')) {
+          return {
+            ok: true,
+            status: 200,
+            text: async () =>
+              `001e# service=git-upload-pack\n00000049${'8'.repeat(40)} refs/heads/production/atlas\n`,
+          };
+        }
+        supervisorCalls += 1;
+        throw new Error('supervisor must not be called');
+      },
+    }),
+    /ATLAS_DEPLOY_GATE_DENY canonical_production_branch_required/,
+  );
+
+  assert.equal(supervisorCalls, 0);
+});
