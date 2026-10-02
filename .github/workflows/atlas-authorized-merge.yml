@@ -129,6 +129,80 @@ jobs:
             return match[1];
           }
 
+          async function qualifyAffectedWorkers(changedFiles, mergeCommitSha) {
+            const exact = (path, value) => path === value;
+            const under = (path, prefix) => path.startsWith(prefix);
+            const runnerAffected = changedFiles.some((path) =>
+              under(path, 'apps/engineering-runner/') ||
+              exact(path, 'apps/api/scripts/check-production-deployment-gate.cjs') ||
+              exact(path, 'package.json') ||
+              exact(path, 'package-lock.json') ||
+              under(path, 'tools/ai_engineer/') ||
+              under(path, 'tools/runtime/') ||
+              under(path, 'tools/modifier/'),
+            );
+            const verifierAffected = changedFiles.some((path) =>
+              under(path, 'apps/engineering-runner/') ||
+              exact(path, 'apps/api/scripts/check-production-deployment-gate.cjs') ||
+              exact(path, 'package.json') ||
+              exact(path, 'package-lock.json') ||
+              under(path, 'tools/ai_engineer/'),
+            );
+            const services = [];
+            if (runnerAffected) services.push('engineering-runner');
+            if (verifierAffected) services.push('engineering-verifier');
+            if (services.length === 0) return;
+
+            const [repositoryOwner, repositoryName] = REPOSITORY.split('/');
+            if (!repositoryOwner || !repositoryName) {
+              throw new Error('invalid GitHub repository identity');
+            }
+
+            for (const service of services) {
+              for (let attempt = 1; attempt <= 60; attempt += 1) {
+                const result = await supervisor(
+                  '/engineering/supervisor/gateway/production-deployment/qualification',
+                  {
+                    service,
+                    github: {
+                      repositoryOwner,
+                      repositoryName,
+                      branch: 'production/atlas',
+                      commitSha: mergeCommitSha,
+                    },
+                  },
+                );
+                if (
+                  result?.service !== service ||
+                  result?.commitSha !== mergeCommitSha ||
+                  typeof result?.taskId !== 'string' ||
+                  typeof result?.executionId !== 'string'
+                ) {
+                  throw new Error(`${service} qualification returned mismatched identity`);
+                }
+                if (
+                  result.taskStatus === 'READY_FOR_REVIEW' ||
+                  result.taskStatus === 'APPROVED'
+                ) {
+                  console.log('ATLAS_DEPLOY_QUALIFICATION_READY', {
+                    service,
+                    taskId: result.taskId,
+                    executionId: result.executionId,
+                    commitSha: result.commitSha,
+                  });
+                  break;
+                }
+                if (result.executionStatus === 'FAILED') {
+                  throw new Error(`${service} independent verifier failed`);
+                }
+                if (attempt === 60) {
+                  throw new Error(`${service} qualification did not reach READY_FOR_REVIEW in time`);
+                }
+                await new Promise((resolve) => setTimeout(resolve, 2_000));
+              }
+            }
+          }
+
           async function main() {
             let HEAD_SHA;
             let PR_NUMBER;
@@ -351,14 +425,16 @@ jobs:
               console.log(
                 `Trusted exact merged candidate already has a consumed authorization receipt for PR #${PR_NUMBER}.`,
               );
-              return;
-            }
-            if (
+            } else if (
               consumption?.allowed !== true ||
               consumption?.taskId !== TASK_ID ||
               consumption?.executionId !== EXECUTION_ID
             ) {
               throw new Error('trusted merge attestation consumption was not confirmed');
+            }
+
+            if (pr.base.ref === 'production/atlas') {
+              await qualifyAffectedWorkers(normalizedFiles, mergeCommitSha);
             }
 
             if (isMergedCandidate) {
