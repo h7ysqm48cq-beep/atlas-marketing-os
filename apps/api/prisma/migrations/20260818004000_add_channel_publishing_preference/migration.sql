@@ -1,0 +1,2 @@
+ALTER TABLE "SocialChannel"
+ADD COLUMN IF NOT EXISTS "publishingPreference" TEXT NOT NULL DEFAULT 'AUTOMATIC';
