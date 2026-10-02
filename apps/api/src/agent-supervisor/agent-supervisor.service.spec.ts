@@ -1656,6 +1656,225 @@ describe('AgentSupervisorService', () => {
     });
   });
 
+  it('retires an expired reserved deployment authorization and preserves a structured audit receipt', async () => {
+    jest.useFakeTimers();
+    try {
+      const ownerService = bindOwnerApprovalArtifacts(createOwnerService());
+      const reviewCandidate = runtimeRefreshDeploymentCandidate();
+      const ready = await makeReadyTask(ownerService, reviewCandidate);
+      const approved = await ownerService.approveTask(ready.id, true);
+
+      jest.setSystemTime(new Date('2026-10-02T12:00:00.000Z'));
+      await authorizeDeploymentAsOwner(
+        ownerService,
+        approved.id,
+        reviewCandidate,
+        'api',
+        'owner-user-1',
+      );
+      await ownerService.reserveProductionDeploymentDispatch(
+        approved.id,
+        reviewCandidate,
+        'api',
+        'ATLAS-DISPATCH-' + 'a'.repeat(64),
+        'atlas-production-deploy-executor:api',
+      );
+
+      jest.setSystemTime(new Date('2026-10-02T12:31:00.000Z'));
+      const retired =
+        await ownerService.retireReservedProductionDeploymentAuthorization(
+          approved.id,
+          'terminal deployment failed and authorization expired',
+          'owner-user-2',
+        );
+
+      expect(retired.evidence?.ownerDeploymentAuthorization).toBeUndefined();
+      expect(
+        retired.evidence?.ownerDeploymentDispatchReservation,
+      ).toBeUndefined();
+      expect(retired.evidence?.deploymentState).toBe(
+        'DEPLOYMENT_AUTHORIZATION_RETIRED',
+      );
+      expect(
+        retired.evidence?.ownerDeploymentAuthorizationRetirements,
+      ).toHaveLength(1);
+      expect(
+        retired.evidence?.ownerDeploymentAuthorizationRetirements?.[0],
+      ).toMatchObject({
+        authorization: {
+          candidate: reviewCandidate,
+          service: 'api',
+          authorizedBy: 'owner-user-1',
+        },
+        reservation: {
+          candidate: reviewCandidate,
+          service: 'api',
+          reservationId: 'ATLAS-DISPATCH-' + 'a'.repeat(64),
+          reservedBy: 'atlas-production-deploy-executor:api',
+        },
+        retiredBy: 'owner-user-2',
+        reason: 'terminal deployment failed and authorization expired',
+        authorizationExpiredAt: '2026-10-02T12:10:00.000Z',
+        reservationStaleAfter: '2026-10-02T12:30:00.000Z',
+      });
+      expect(
+        retired.evidence?.ownerDeploymentAuthorizationRetirements?.[0]
+          ?.approvalJti,
+      ).toEqual(expect.any(String));
+      expect(
+        retired.evidence?.ownerDeploymentAuthorizationRetirements?.[0]
+          ?.candidateHash,
+      ).toMatch(/^[0-9a-f]{64}$/i);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('fails closed when a reserved deployment authorization has not expired', async () => {
+    jest.useFakeTimers();
+    try {
+      const ownerService = bindOwnerApprovalArtifacts(createOwnerService());
+      const reviewCandidate = runtimeRefreshDeploymentCandidate();
+      const ready = await makeReadyTask(ownerService, reviewCandidate);
+      const approved = await ownerService.approveTask(ready.id, true);
+
+      jest.setSystemTime(new Date('2026-10-02T12:00:00.000Z'));
+      await authorizeDeploymentAsOwner(
+        ownerService,
+        approved.id,
+        reviewCandidate,
+        'api',
+      );
+      await ownerService.reserveProductionDeploymentDispatch(
+        approved.id,
+        reviewCandidate,
+        'api',
+        'ATLAS-DISPATCH-' + 'b'.repeat(64),
+        'atlas-production-deploy-executor:api',
+      );
+
+      jest.setSystemTime(new Date('2026-10-02T12:09:59.000Z'));
+      await expect(
+        ownerService.retireReservedProductionDeploymentAuthorization(
+          approved.id,
+          'too early',
+          'owner-user-1',
+        ),
+      ).rejects.toMatchObject({
+        response: {
+          code: 'owner_deployment_authorization_not_expired',
+        },
+      });
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('fails closed after authorization expiry while the canonical reservation is not yet stale', async () => {
+    jest.useFakeTimers();
+    try {
+      const ownerService = bindOwnerApprovalArtifacts(createOwnerService());
+      const reviewCandidate = runtimeRefreshDeploymentCandidate();
+      const ready = await makeReadyTask(ownerService, reviewCandidate);
+      const approved = await ownerService.approveTask(ready.id, true);
+
+      jest.setSystemTime(new Date('2026-10-02T12:00:00.000Z'));
+      await authorizeDeploymentAsOwner(
+        ownerService,
+        approved.id,
+        reviewCandidate,
+        'api',
+      );
+      await ownerService.reserveProductionDeploymentDispatch(
+        approved.id,
+        reviewCandidate,
+        'api',
+        'ATLAS-DISPATCH-' + 'c'.repeat(64),
+        'atlas-production-deploy-executor:api',
+      );
+
+      jest.setSystemTime(new Date('2026-10-02T12:20:00.000Z'));
+      await expect(
+        ownerService.retireReservedProductionDeploymentAuthorization(
+          approved.id,
+          'authorization expired but dispatch window remains active',
+          'owner-user-1',
+        ),
+      ).rejects.toMatchObject({
+        response: {
+          code: 'owner_deployment_dispatch_reservation_not_stale',
+        },
+      });
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('rejects retirement for reservations not created by the canonical production deploy executor', async () => {
+    jest.useFakeTimers();
+    try {
+      const ownerService = bindOwnerApprovalArtifacts(createOwnerService());
+      const reviewCandidate = runtimeRefreshDeploymentCandidate();
+      const ready = await makeReadyTask(ownerService, reviewCandidate);
+      const approved = await ownerService.approveTask(ready.id, true);
+
+      jest.setSystemTime(new Date('2026-10-02T12:00:00.000Z'));
+      await authorizeDeploymentAsOwner(
+        ownerService,
+        approved.id,
+        reviewCandidate,
+        'api',
+      );
+      await ownerService.reserveProductionDeploymentDispatch(
+        approved.id,
+        reviewCandidate,
+        'api',
+        'ATLAS-DISPATCH-' + 'd'.repeat(64),
+        'github-actions:legacy:api',
+      );
+
+      jest.setSystemTime(new Date('2026-10-02T12:31:00.000Z'));
+      await expect(
+        ownerService.retireReservedProductionDeploymentAuthorization(
+          approved.id,
+          'legacy reservation',
+          'owner-user-1',
+        ),
+      ).rejects.toMatchObject({
+        response: {
+          code: 'owner_deployment_dispatch_reservation_not_retirable',
+        },
+      });
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('requires a dispatch reservation before retirement', async () => {
+    const ownerService = bindOwnerApprovalArtifacts(createOwnerService());
+    const reviewCandidate = runtimeRefreshDeploymentCandidate();
+    const ready = await makeReadyTask(ownerService, reviewCandidate);
+    const approved = await ownerService.approveTask(ready.id, true);
+    await authorizeDeploymentAsOwner(
+      ownerService,
+      approved.id,
+      reviewCandidate,
+      'api',
+    );
+
+    await expect(
+      ownerService.retireReservedProductionDeploymentAuthorization(
+        approved.id,
+        'no reservation exists',
+        'owner-user-1',
+      ),
+    ).rejects.toMatchObject({
+      response: {
+        code: 'owner_deployment_dispatch_reservation_required',
+      },
+    });
+  });
+
   it('revokes owner deployment authorization when a reviewed task returns to working', async () => {
     const ownerService = bindOwnerApprovalArtifacts(createOwnerService());
     const reviewCandidate = deploymentCandidate();

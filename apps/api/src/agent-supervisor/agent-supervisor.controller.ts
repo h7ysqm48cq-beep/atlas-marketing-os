@@ -315,6 +315,19 @@ export class AgentSupervisorController {
     );
   }
 
+  @Post('tasks/:id/retire-reserved-production-deployment-authorization')
+  retireReservedProductionDeploymentAuthorization(
+    @Param('id') id: string,
+    @Body() body: { reason: string },
+    @Req() request: { user?: { id?: string } },
+  ) {
+    return this.supervisor.retireReservedProductionDeploymentAuthorization(
+      id,
+      body.reason ?? '',
+      request.user?.id ?? '',
+    );
+  }
+
   @Post('tasks/:id/dispatch')
   dispatchTask(
     @Param('id') id: string,

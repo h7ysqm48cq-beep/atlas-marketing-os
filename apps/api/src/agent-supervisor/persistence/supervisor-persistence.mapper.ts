@@ -11,6 +11,7 @@ import type {
   SupervisorOwnerDeploymentAuthorization,
   SupervisorOwnerDeploymentAuthorizationConsumption,
   SupervisorOwnerDeploymentAuthorizationRevocation,
+  SupervisorOwnerDeploymentAuthorizationRetirement,
   SupervisorOwnerDeploymentDispatchReservation,
   SupervisorOwnerMergeAuthorization,
   SupervisorOwnerMergeAuthorizationConsumption,
@@ -522,6 +523,77 @@ function mapOwnerDeploymentAuthorizationRevocations(
   );
 }
 
+function mapOwnerDeploymentAuthorizationRetirement(
+  value: unknown,
+): SupervisorOwnerDeploymentAuthorizationRetirement {
+  const object = requireObject(value);
+  const authorization = mapOwnerDeploymentAuthorization(object.authorization);
+  const reservation = mapOwnerDeploymentDispatchReservation(object.reservation);
+  const approvalJti = requireString(object.approvalJti);
+  const candidateHash = requireString(object.candidateHash);
+  const authorizationExpiredAt = requireString(object.authorizationExpiredAt);
+  const reservationStaleAfter = requireString(object.reservationStaleAfter);
+  const retiredBy = requireString(object.retiredBy);
+  const retiredAt = requireString(object.retiredAt);
+  const reason = requireString(object.reason);
+  const sameCandidate =
+    authorization.candidate.action === reservation.candidate.action &&
+    authorization.candidate.targetBranch === reservation.candidate.targetBranch &&
+    authorization.candidate.baseSha === reservation.candidate.baseSha &&
+    authorization.candidate.headSha === reservation.candidate.headSha &&
+    authorization.candidate.changedFiles.length === reservation.candidate.changedFiles.length &&
+    authorization.candidate.changedFiles.every(
+      (path, index) => path === reservation.candidate.changedFiles[index],
+    );
+  const authorizationExpiredAtMs = Date.parse(authorizationExpiredAt);
+  const reservationStaleAfterMs = Date.parse(reservationStaleAfter);
+  const retiredAtMs = Date.parse(retiredAt);
+
+  if (
+    authorization.service !== reservation.service ||
+    !sameCandidate ||
+    !approvalJti.trim() ||
+    !/^[0-9a-f]{64}$/i.test(candidateHash) ||
+    !authorizationExpiredAt.trim() ||
+    !Number.isFinite(authorizationExpiredAtMs) ||
+    new Date(authorizationExpiredAtMs).toISOString() !== authorizationExpiredAt ||
+    !reservationStaleAfter.trim() ||
+    !Number.isFinite(reservationStaleAfterMs) ||
+    new Date(reservationStaleAfterMs).toISOString() !== reservationStaleAfter ||
+    reservationStaleAfterMs <= Date.parse(reservation.reservedAt) ||
+    !retiredBy.trim() ||
+    retiredBy !== retiredBy.trim() ||
+    !retiredAt.trim() ||
+    !Number.isFinite(retiredAtMs) ||
+    new Date(retiredAtMs).toISOString() !== retiredAt ||
+    !reason.trim() ||
+    reason !== reason.trim()
+  ) {
+    throw persistenceError();
+  }
+
+  return {
+    authorization,
+    reservation,
+    approvalJti,
+    candidateHash,
+    authorizationExpiredAt,
+    reservationStaleAfter,
+    retiredBy,
+    retiredAt,
+    reason,
+  };
+}
+
+function mapOwnerDeploymentAuthorizationRetirements(
+  value: unknown,
+): SupervisorOwnerDeploymentAuthorizationRetirement[] {
+  if (!Array.isArray(value)) {
+    throw persistenceError();
+  }
+  return value.map(mapOwnerDeploymentAuthorizationRetirement);
+}
+
 function mapExistingCandidateVerification(value: unknown): SupervisorExistingCandidateVerification {
   const object = requireObject(value);
   const baseSha = requireString(object.baseSha);
@@ -595,6 +667,12 @@ function mapEvidence(value: unknown): SupervisorEvidence {
       : mapOwnerDeploymentAuthorizationRevocations(
           object.ownerDeploymentAuthorizationRevocations,
         );
+  const ownerDeploymentAuthorizationRetirements =
+    object.ownerDeploymentAuthorizationRetirements === undefined
+      ? undefined
+      : mapOwnerDeploymentAuthorizationRetirements(
+          object.ownerDeploymentAuthorizationRetirements,
+        );
   const ownerDeploymentDispatchReservation =
     object.ownerDeploymentDispatchReservation === undefined
       ? undefined
@@ -627,6 +705,9 @@ function mapEvidence(value: unknown): SupervisorEvidence {
       : {}),
     ...(ownerDeploymentAuthorizationRevocations
       ? { ownerDeploymentAuthorizationRevocations }
+      : {}),
+    ...(ownerDeploymentAuthorizationRetirements
+      ? { ownerDeploymentAuthorizationRetirements }
       : {}),
     ...(ownerDeploymentDispatchReservation
       ? { ownerDeploymentDispatchReservation }

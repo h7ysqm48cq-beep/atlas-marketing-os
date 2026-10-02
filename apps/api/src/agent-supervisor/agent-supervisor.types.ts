@@ -138,6 +138,18 @@ export interface SupervisorOwnerDeploymentDispatchReservation {
   reservedAt: string;
 }
 
+export interface SupervisorOwnerDeploymentAuthorizationRetirement {
+  authorization: SupervisorOwnerDeploymentAuthorization;
+  reservation: SupervisorOwnerDeploymentDispatchReservation;
+  approvalJti: string;
+  candidateHash: string;
+  authorizationExpiredAt: string;
+  reservationStaleAfter: string;
+  retiredBy: string;
+  retiredAt: string;
+  reason: string;
+}
+
 /** Read-only verifier provenance, not an implementation or publication receipt. */
 export interface SupervisorExistingCandidateVerification {
   mode: 'EXISTING_CANDIDATE';
@@ -170,6 +182,7 @@ export interface SupervisorEvidence {
   ownerDeploymentAuthorization?: SupervisorOwnerDeploymentAuthorization;
   ownerDeploymentAuthorizationConsumption?: SupervisorOwnerDeploymentAuthorizationConsumption;
   ownerDeploymentAuthorizationRevocations?: SupervisorOwnerDeploymentAuthorizationRevocation[];
+  ownerDeploymentAuthorizationRetirements?: SupervisorOwnerDeploymentAuthorizationRetirement[];
   ownerDeploymentDispatchReservation?: SupervisorOwnerDeploymentDispatchReservation;
 }
 
