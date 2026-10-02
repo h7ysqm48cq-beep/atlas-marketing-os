@@ -42,6 +42,51 @@ function deploymentService(env) {
   return service;
 }
 
+async function canonicalDeploymentBranch(env, fetchImpl, railwayBranch) {
+  if (!railwayBranch || railwayBranch === 'production/atlas') {
+    return 'production/atlas';
+  }
+
+  const owner = requireEnv(env, 'RAILWAY_GIT_REPO_OWNER');
+  const repository = requireEnv(env, 'RAILWAY_GIT_REPO_NAME');
+  const commitSha = requireEnv(env, 'RAILWAY_GIT_COMMIT_SHA').toLowerCase();
+  if (
+    owner !== 'h7ysqm48cq-beep' ||
+    repository !== 'atlas-marketing-os' ||
+    !/^[0-9a-f]{40}$/i.test(commitSha)
+  ) {
+    throw new Error('ATLAS_DEPLOY_GATE_DENY canonical_production_branch_required');
+  }
+
+  let response;
+  try {
+    response = await fetchImpl(
+      'https://github.com/h7ysqm48cq-beep/atlas-marketing-os.git/info/refs?service=git-upload-pack',
+      {
+        headers: { 'user-agent': 'atlas-deployment-gate' },
+        signal: AbortSignal.timeout(10_000),
+      },
+    );
+  } catch {
+    throw new Error('ATLAS_DEPLOY_GATE_DENY canonical_production_ref_unavailable');
+  }
+  if (!response.ok) {
+    throw new Error('ATLAS_DEPLOY_GATE_DENY canonical_production_ref_unavailable');
+  }
+
+  const refs = await response.text();
+  const match = refs.match(
+    /([0-9a-f]{40}) refs\/heads\/production\/atlas(?:\0|\r?\n|$)/i,
+  );
+  if (!match) {
+    throw new Error('ATLAS_DEPLOY_GATE_DENY canonical_production_ref_invalid');
+  }
+  if (match[1].toLowerCase() !== commitSha) {
+    throw new Error('ATLAS_DEPLOY_GATE_DENY canonical_production_branch_required');
+  }
+  return 'production/atlas';
+}
+
 function failureReason(responseBody, status) {
   if (responseBody && typeof responseBody === 'object') {
     if (typeof responseBody.code === 'string' && responseBody.code) {
@@ -78,17 +123,18 @@ async function checkProductionDeploymentGate({
   const ciToken = requireEnv(env, 'ATLAS_SUPERVISOR_CI_TOKEN');
   const service = deploymentService(env);
   const railwayBranch = env.RAILWAY_GIT_BRANCH?.trim();
+  const branch = await canonicalDeploymentBranch(env, fetchImpl, railwayBranch);
   const payload = {
     service,
     phase: 'pre_deploy',
     deploymentId: requireEnv(env, 'RAILWAY_DEPLOYMENT_ID'),
-    provenanceMode: railwayBranch
+    provenanceMode: railwayBranch === 'production/atlas'
       ? 'railway_git'
       : 'supervisor_dispatch_reservation',
     github: {
       repositoryOwner: requireEnv(env, 'RAILWAY_GIT_REPO_OWNER'),
       repositoryName: requireEnv(env, 'RAILWAY_GIT_REPO_NAME'),
-      branch: railwayBranch || 'production/atlas',
+      branch,
       commitSha: requireEnv(env, 'RAILWAY_GIT_COMMIT_SHA'),
     },
   };
