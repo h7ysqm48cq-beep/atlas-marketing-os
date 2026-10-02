@@ -1,0 +1,5 @@
+ALTER TABLE "ImageGenerationSetting"
+ADD COLUMN IF NOT EXISTS "qrEnabled" BOOLEAN NOT NULL DEFAULT false;
+
+ALTER TABLE "ImageGenerationSetting"
+ADD COLUMN IF NOT EXISTS "qrLinks" TEXT NOT NULL DEFAULT '';
