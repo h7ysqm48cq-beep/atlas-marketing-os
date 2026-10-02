@@ -1115,6 +1115,58 @@ export class AgentSupervisorService {
     );
   }
 
+  assertConsumedProductionDeploymentAuthorization(
+    task: SupervisorTask,
+    candidate: SupervisorReviewCandidate,
+    service: ProductionDeploymentService,
+    consumedBy: string,
+  ): void {
+    const requestedCandidate = normalizeSupervisorReviewCandidate(candidate);
+    this.requireCanonicalProductionDeployment(requestedCandidate);
+    const requestedService = this.requireProductionDeploymentService(service);
+    const expectedConsumer = consumedBy.trim();
+    if (!expectedConsumer) {
+      throw new BadRequestException({ code: 'owner_identity_required' });
+    }
+
+    const consumption = task.evidence?.ownerDeploymentAuthorizationConsumption;
+    if (!consumption) {
+      throw new BadRequestException({
+        code: 'owner_deployment_authorization_consumption_required',
+      });
+    }
+    if (
+      consumption.environment !== 'production' ||
+      consumption.consumedBy !== expectedConsumer
+    ) {
+      throw new BadRequestException({
+        code: 'owner_deployment_authorization_consumption_mismatch',
+      });
+    }
+
+    const consumedAt = new Date(consumption.consumedAt);
+    if (!Number.isFinite(consumedAt.getTime())) {
+      throw new BadRequestException({
+        code: 'owner_deployment_authorization_consumption_invalid',
+      });
+    }
+
+    const claims = this.verifyOwnerDeploymentAuthorization(
+      consumption.authorization,
+      requestedCandidate,
+      requestedService,
+      consumedAt,
+    );
+    if (
+      claims.jti !== consumption.approvalJti ||
+      claims.candidateHash !== consumption.candidateHash
+    ) {
+      throw new BadRequestException({
+        code: 'owner_deployment_authorization_consumption_invalid',
+      });
+    }
+  }
+
   private ownerDeploymentAuthorizationVerificationTime(
     task: SupervisorTask,
     candidate: SupervisorReviewCandidate,
