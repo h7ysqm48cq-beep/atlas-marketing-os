@@ -98,7 +98,7 @@ def test_same_sha_worker_qualification_is_service_aware_and_read_only(tmp_path):
     ).stdout.strip()
     executor = module.SupervisorAssignmentExecutor(project_root=tmp_path)
 
-    for service in ("engineering-runner", "engineering-verifier", "browser-worker", "web"):
+    for service in ("engineering-runner", "engineering-verifier", "browser-worker", "web", "production-deploy-executor"):
         request = assignment(
             purpose="INDEPENDENT_VERIFICATION",
             objective=(
@@ -572,6 +572,135 @@ def test_exact_workspace_edit_supports_yaml(
     ) == "name: new-second\n"
 
 
+def test_exact_workspace_edit_supports_mjs(
+    tmp_path,
+):
+    module = import_module(
+        "tools.ai_engineer.supervisor_executor"
+    )
+
+    target = tmp_path / "tools/example.mjs"
+    target.parent.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+    target.write_text(
+        "export const value = 'old';\n",
+        encoding="utf-8",
+    )
+
+    init_git_repo(tmp_path)
+
+    objective = exact_workspace_objective([
+        {
+            "file_path": "tools/example.mjs",
+            "replacements": [
+                {
+                    "old": "'old'",
+                    "new": "'new'",
+                },
+            ],
+        },
+    ])
+
+    executor = module.SupervisorAssignmentExecutor(
+        project_root=tmp_path
+    )
+
+    result = executor.execute(
+        assignment(
+            objective=objective,
+            allowed_paths=["tools/example.mjs"],
+        ),
+        allow_apply=True,
+    )
+
+    assert result.success
+    assert result.error is None
+    assert result.evidence["changedFiles"] == [
+        "tools/example.mjs",
+    ]
+    assert target.read_text(
+        encoding="utf-8"
+    ) == "export const value = 'new';\n"
+
+
+def test_exact_workspace_edit_supports_mixed_ts_and_mjs(
+    tmp_path,
+):
+    module = import_module(
+        "tools.ai_engineer.supervisor_executor"
+    )
+
+    ts_target = tmp_path / "src/example.ts"
+    mjs_target = tmp_path / "tools/example.mjs"
+    ts_target.parent.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+    mjs_target.parent.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+    ts_target.write_text(
+        "export const tsValue = 'old-ts';\n",
+        encoding="utf-8",
+    )
+    mjs_target.write_text(
+        "export const mjsValue = 'old-mjs';\n",
+        encoding="utf-8",
+    )
+
+    init_git_repo(tmp_path)
+
+    objective = exact_workspace_objective([
+        {
+            "file_path": "src/example.ts",
+            "replacements": [
+                {
+                    "old": "'old-ts'",
+                    "new": "'new-ts'",
+                },
+            ],
+        },
+        {
+            "file_path": "tools/example.mjs",
+            "replacements": [
+                {
+                    "old": "'old-mjs'",
+                    "new": "'new-mjs'",
+                },
+            ],
+        },
+    ])
+
+    result = module.SupervisorAssignmentExecutor(
+        project_root=tmp_path
+    ).execute(
+        assignment(
+            objective=objective,
+            allowed_paths=[
+                "src/example.ts",
+                "tools/example.mjs",
+            ],
+        ),
+        allow_apply=True,
+    )
+
+    assert result.success
+    assert result.error is None
+    assert result.evidence["changedFiles"] == [
+        "src/example.ts",
+        "tools/example.mjs",
+    ]
+    assert "'new-ts'" in ts_target.read_text(
+        encoding="utf-8"
+    )
+    assert "'new-mjs'" in mjs_target.read_text(
+        encoding="utf-8"
+    )
+
+
 def test_exact_workspace_edit_rejects_json(
     tmp_path,
 ):
@@ -621,6 +750,57 @@ def test_exact_workspace_edit_rejects_json(
         encoding="utf-8"
     ) == '{"value":"old"}\n'
     assert git_changed_files(tmp_path) == []
+
+
+def test_exact_workspace_edit_keeps_js_and_py_disallowed(
+    tmp_path,
+):
+    module = import_module(
+        "tools.ai_engineer.supervisor_executor"
+    )
+
+    for suffix in (".js", ".py"):
+        project = tmp_path / suffix.removeprefix(".")
+        project.mkdir()
+        target = project / f"example{suffix}"
+        target.write_text(
+            "value = 'old'\n",
+            encoding="utf-8",
+        )
+        init_git_repo(project)
+
+        objective = exact_workspace_objective([
+            {
+                "file_path": f"example{suffix}",
+                "replacements": [
+                    {
+                        "old": "'old'",
+                        "new": "'new'",
+                    },
+                ],
+            },
+        ])
+
+        result = module.SupervisorAssignmentExecutor(
+            project_root=project
+        ).execute(
+            assignment(
+                objective=objective,
+                allowed_paths=[f"example{suffix}"],
+            ),
+            allow_apply=True,
+        )
+
+        assert not result.success
+        assert result.error is not None
+        assert (
+            "target suffix is not allowed"
+            in result.error
+        )
+        assert target.read_text(
+            encoding="utf-8"
+        ) == "value = 'old'\n"
+        assert git_changed_files(project) == []
 
 
 def test_exact_workspace_edit_rejects_out_of_scope_path_before_read(

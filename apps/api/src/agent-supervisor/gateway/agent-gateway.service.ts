@@ -36,8 +36,16 @@ const PRODUCTION_QUALIFICATION_SERVICES = [
   'browser-worker',
 ] as const;
 
+const PRODUCTION_DEPLOYMENT_DISPATCH_SERVICES = [
+  ...PRODUCTION_QUALIFICATION_SERVICES,
+  'production-deploy-executor',
+] as const;
+
 export type ProductionDeploymentQualificationService =
   (typeof PRODUCTION_QUALIFICATION_SERVICES)[number];
+
+export type ProductionDeploymentDispatchService =
+  (typeof PRODUCTION_DEPLOYMENT_DISPATCH_SERVICES)[number];
 
 export interface ProductionDeploymentQualificationInput {
   service: ProductionDeploymentQualificationService;
@@ -54,7 +62,7 @@ export interface ProductionDeploymentQualificationResult {
 }
 
 export interface ProductionDeploymentDispatchClaimInput {
-  service: ProductionDeploymentQualificationService;
+  service: ProductionDeploymentDispatchService;
   github?: GithubDeploymentProvenance;
   dispatcherId: string;
 }
@@ -62,7 +70,7 @@ export interface ProductionDeploymentDispatchClaimInput {
 export interface ProductionDeploymentDispatchClaimResult {
   claimed: boolean;
   reason: null | 'not_found' | 'already_reserved';
-  service: ProductionDeploymentQualificationService;
+  service: ProductionDeploymentDispatchService;
   commitSha: string;
   taskId?: string;
   executionId?: string;
@@ -95,7 +103,7 @@ function productionQualificationTaskId(
 
 function productionDeploymentDispatchReservationId(
   taskId: string,
-  service: ProductionDeploymentQualificationService,
+  service: ProductionDeploymentDispatchService,
   sha: string,
 ): string {
   const hex = createHash('sha256')
@@ -441,8 +449,8 @@ export class AgentGatewayService {
     input: ProductionDeploymentDispatchClaimInput,
   ): Promise<ProductionDeploymentDispatchClaimResult> {
     if (
-      !PRODUCTION_QUALIFICATION_SERVICES.includes(
-        input.service as ProductionDeploymentQualificationService,
+      !PRODUCTION_DEPLOYMENT_DISPATCH_SERVICES.includes(
+        input.service as ProductionDeploymentDispatchService,
       )
     ) {
       throw new BadRequestException({

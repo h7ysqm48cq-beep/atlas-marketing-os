@@ -277,6 +277,33 @@ describe('Production deployment resolver', () => {
     });
   });
 
+  it('resolves and consumes a production-deploy-executor receipt', async () => {
+    const { task, execution } =
+      await createApprovedDeployment('production-deploy-executor' as never);
+
+    await expect(
+      resolve({
+        service: 'production-deploy-executor',
+        github: CANONICAL_GITHUB,
+      }),
+    ).resolves.toEqual({
+      allowed: true,
+      reason: null,
+      taskId: task.id,
+      executionId: execution.id,
+    });
+
+    expect(
+      (await supervisor.getTask(task.id)).evidence
+        ?.ownerDeploymentAuthorizationConsumption,
+    ).toMatchObject({
+      consumedBy: 'deploy-gate',
+      authorization: {
+        service: 'production-deploy-executor',
+      },
+    });
+  });
+
   it('resolves an exact same-SHA zero-diff runtime refresh receipt', async () => {
     const { task, execution } = await createApprovedDeployment('api', {
       runtimeRefresh: true,
