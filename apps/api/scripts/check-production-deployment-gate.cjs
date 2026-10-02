@@ -5,7 +5,6 @@ const REQUIRED_ENV = [
   'ATLAS_SUPERVISOR_CI_TOKEN',
   'RAILWAY_GIT_REPO_OWNER',
   'RAILWAY_GIT_REPO_NAME',
-  'RAILWAY_GIT_BRANCH',
   'RAILWAY_GIT_COMMIT_SHA',
   'RAILWAY_DEPLOYMENT_ID',
 ];
@@ -85,7 +84,7 @@ async function checkProductionDeploymentGate({
     github: {
       repositoryOwner: requireEnv(env, 'RAILWAY_GIT_REPO_OWNER'),
       repositoryName: requireEnv(env, 'RAILWAY_GIT_REPO_NAME'),
-      branch: requireEnv(env, 'RAILWAY_GIT_BRANCH'),
+      branch: env.RAILWAY_GIT_BRANCH?.trim() || undefined,
       commitSha: requireEnv(env, 'RAILWAY_GIT_COMMIT_SHA'),
     },
   };
