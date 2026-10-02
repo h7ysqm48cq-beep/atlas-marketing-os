@@ -619,6 +619,70 @@ describe('Production deployment resolver', () => {
     });
   });
 
+  it('rejects branchless Railway provenance without an exact executor dispatch reservation', async () => {
+    await createApprovedDeployment('api', { runtimeRefresh: true });
+
+    await expect(
+      resolve({
+        service: 'api',
+        phase: 'pre_deploy',
+        deploymentId: '22222222-3333-4444-8555-666666666666',
+        github: {
+          repositoryOwner: 'h7ysqm48cq-beep',
+          repositoryName: 'atlas-marketing-os',
+          commitSha: HEAD_SHA,
+        },
+      }),
+    ).rejects.toMatchObject({
+      response: {
+        code: 'production_deployment_dispatch_reservation_required',
+      },
+    });
+  });
+
+  it('accepts branchless Railway provenance only when an exact executor dispatch reservation exists', async () => {
+    const { task, execution } = await createApprovedDeployment('api', {
+      runtimeRefresh: true,
+    });
+    const candidate = task.evidence?.reviewCandidate;
+    expect(candidate).toBeDefined();
+    if (!candidate) return;
+
+    await supervisor.reserveProductionDeploymentDispatch(
+      task.id,
+      candidate,
+      'api',
+      'ATLAS-DISPATCH-' + 'f'.repeat(64),
+      'atlas-production-deploy-executor:api',
+    );
+
+    const deploymentId = '33333333-4444-4555-8666-777777777777';
+    await expect(
+      resolve({
+        service: 'api',
+        phase: 'pre_deploy',
+        deploymentId,
+        github: {
+          repositoryOwner: 'h7ysqm48cq-beep',
+          repositoryName: 'atlas-marketing-os',
+          commitSha: HEAD_SHA,
+        },
+      }),
+    ).resolves.toEqual({
+      allowed: true,
+      reason: null,
+      taskId: task.id,
+      executionId: execution.id,
+    });
+
+    expect(
+      (await supervisor.getTask(task.id)).evidence
+        ?.ownerDeploymentAuthorizationConsumption,
+    ).toMatchObject({
+      consumedBy: `deploy-gate:${deploymentId}`,
+    });
+  });
+
   it('rejects noncanonical provenance before resolving a receipt', async () => {
     await createApprovedDeployment('api');
 
