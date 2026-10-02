@@ -112,9 +112,11 @@ describe('repository-owned production deployment gate', () => {
       RequestInit,
     ];
     const body = JSON.parse(String(init.body));
+    expect(body.provenanceMode).toBe('supervisor_dispatch_reservation');
     expect(body.github).toEqual({
       repositoryOwner: 'h7ysqm48cq-beep',
       repositoryName: 'atlas-marketing-os',
+      branch: 'production/atlas',
       commitSha: 'a'.repeat(40),
     });
   });
