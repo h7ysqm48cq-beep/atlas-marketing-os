@@ -1002,6 +1002,7 @@ describe('immutable existing-candidate persistence round-trip', () => {
     changedFiles: ['apps/engineering-runner/package.json', 'package-lock.json'],
     gitFingerprint: 'a'.repeat(64),
     sourceVerified: true as const,
+    targetBranch: 'production/atlas' as const,
   });
   it('retains exact assignment and independent verifier proof on DB readback', () => {
     const p = proof();
