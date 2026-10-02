@@ -627,9 +627,11 @@ describe('Production deployment resolver', () => {
         service: 'api',
         phase: 'pre_deploy',
         deploymentId: '22222222-3333-4444-8555-666666666666',
+        provenanceMode: 'supervisor_dispatch_reservation',
         github: {
           repositoryOwner: 'h7ysqm48cq-beep',
           repositoryName: 'atlas-marketing-os',
+          branch: 'production/atlas',
           commitSha: HEAD_SHA,
         },
       }),
@@ -662,9 +664,11 @@ describe('Production deployment resolver', () => {
         service: 'api',
         phase: 'pre_deploy',
         deploymentId,
+        provenanceMode: 'supervisor_dispatch_reservation',
         github: {
           repositoryOwner: 'h7ysqm48cq-beep',
           repositoryName: 'atlas-marketing-os',
+          branch: 'production/atlas',
           commitSha: HEAD_SHA,
         },
       }),
@@ -680,6 +684,20 @@ describe('Production deployment resolver', () => {
         ?.ownerDeploymentAuthorizationConsumption,
     ).toMatchObject({
       consumedBy: `deploy-gate:${deploymentId}`,
+    });
+  });
+
+  it('rejects an unknown production deployment provenance mode', async () => {
+    await createApprovedDeployment('api', { runtimeRefresh: true });
+
+    await expect(
+      resolve({
+        service: 'api',
+        provenanceMode: 'unknown-mode',
+        github: CANONICAL_GITHUB,
+      }),
+    ).rejects.toMatchObject({
+      response: { code: 'production_deployment_provenance_mode_invalid' },
     });
   });
 
