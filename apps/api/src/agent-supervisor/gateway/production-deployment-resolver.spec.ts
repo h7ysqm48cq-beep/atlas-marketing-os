@@ -338,6 +338,82 @@ describe('Production deployment resolver', () => {
     expect(execution.id).toBeDefined();
   });
 
+  it('binds pre-deploy consumption to the Railway deployment id and allows runtime revalidation only for that deployment', async () => {
+    const deploymentId = '11111111-2222-4333-8444-555555555555';
+    const { task, execution } = await createApprovedDeployment('api');
+
+    await expect(
+      resolve({
+        service: 'api',
+        github: CANONICAL_GITHUB,
+        phase: 'pre_deploy',
+        deploymentId,
+      }),
+    ).resolves.toEqual({
+      allowed: true,
+      reason: null,
+      taskId: task.id,
+      executionId: execution.id,
+    });
+
+    expect(
+      (await supervisor.getTask(task.id)).evidence
+        ?.ownerDeploymentAuthorizationConsumption,
+    ).toMatchObject({
+      consumedBy: `deploy-gate:${deploymentId}`,
+    });
+
+    await expect(
+      resolve({
+        service: 'api',
+        github: CANONICAL_GITHUB,
+        phase: 'runtime_start',
+        deploymentId,
+      }),
+    ).resolves.toEqual({
+      allowed: true,
+      reason: null,
+      taskId: task.id,
+      executionId: execution.id,
+    });
+
+    await expect(
+      resolve({
+        service: 'api',
+        github: CANONICAL_GITHUB,
+        phase: 'runtime_start',
+        deploymentId: 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee',
+      }),
+    ).rejects.toMatchObject({
+      response: { code: 'production_deployment_runtime_receipt_not_found' },
+    });
+
+    await expect(
+      resolve({
+        service: 'api',
+        github: CANONICAL_GITHUB,
+        phase: 'pre_deploy',
+        deploymentId,
+      }),
+    ).rejects.toMatchObject({
+      response: { code: 'owner_deployment_authorization_already_consumed' },
+    });
+  });
+
+  it('fails closed when runtime-start resolution has no Railway deployment id', async () => {
+    await createApprovedDeployment('api');
+
+    await expect(
+      resolve({
+        service: 'api',
+        github: CANONICAL_GITHUB,
+        phase: 'runtime_start',
+      }),
+    ).rejects.toMatchObject({
+      response: { code: 'production_deployment_id_required' },
+    });
+  });
+
   it('resolves a reserved deployment after the approval TTL and consumes it once', async () => {
     jest.useFakeTimers();
 

@@ -654,6 +654,29 @@ export class AgentGatewayService {
   async resolveProductionDeployment(
     input: ProductionDeploymentResolveInput,
   ): Promise<SupervisorGateDecision> {
+    const phase = input.phase ?? 'pre_deploy';
+    if (phase !== 'pre_deploy' && phase !== 'runtime_start') {
+      throw new BadRequestException({
+        code: 'production_deployment_phase_invalid',
+      });
+    }
+    const deploymentId = input.deploymentId?.trim() ?? '';
+    if (
+      input.deploymentId !== undefined &&
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(deploymentId)
+    ) {
+      throw new BadRequestException({
+        code: 'production_deployment_id_invalid',
+      });
+    }
+    if (phase === 'runtime_start' && !deploymentId) {
+      throw new BadRequestException({
+        code: 'production_deployment_id_required',
+      });
+    }
+    const deploymentConsumer = deploymentId
+      ? `deploy-gate:${deploymentId}`
+      : 'deploy-gate';
     const requestedSha = input.github?.commitSha ?? '';
     this.productionDeploymentGate.assertProductionDeployment({
       service: input.service,
@@ -721,10 +744,31 @@ export class AgentGatewayService {
       });
     }
 
+    const runtimeMatches =
+      phase === 'runtime_start'
+        ? serviceMatches.filter(
+            ({ task }) =>
+              task.evidence?.ownerDeploymentAuthorizationConsumption
+                ?.consumedBy === deploymentConsumer,
+          )
+        : [];
+    if (phase === 'runtime_start' && runtimeMatches.length === 0) {
+      throw new BadRequestException({
+        code: 'production_deployment_runtime_receipt_not_found',
+      });
+    }
+    if (runtimeMatches.length > 1) {
+      throw new BadRequestException({
+        code: 'production_deployment_resolution_ambiguous',
+      });
+    }
+
     const resolvableMatches =
-      unconsumedServiceMatches.length === 1
-        ? unconsumedServiceMatches
-        : serviceMatches;
+      phase === 'runtime_start'
+        ? runtimeMatches
+        : unconsumedServiceMatches.length === 1
+          ? unconsumedServiceMatches
+          : serviceMatches;
     if (resolvableMatches.length > 1) {
       throw new BadRequestException({
         code: 'production_deployment_resolution_ambiguous',
@@ -737,11 +781,20 @@ export class AgentGatewayService {
       supervisorApprovedSha: candidate.headSha,
       github: input.github,
     });
-    this.supervisor.assertOwnerDeploymentAuthorization(
-      task,
-      candidate,
-      input.service,
-    );
+    if (phase === 'runtime_start') {
+      this.supervisor.assertConsumedProductionDeploymentAuthorization(
+        task,
+        candidate,
+        input.service,
+        deploymentConsumer,
+      );
+    } else {
+      this.supervisor.assertOwnerDeploymentAuthorization(
+        task,
+        candidate,
+        input.service,
+      );
+    }
 
     const executions = await this.executionStore.listByTask(task.id);
     const matchingExecutions: SupervisorExecution[] = [];
@@ -770,12 +823,14 @@ export class AgentGatewayService {
       task.id,
       matchingExecutions[0].id,
     );
-    await this.supervisor.consumeProductionDeploymentAuthorization(
-      task.id,
-      candidate,
-      input.service,
-      'deploy-gate',
-    );
+    if (phase === 'pre_deploy') {
+      await this.supervisor.consumeProductionDeploymentAuthorization(
+        task.id,
+        candidate,
+        input.service,
+        deploymentConsumer,
+      );
+    }
     return this.allowed(validated.task.id, validated.execution.id);
   }
 

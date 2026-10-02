@@ -15,6 +15,7 @@ test('shared deployment gate accepts engineering-verifier and forwards exact pro
     RAILWAY_GIT_REPO_NAME: 'atlas-marketing-os',
     RAILWAY_GIT_BRANCH: 'production/atlas',
     RAILWAY_GIT_COMMIT_SHA: 'a'.repeat(40),
+    RAILWAY_DEPLOYMENT_ID: '00000001-1111-4111-8111-111111111111',
   };
   let request;
 
@@ -38,9 +39,12 @@ test('shared deployment gate accepts engineering-verifier and forwards exact pro
     taskId: 'task-verifier',
     executionId: 'exec-verifier',
   });
+  const requestBody = JSON.parse(request.init.body);
+  assert.equal(requestBody.service, 'engineering-verifier');
+  assert.equal(requestBody.phase, 'pre_deploy');
   assert.equal(
-    JSON.parse(request.init.body).service,
-    'engineering-verifier',
+    requestBody.deploymentId,
+    '00000001-1111-4111-8111-111111111111',
   );
 });
 
@@ -53,6 +57,7 @@ test('shared deployment gate retries only unresolved production authorization', 
     RAILWAY_GIT_REPO_NAME: 'atlas-marketing-os',
     RAILWAY_GIT_BRANCH: 'production/atlas',
     RAILWAY_GIT_COMMIT_SHA: 'b'.repeat(40),
+    RAILWAY_DEPLOYMENT_ID: '00000002-1111-4111-8111-111111111111',
   };
   let calls = 0;
   const waits = [];
@@ -102,6 +107,7 @@ test('shared deployment gate retries pending owner deployment authorization', as
     RAILWAY_GIT_REPO_NAME: 'atlas-marketing-os',
     RAILWAY_GIT_BRANCH: 'production/atlas',
     RAILWAY_GIT_COMMIT_SHA: 'e'.repeat(40),
+    RAILWAY_DEPLOYMENT_ID: '00000003-1111-4111-8111-111111111111',
   };
   let calls = 0;
   const waits = [];
@@ -151,6 +157,7 @@ test('shared deployment gate bounds pending owner authorization retries', async 
     RAILWAY_GIT_REPO_NAME: 'atlas-marketing-os',
     RAILWAY_GIT_BRANCH: 'production/atlas',
     RAILWAY_GIT_COMMIT_SHA: 'f'.repeat(40),
+    RAILWAY_DEPLOYMENT_ID: '00000004-1111-4111-8111-111111111111',
   };
   let calls = 0;
   let waits = 0;
@@ -188,6 +195,7 @@ test('shared deployment gate bounds unresolved authorization retries', async () 
     RAILWAY_GIT_REPO_NAME: 'atlas-marketing-os',
     RAILWAY_GIT_BRANCH: 'production/atlas',
     RAILWAY_GIT_COMMIT_SHA: 'c'.repeat(40),
+    RAILWAY_DEPLOYMENT_ID: '00000005-1111-4111-8111-111111111111',
   };
   let calls = 0;
   let waits = 0;
@@ -225,6 +233,7 @@ test('shared deployment gate does not retry service binding failures', async () 
     RAILWAY_GIT_REPO_NAME: 'atlas-marketing-os',
     RAILWAY_GIT_BRANCH: 'production/atlas',
     RAILWAY_GIT_COMMIT_SHA: 'd'.repeat(40),
+    RAILWAY_DEPLOYMENT_ID: '00000006-1111-4111-8111-111111111111',
   };
   let calls = 0;
   let waits = 0;
