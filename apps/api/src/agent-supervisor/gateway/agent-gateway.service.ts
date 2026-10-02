@@ -583,13 +583,12 @@ export class AgentGatewayService {
         this.sameCandidate(candidate, existingCandidate)
       ) {
         return {
-          claimed: true,
-          reason: null,
+          claimed: false,
+          reason: 'already_reserved',
           service,
           commitSha: sha,
           taskId: task.id,
           executionId: execution.id,
-          reservationId,
         };
       }
       return {
@@ -678,10 +677,14 @@ export class AgentGatewayService {
       ? `deploy-gate:${deploymentId}`
       : 'deploy-gate';
     const requestedSha = input.github?.commitSha ?? '';
+    const branchlessRailwayProvenance = !input.github?.branch?.trim();
+    const githubForValidation = branchlessRailwayProvenance
+      ? { ...input.github, branch: 'production/atlas' }
+      : input.github;
     this.productionDeploymentGate.assertProductionDeployment({
       service: input.service,
       supervisorApprovedSha: requestedSha,
-      github: input.github,
+      github: githubForValidation,
     });
 
     const normalizedSha = requestedSha.toLowerCase();
@@ -776,10 +779,49 @@ export class AgentGatewayService {
     }
 
     const { task, candidate } = resolvableMatches[0];
+    if (branchlessRailwayProvenance) {
+      const reservation =
+        task.evidence?.ownerDeploymentDispatchReservation;
+      if (!reservation) {
+        throw new BadRequestException({
+          code: 'production_deployment_dispatch_reservation_required',
+        });
+      }
+
+      let reservedCandidate: SupervisorReviewCandidate;
+      const reservedAtMs = Date.parse(reservation.reservedAt);
+      try {
+        reservedCandidate = this.normalizeCandidate(reservation.candidate);
+      } catch {
+        throw new BadRequestException({
+          code: 'owner_deployment_dispatch_reservation_invalid',
+        });
+      }
+      if (
+        !/^ATLAS-DISPATCH-[0-9a-f]{64}$/i.test(reservation.reservationId) ||
+        !Number.isFinite(reservedAtMs) ||
+        new Date(reservedAtMs).toISOString() !== reservation.reservedAt
+      ) {
+        throw new BadRequestException({
+          code: 'owner_deployment_dispatch_reservation_invalid',
+        });
+      }
+      if (
+        reservation.service !== input.service ||
+        reservation.reservedBy !==
+          `atlas-production-deploy-executor:${input.service}` ||
+        !this.sameCandidate(candidate, reservedCandidate)
+      ) {
+        throw new BadRequestException({
+          code: 'production_deployment_dispatch_reservation_required',
+        });
+      }
+    }
+
     this.productionDeploymentGate.assertProductionDeployment({
       service: input.service,
       supervisorApprovedSha: candidate.headSha,
-      github: input.github,
+      github: githubForValidation,
     });
     if (phase === 'runtime_start') {
       this.supervisor.assertConsumedProductionDeploymentAuthorization(
