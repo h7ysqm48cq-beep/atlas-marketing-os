@@ -583,8 +583,8 @@ export class AgentGatewayService {
         this.sameCandidate(candidate, existingCandidate)
       ) {
         return {
-          claimed: true,
-          reason: null,
+          claimed: false,
+          reason: 'already_reserved',
           service,
           commitSha: sha,
           taskId: task.id,
