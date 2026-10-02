@@ -22,6 +22,7 @@ const BOOTSTRAP_SCRIPT_PATH = resolve(
   process.cwd(),
   'scripts/check-api-bootstrap-deployment.cjs',
 );
+const API_PACKAGE_PATH = resolve(process.cwd(), '../../package.json');
 const RAILWAY_CONFIG_PATH = resolve(process.cwd(), '../../railway.json');
 const BROWSER_WORKER_RAILWAY_CONFIG_PATH = resolve(
   process.cwd(),
@@ -392,6 +393,18 @@ describe('repository-owned production deployment gate', () => {
     expect(commands.join('\n')).not.toMatch(/db:migrate|prisma migrate/i);
     expect(commands).toHaveLength(1);
     expect(commands.join('\n')).not.toMatch(/check-api-bootstrap-deployment/i);
+  });
+
+  it('gates Railway API runtime start before launching Nest without changing Railway config', () => {
+    const pkg = JSON.parse(readFileSync(API_PACKAGE_PATH, 'utf8')) as {
+      scripts?: Record<string, string>;
+    };
+    const startProd = pkg.scripts?.['start:prod'];
+
+    expect(startProd).toBe(
+      'node scripts/check-production-runtime-gate.cjs && node dist/src/main.js',
+    );
+    expect(startProd).not.toMatch(/db:migrate|prisma migrate/i);
   });
 
   it('keeps Browser Worker Railway preDeploy service-bound and migration-free', () => {
