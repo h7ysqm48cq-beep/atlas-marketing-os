@@ -7,6 +7,8 @@ from pathlib import Path
 import subprocess
 import sys
 
+import pytest
+
 
 def assignment(
     *,
@@ -572,14 +574,17 @@ def test_exact_workspace_edit_supports_yaml(
     ) == "name: new-second\n"
 
 
-def test_exact_workspace_edit_supports_mjs(
+@pytest.mark.parametrize("suffix", [".mjs", ".cjs"])
+def test_exact_workspace_edit_supports_node_scripts(
     tmp_path,
+    suffix,
 ):
+    script_path = f"tools/example{suffix}"
     module = import_module(
         "tools.ai_engineer.supervisor_executor"
     )
 
-    target = tmp_path / "tools/example.mjs"
+    target = tmp_path / script_path
     target.parent.mkdir(
         parents=True,
         exist_ok=True,
@@ -593,7 +598,7 @@ def test_exact_workspace_edit_supports_mjs(
 
     objective = exact_workspace_objective([
         {
-            "file_path": "tools/example.mjs",
+            "file_path": script_path,
             "replacements": [
                 {
                     "old": "'old'",
@@ -610,7 +615,7 @@ def test_exact_workspace_edit_supports_mjs(
     result = executor.execute(
         assignment(
             objective=objective,
-            allowed_paths=["tools/example.mjs"],
+            allowed_paths=[script_path],
         ),
         allow_apply=True,
     )
@@ -618,22 +623,25 @@ def test_exact_workspace_edit_supports_mjs(
     assert result.success
     assert result.error is None
     assert result.evidence["changedFiles"] == [
-        "tools/example.mjs",
+        script_path,
     ]
     assert target.read_text(
         encoding="utf-8"
     ) == "export const value = 'new';\n"
 
 
-def test_exact_workspace_edit_supports_mixed_ts_and_mjs(
+@pytest.mark.parametrize("suffix", [".mjs", ".cjs"])
+def test_exact_workspace_edit_supports_mixed_ts_and_node_scripts(
     tmp_path,
+    suffix,
 ):
+    script_path = f"tools/example{suffix}"
     module = import_module(
         "tools.ai_engineer.supervisor_executor"
     )
 
     ts_target = tmp_path / "src/example.ts"
-    mjs_target = tmp_path / "tools/example.mjs"
+    mjs_target = tmp_path / script_path
     ts_target.parent.mkdir(
         parents=True,
         exist_ok=True,
@@ -664,7 +672,7 @@ def test_exact_workspace_edit_supports_mixed_ts_and_mjs(
             ],
         },
         {
-            "file_path": "tools/example.mjs",
+            "file_path": script_path,
             "replacements": [
                 {
                     "old": "'old-mjs'",
@@ -681,7 +689,7 @@ def test_exact_workspace_edit_supports_mixed_ts_and_mjs(
             objective=objective,
             allowed_paths=[
                 "src/example.ts",
-                "tools/example.mjs",
+                script_path,
             ],
         ),
         allow_apply=True,
@@ -691,7 +699,7 @@ def test_exact_workspace_edit_supports_mixed_ts_and_mjs(
     assert result.error is None
     assert result.evidence["changedFiles"] == [
         "src/example.ts",
-        "tools/example.mjs",
+        script_path,
     ]
     assert "'new-ts'" in ts_target.read_text(
         encoding="utf-8"
