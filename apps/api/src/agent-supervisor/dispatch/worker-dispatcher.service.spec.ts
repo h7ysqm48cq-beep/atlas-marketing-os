@@ -957,7 +957,13 @@ describe('existing candidate PR141 DRAFT-only admission', () => {
     expect(dispatched.assignment.forbiddenActions).toContain('deploy_production');
     expect((await supervisor.getTask(task.id)).status).toBe('VERIFYING');
   });
-  it.each(['engineering-runner', 'engineering-verifier', 'browser-worker', 'web'] as const)(
+  it.each([
+    'engineering-runner',
+    'engineering-verifier',
+    'browser-worker',
+    'web',
+    'production-deploy-executor',
+  ] as const)(
     'admits an exact read-only zero-diff %s production qualification',
     async (service) => {
       const executions = new MemorySupervisorExecutionStore();

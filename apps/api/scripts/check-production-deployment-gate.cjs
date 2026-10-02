@@ -14,6 +14,7 @@ const SUPPORTED_DEPLOYMENT_SERVICES = new Set([
   'browser-worker',
   'engineering-runner',
   'engineering-verifier',
+  'production-deploy-executor',
 ]);
 
 function requireEnv(env, key) {

@@ -29,22 +29,50 @@ function quietLogger() {
   return { log() {}, error() {} };
 }
 
-test('fetchProductionSha reads the public production ref without GITHUB_TOKEN', async () => {
+test('executor allowlist includes only the bounded deployment services including itself', () => {
+  assert.deepEqual(
+    SERVICES.map((service) => service.name),
+    [
+      'engineering-runner',
+      'engineering-verifier',
+      'browser-worker',
+      'production-deploy-executor',
+    ],
+  );
+  assert.equal(
+    SERVICES.find((service) => service.name === 'production-deploy-executor')?.id,
+    '689174b6-63b6-475c-b1c2-c05edb8babf5',
+  );
+});
+
+test('fetchProductionSha reads the public production ref through Git smart HTTP without GITHUB_TOKEN', async () => {
   let seenHeaders = null;
   const sha = await fetchProductionSha(
     { GITHUB_REPOSITORY: ENV.GITHUB_REPOSITORY },
     async (url, options = {}) => {
       assert.equal(
         String(url),
-        'https://api.github.com/repos/h7ysqm48cq-beep/atlas-marketing-os/git/ref/heads/production/atlas',
+        'https://github.com/h7ysqm48cq-beep/atlas-marketing-os.git/info/refs?service=git-upload-pack',
       );
       seenHeaders = options.headers;
-      return json({ object: { sha: SHA } });
+      return new Response(
+        `001e# service=git-upload-pack\n00000049${SHA} refs/heads/production/atlas\n`,
+        {
+          status: 200,
+          headers: {
+            'content-type': 'application/x-git-upload-pack-advertisement',
+          },
+        },
+      );
     },
   );
 
   assert.equal(sha, SHA);
-  assert.equal(seenHeaders.authorization, undefined);
+  assert.equal(
+    seenHeaders.accept,
+    'application/x-git-upload-pack-advertisement',
+  );
+  assert.equal(seenHeaders['user-agent'], 'atlas-production-deploy-executor');
 });
 
 test('fetchProductionSha uses Bearer auth when GITHUB_TOKEN is present', async () => {
@@ -134,7 +162,7 @@ test('executor claims one authorized worker and deploys the exact production SHA
       return json({
         claimed: false,
         reason: 'not_found',
-        service: 'engineering-verifier',
+        service: payload.service,
         commitSha: SHA,
       });
     }
@@ -194,7 +222,12 @@ test('executor claims one authorized worker and deploys the exact production SHA
   });
   assert.deepEqual(
     seen.claims.map((claim) => claim.service),
-    ['engineering-runner', 'engineering-verifier'],
+    [
+      'engineering-runner',
+      'engineering-verifier',
+      'browser-worker',
+      'production-deploy-executor',
+    ],
   );
   assert.equal(seen.claims[0].github.commitSha, SHA);
 });
@@ -277,7 +310,7 @@ test('already-reserved workers never trigger another Railway deploy', async () =
   });
 
   assert.equal(deployMutations, 0);
-  assert.equal(result.results.length, 2);
+  assert.equal(result.results.length, 4);
   assert.ok(result.results.every((entry) => entry.deployment === null));
 });
 
@@ -425,7 +458,7 @@ test('executor rejects successful deployment evidence for the wrong commit', asy
   );
 });
 
-test('dispatch claim rejects any service outside the frozen worker allowlist', async () => {
+test('dispatch claim rejects any service outside the frozen production executor allowlist', async () => {
   await assert.rejects(
     () =>
       claimDispatch(

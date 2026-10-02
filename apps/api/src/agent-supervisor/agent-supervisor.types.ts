@@ -230,7 +230,12 @@ export interface SupervisorGateDecision {
 }
 
 export type ProductionDeploymentService =
-  'api' | 'web' | 'browser-worker' | 'engineering-runner' | 'engineering-verifier';
+  | 'api'
+  | 'web'
+  | 'browser-worker'
+  | 'engineering-runner'
+  | 'engineering-verifier'
+  | 'production-deploy-executor';
 
 export type ProductionDeploymentDriftStatus =
   'COMPLIANT' | 'BRANCH_DRIFT' | 'SHA_DRIFT' | 'MISSING_PROVENANCE';

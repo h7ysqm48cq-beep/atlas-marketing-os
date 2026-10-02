@@ -214,6 +214,16 @@ function ownerDeploymentAuthorizationRevocationFixture() {
   };
 }
 
+function ownerDeploymentDispatchReservationFixture() {
+  return {
+    candidate: deploymentCandidateFixture(),
+    service: 'production-deploy-executor',
+    reservationId: 'ATLAS-DISPATCH-' + 'd'.repeat(64),
+    reservedBy: 'atlas-production-deploy-executor:production-deploy-executor',
+    reservedAt: '2026-10-01T18:32:34.477Z',
+  };
+}
+
 function evidenceFixture() {
   return {
     rootCause: 'Known cause',
@@ -539,6 +549,131 @@ describe('supervisor persistence mapper', () => {
     expect(
       task.evidence.ownerDeploymentAuthorization?.candidate.changedFiles,
     ).not.toBe(evidence.ownerDeploymentAuthorization.candidate.changedFiles);
+  });
+
+  it('round-trips and clones a persisted production deployment dispatch reservation', () => {
+    const reservation = ownerDeploymentDispatchReservationFixture();
+    const evidence = {
+      ...evidenceFixture(),
+      reviewCandidate: deploymentCandidateFixture(),
+      ownerDeploymentDispatchReservation: reservation,
+    };
+
+    const task = mapTaskRecord(taskRecord({ evidence }));
+    const mapped = task.evidence?.ownerDeploymentDispatchReservation;
+
+    expect(mapped).toEqual(reservation);
+    expect(mapped).not.toBe(reservation);
+    expect(mapped?.candidate).not.toBe(reservation.candidate);
+    expect(mapped?.candidate.changedFiles).not.toBe(
+      reservation.candidate.changedFiles,
+    );
+  });
+
+  it.each([
+    {
+      label: 'non-production candidate action',
+      override: {
+        candidate: {
+          ...deploymentCandidateFixture(),
+          action: 'merge',
+        },
+      },
+    },
+    {
+      label: 'non-canonical candidate target branch',
+      override: {
+        candidate: {
+          ...deploymentCandidateFixture(),
+          targetBranch: 'main',
+        },
+      },
+    },
+    {
+      label: 'malformed candidate base SHA',
+      override: {
+        candidate: {
+          ...deploymentCandidateFixture(),
+          baseSha: 'not-a-sha',
+        },
+      },
+    },
+    {
+      label: 'malformed candidate head SHA',
+      override: {
+        candidate: {
+          ...deploymentCandidateFixture(),
+          headSha: 'not-a-sha',
+        },
+      },
+    },
+    {
+      label: 'untrimmed candidate changed file',
+      override: {
+        candidate: {
+          ...deploymentCandidateFixture(),
+          changedFiles: [' apps/api/src/example.ts'],
+        },
+      },
+    },
+    {
+      label: 'blank candidate changed file',
+      override: {
+        candidate: {
+          ...deploymentCandidateFixture(),
+          changedFiles: ['   '],
+        },
+      },
+    },
+    {
+      label: 'unknown service',
+      override: { service: 'invalid-service' },
+    },
+    {
+      label: 'malformed reservation id prefix',
+      override: { reservationId: 'DISPATCH-' + 'd'.repeat(64) },
+    },
+    {
+      label: 'malformed reservation id digest',
+      override: { reservationId: 'ATLAS-DISPATCH-' + 'd'.repeat(63) },
+    },
+    {
+      label: 'untrimmed reservation id',
+      override: { reservationId: ' ATLAS-DISPATCH-' + 'd'.repeat(64) },
+    },
+    {
+      label: 'blank dispatcher identity',
+      override: { reservedBy: '   ' },
+    },
+    {
+      label: 'untrimmed dispatcher identity',
+      override: { reservedBy: ' dispatcher' },
+    },
+    {
+      label: 'oversized dispatcher identity',
+      override: { reservedBy: 'x'.repeat(161) },
+    },
+    {
+      label: 'invalid reservation timestamp',
+      override: { reservedAt: 'not-a-date' },
+    },
+    {
+      label: 'non-canonical reservation timestamp',
+      override: { reservedAt: '2026-10-01T18:32:34Z' },
+    },
+  ])('rejects malformed persisted deployment dispatch reservation: $label', ({ override }) => {
+    const evidence = {
+      ...evidenceFixture(),
+      reviewCandidate: deploymentCandidateFixture(),
+      ownerDeploymentDispatchReservation: {
+        ...ownerDeploymentDispatchReservationFixture(),
+        ...override,
+      },
+    };
+
+    expectPersistenceError(() =>
+      mapTaskRecord(taskRecord({ evidence })),
+    );
   });
 
   // ASTRA_V2_DEPLOYMENT_REVOCATION_MAPPER_RED
@@ -867,6 +1002,7 @@ describe('immutable existing-candidate persistence round-trip', () => {
     changedFiles: ['apps/engineering-runner/package.json', 'package-lock.json'],
     gitFingerprint: 'a'.repeat(64),
     sourceVerified: true as const,
+    targetBranch: 'production/atlas' as const,
   });
   it('retains exact assignment and independent verifier proof on DB readback', () => {
     const p = proof();

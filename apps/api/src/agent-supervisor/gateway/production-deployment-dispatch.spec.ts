@@ -71,13 +71,20 @@ describe('production deployment dispatch reservation', () => {
   }
 
   async function createReadyWorkerDeployment(
-    service: 'engineering-runner' | 'engineering-verifier' =
-      'engineering-runner',
+    service:
+      | 'engineering-runner'
+      | 'engineering-verifier'
+      | 'browser-worker'
+      | 'production-deploy-executor' = 'engineering-runner',
   ) {
     const allowedPath =
       service === 'engineering-runner'
         ? 'apps/engineering-runner/check-runner-production-deployment.cjs'
-        : 'apps/engineering-runner/check-verifier-production-deployment.cjs';
+        : service === 'engineering-verifier'
+          ? 'apps/engineering-runner/check-verifier-production-deployment.cjs'
+          : service === 'browser-worker'
+            ? 'apps/browser-worker/railway.json'
+            : 'tools/deployment/atlas-production-deploy-executor.mjs';
     const task = await supervisor.createTask({
       objective:
         `zero-git-diff ${service} production qualification for exact canonical production SHA ${SHA}`,
@@ -345,7 +352,28 @@ describe('production deployment dispatch reservation', () => {
     });
   });
 
-  it('rejects deployment dispatch for services outside the bounded worker pair', async () => {
+  it('claims an approved browser-worker deployment through the bounded executor scope', async () => {
+    const { task, execution } =
+      await createReadyWorkerDeployment('browser-worker');
+    await approve(task.id);
+
+    await expect(
+      gateway.claimProductionDeploymentDispatch({
+        service: 'browser-worker',
+        github: CANONICAL_GITHUB,
+        dispatcherId: 'atlas-production-deploy-executor:browser-worker',
+      }),
+    ).resolves.toMatchObject({
+      claimed: true,
+      reason: null,
+      service: 'browser-worker',
+      commitSha: SHA,
+      taskId: task.id,
+      executionId: execution.id,
+    });
+  });
+
+  it('rejects deployment dispatch for services outside the bounded worker trio', async () => {
     await expect(
       gateway.claimProductionDeploymentDispatch({
         service: 'api' as never,
@@ -357,6 +385,36 @@ describe('production deployment dispatch reservation', () => {
         code: 'production_deployment_dispatch_service_unsupported',
       },
     });
+  });
+
+  it('claims an approved production-deploy-executor deployment through bounded self-dispatch', async () => {
+    const { task, execution } =
+      await createReadyWorkerDeployment('production-deploy-executor');
+    await approve(task.id);
+
+    await expect(
+      gateway.claimProductionDeploymentDispatch({
+        service: 'production-deploy-executor',
+        github: CANONICAL_GITHUB,
+        dispatcherId: 'atlas-production-deploy-executor:production-deploy-executor',
+      }),
+    ).resolves.toMatchObject({
+      claimed: true,
+      reason: null,
+      service: 'production-deploy-executor',
+      commitSha: SHA,
+      taskId: task.id,
+      executionId: execution.id,
+      reservationId: expect.stringMatching(/^ATLAS-DISPATCH-[0-9a-f]{64}$/i),
+    });
+
+    const persisted = await supervisor.getTask(task.id);
+    expect(
+      persisted.evidence?.ownerDeploymentAuthorizationConsumption,
+    ).toBeUndefined();
+    expect(
+      persisted.evidence?.ownerDeploymentDispatchReservation?.reservedBy,
+    ).toBe('atlas-production-deploy-executor:production-deploy-executor');
   });
 
   it('blocks deployment authorization revocation after dispatch reservation', async () => {

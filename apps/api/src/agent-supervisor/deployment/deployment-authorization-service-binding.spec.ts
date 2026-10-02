@@ -225,6 +225,17 @@ describe('Owner production deployment authorization service binding', () => {
     ).toBe(verifierService);
   });
 
+  it('persists production-deploy-executor as an authorized production service', async () => {
+    const { task, candidate } = await readyTask();
+    const executorService =
+      'production-deploy-executor' as ProductionDeploymentService;
+    const authorized = await authorize(task.id, candidate, executorService);
+
+    expect(
+      authorized.evidence?.ownerDeploymentAuthorization?.service,
+    ).toBe(executorService);
+  });
+
   it('rejects using a valid api authorization for another service', async () => {
     const { task, candidate } = await readyTask();
     const authorized = await authorize(task.id, candidate, 'api');
