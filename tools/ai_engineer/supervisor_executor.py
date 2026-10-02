@@ -339,6 +339,7 @@ class SupervisorAssignmentExecutor:
                 ".yml",
                 ".yaml",
                 ".mjs",
+                ".cjs",
             }:
                 return self._failure(
                     "supervisor_workspace_edit_failed:"
@@ -434,10 +435,10 @@ class SupervisorAssignmentExecutor:
                 planning=planning,
             )
 
-        includes_mjs = any(
+        includes_generic_script = any(
             PurePosixPath(
                 file_edit.file_path
-            ).suffix.lower() == ".mjs"
+            ).suffix.lower() in {".mjs", ".cjs"}
             for file_edit in file_edits
         )
 
@@ -449,10 +450,10 @@ class SupervisorAssignmentExecutor:
                 ".yml",
                 ".yaml",
             )
-            + ((".mjs",) if includes_mjs else ()),
+            + ((".mjs", ".cjs") if includes_generic_script else ()),
         )
 
-        if includes_mjs:
+        if includes_generic_script:
             try:
                 WorkspaceEditExecutor(
                     project_root=self.project_root,

@@ -625,6 +625,59 @@ def test_exact_workspace_edit_supports_mjs(
     ) == "export const value = 'new';\n"
 
 
+def test_exact_workspace_edit_supports_cjs(
+    tmp_path,
+):
+    module = import_module(
+        "tools.ai_engineer.supervisor_executor"
+    )
+
+    target = tmp_path / "apps/api/scripts/example.cjs"
+    target.parent.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+    target.write_text(
+        "module.exports = 'old';\n",
+        encoding="utf-8",
+    )
+
+    init_git_repo(tmp_path)
+
+    objective = exact_workspace_objective([
+        {
+            "file_path": "apps/api/scripts/example.cjs",
+            "replacements": [
+                {
+                    "old": "'old'",
+                    "new": "'new'",
+                },
+            ],
+        },
+    ])
+
+    result = module.SupervisorAssignmentExecutor(
+        project_root=tmp_path
+    ).execute(
+        assignment(
+            objective=objective,
+            allowed_paths=[
+                "apps/api/scripts/example.cjs",
+            ],
+        ),
+        allow_apply=True,
+    )
+
+    assert result.success
+    assert result.error is None
+    assert result.evidence["changedFiles"] == [
+        "apps/api/scripts/example.cjs",
+    ]
+    assert target.read_text(
+        encoding="utf-8"
+    ) == "module.exports = 'new';\n"
+
+
 def test_exact_workspace_edit_supports_mixed_ts_and_mjs(
     tmp_path,
 ):
