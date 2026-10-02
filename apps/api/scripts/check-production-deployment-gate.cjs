@@ -5,8 +5,8 @@ const REQUIRED_ENV = [
   'ATLAS_SUPERVISOR_CI_TOKEN',
   'RAILWAY_GIT_REPO_OWNER',
   'RAILWAY_GIT_REPO_NAME',
-  'RAILWAY_GIT_BRANCH',
   'RAILWAY_GIT_COMMIT_SHA',
+  'RAILWAY_DEPLOYMENT_ID',
 ];
 const SUPPORTED_DEPLOYMENT_SERVICES = new Set([
   'api',
@@ -77,12 +77,18 @@ async function checkProductionDeploymentGate({
   const apiUrl = requireEnv(env, 'ATLAS_SUPERVISOR_API_URL').replace(/\/+$/g, '');
   const ciToken = requireEnv(env, 'ATLAS_SUPERVISOR_CI_TOKEN');
   const service = deploymentService(env);
+  const railwayBranch = env.RAILWAY_GIT_BRANCH?.trim();
   const payload = {
     service,
+    phase: 'pre_deploy',
+    deploymentId: requireEnv(env, 'RAILWAY_DEPLOYMENT_ID'),
+    provenanceMode: railwayBranch
+      ? 'railway_git'
+      : 'supervisor_dispatch_reservation',
     github: {
       repositoryOwner: requireEnv(env, 'RAILWAY_GIT_REPO_OWNER'),
       repositoryName: requireEnv(env, 'RAILWAY_GIT_REPO_NAME'),
-      branch: requireEnv(env, 'RAILWAY_GIT_BRANCH'),
+      branch: railwayBranch || 'production/atlas',
       commitSha: requireEnv(env, 'RAILWAY_GIT_COMMIT_SHA'),
     },
   };
@@ -190,6 +196,6 @@ if (require.main === module) {
           ? error.message
           : 'ATLAS_DEPLOY_GATE_DENY unknown_error',
       );
-      process.exitCode = 1;
+      process.exit(1);
     });
 }
