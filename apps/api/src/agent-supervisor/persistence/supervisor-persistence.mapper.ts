@@ -11,6 +11,7 @@ import type {
   SupervisorOwnerDeploymentAuthorization,
   SupervisorOwnerDeploymentAuthorizationConsumption,
   SupervisorOwnerDeploymentAuthorizationRevocation,
+  SupervisorOwnerDeploymentDispatchReservation,
   SupervisorOwnerMergeAuthorization,
   SupervisorOwnerMergeAuthorizationConsumption,
   SupervisorOwnerMergeAuthorizationRevocation,
@@ -47,6 +48,7 @@ const PRODUCTION_DEPLOYMENT_SERVICES = new Set<ProductionDeploymentService>([
   'browser-worker',
   'engineering-runner',
   'engineering-verifier',
+  'production-deploy-executor',
 ]);
 
 export interface SupervisorTaskRecord {
@@ -388,6 +390,49 @@ function mapOwnerDeploymentAuthorization(
   return { candidate, service, authorizedBy, authorizedAt, signature };
 }
 
+function mapOwnerDeploymentDispatchReservation(
+  value: unknown,
+): SupervisorOwnerDeploymentDispatchReservation {
+  const object = requireObject(value);
+  const candidate = mapReviewCandidate(object.candidate);
+  const service = requireString(
+    object.service,
+  ) as ProductionDeploymentService;
+  const reservationId = requireString(object.reservationId);
+  const reservedBy = requireString(object.reservedBy);
+  const reservedAt = requireString(object.reservedAt);
+  const reservedAtMs = Date.parse(reservedAt);
+
+  if (
+    candidate.action !== 'deploy_production' ||
+    candidate.targetBranch !== 'production/atlas' ||
+    !FULL_GIT_SHA.test(candidate.baseSha) ||
+    !FULL_GIT_SHA.test(candidate.headSha) ||
+    candidate.changedFiles.some(
+      (path) => !path.trim() || path !== path.trim(),
+    ) ||
+    !PRODUCTION_DEPLOYMENT_SERVICES.has(service) ||
+    !/^ATLAS-DISPATCH-[0-9a-f]{64}$/i.test(reservationId) ||
+    !reservedBy.trim() ||
+    reservedBy !== reservedBy.trim() ||
+    reservedBy.length > 160 ||
+    !reservedAt.trim() ||
+    reservedAt !== reservedAt.trim() ||
+    !Number.isFinite(reservedAtMs) ||
+    new Date(reservedAtMs).toISOString() !== reservedAt
+  ) {
+    throw persistenceError();
+  }
+
+  return {
+    candidate,
+    service,
+    reservationId,
+    reservedBy,
+    reservedAt,
+  };
+}
+
 function mapOwnerDeploymentAuthorizationConsumption(
   value: unknown,
 ): SupervisorOwnerDeploymentAuthorizationConsumption {
@@ -550,6 +595,12 @@ function mapEvidence(value: unknown): SupervisorEvidence {
       : mapOwnerDeploymentAuthorizationRevocations(
           object.ownerDeploymentAuthorizationRevocations,
         );
+  const ownerDeploymentDispatchReservation =
+    object.ownerDeploymentDispatchReservation === undefined
+      ? undefined
+      : mapOwnerDeploymentDispatchReservation(
+          object.ownerDeploymentDispatchReservation,
+        );
 
   return {
     rootCause: requireString(object.rootCause),
@@ -576,6 +627,9 @@ function mapEvidence(value: unknown): SupervisorEvidence {
       : {}),
     ...(ownerDeploymentAuthorizationRevocations
       ? { ownerDeploymentAuthorizationRevocations }
+      : {}),
+    ...(ownerDeploymentDispatchReservation
+      ? { ownerDeploymentDispatchReservation }
       : {}),
   };
 }

@@ -1,5 +1,10 @@
 type ProductionService =
-  'api' | 'web' | 'browser-worker' | 'engineering-runner' | 'engineering-verifier';
+  | 'api'
+  | 'web'
+  | 'browser-worker'
+  | 'engineering-runner'
+  | 'engineering-verifier'
+  | 'production-deploy-executor';
 type DriftStatus =
   'COMPLIANT' | 'BRANCH_DRIFT' | 'SHA_DRIFT' | 'MISSING_PROVENANCE';
 
@@ -155,6 +160,7 @@ describe('ProductionDeploymentGateService', () => {
     'browser-worker',
     'engineering-runner',
     'engineering-verifier',
+    'production-deploy-executor',
   ])(
     'allows a canonical %s deployment only at the exact approved SHA',
     (service) => {

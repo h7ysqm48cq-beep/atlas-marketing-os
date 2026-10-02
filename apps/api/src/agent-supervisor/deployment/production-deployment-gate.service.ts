@@ -15,6 +15,7 @@ const PRODUCTION_SERVICES = new Set<ProductionDeploymentService>([
   'browser-worker',
   'engineering-runner',
   'engineering-verifier',
+  'production-deploy-executor',
 ]);
 
 @Injectable()
