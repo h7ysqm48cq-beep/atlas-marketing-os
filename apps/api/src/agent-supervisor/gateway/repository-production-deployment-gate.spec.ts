@@ -22,6 +22,7 @@ const BOOTSTRAP_SCRIPT_PATH = resolve(
   process.cwd(),
   'scripts/check-api-bootstrap-deployment.cjs',
 );
+const API_PACKAGE_PATH = resolve(process.cwd(), 'package.json');
 const RAILWAY_CONFIG_PATH = resolve(process.cwd(), '../../railway.json');
 const BROWSER_WORKER_RAILWAY_CONFIG_PATH = resolve(
   process.cwd(),
@@ -60,6 +61,7 @@ function validEnv(overrides: NodeJS.ProcessEnv = {}): NodeJS.ProcessEnv {
     RAILWAY_GIT_REPO_NAME: 'atlas-marketing-os',
     RAILWAY_GIT_BRANCH: 'production/atlas',
     RAILWAY_GIT_COMMIT_SHA: 'a'.repeat(40),
+    RAILWAY_DEPLOYMENT_ID: '12345678-1234-4123-8123-123456789abc',
     ...overrides,
   };
 }
@@ -83,6 +85,41 @@ describe('repository-owned production deployment gate', () => {
         fetchImpl: jest.fn() as unknown as typeof fetch,
       }),
     ).rejects.toThrow(/RAILWAY_GIT_COMMIT_SHA/);
+  });
+
+  it('forwards missing Railway branch for reservation-backed Supervisor resolution', async () => {
+    const gate = loadGate();
+    const fetchImpl = jest.fn().mockResolvedValue(
+      response(200, {
+        allowed: true,
+        reason: null,
+        taskId: 'ATLAS-BRANCHLESS-DEPLOY-1',
+        executionId: 'ATLAS-BRANCHLESS-DEPLOY-EXEC-1',
+      }),
+    ) as unknown as typeof fetch;
+
+    await expect(
+      gate.checkProductionDeploymentGate({
+        env: validEnv({ RAILWAY_GIT_BRANCH: '' }),
+        fetchImpl,
+      }),
+    ).resolves.toEqual({
+      taskId: 'ATLAS-BRANCHLESS-DEPLOY-1',
+      executionId: 'ATLAS-BRANCHLESS-DEPLOY-EXEC-1',
+    });
+
+    const [, init] = (fetchImpl as unknown as jest.Mock).mock.calls[0] as [
+      string,
+      RequestInit,
+    ];
+    const body = JSON.parse(String(init.body));
+    expect(body.provenanceMode).toBe('supervisor_dispatch_reservation');
+    expect(body.github).toEqual({
+      repositoryOwner: 'h7ysqm48cq-beep',
+      repositoryName: 'atlas-marketing-os',
+      branch: 'production/atlas',
+      commitSha: 'a'.repeat(40),
+    });
   });
 
   it('fails closed when the resolver returns HTTP 400', async () => {
@@ -219,6 +256,9 @@ describe('repository-owned production deployment gate', () => {
     });
     expect(JSON.parse(String(init.body))).toEqual({
       service: 'api',
+      phase: 'pre_deploy',
+      deploymentId: '12345678-1234-4123-8123-123456789abc',
+      provenanceMode: 'railway_git',
       github: {
         repositoryOwner: 'h7ysqm48cq-beep',
         repositoryName: 'atlas-marketing-os',
@@ -256,6 +296,9 @@ describe('repository-owned production deployment gate', () => {
     ];
     expect(JSON.parse(String(init.body))).toEqual({
       service: 'browser-worker',
+      phase: 'pre_deploy',
+      deploymentId: '12345678-1234-4123-8123-123456789abc',
+      provenanceMode: 'railway_git',
       github: {
         repositoryOwner: 'h7ysqm48cq-beep',
         repositoryName: 'atlas-marketing-os',
@@ -352,6 +395,18 @@ describe('repository-owned production deployment gate', () => {
     expect(commands.join('\n')).not.toMatch(/db:migrate|prisma migrate/i);
     expect(commands).toHaveLength(1);
     expect(commands.join('\n')).not.toMatch(/check-api-bootstrap-deployment/i);
+  });
+
+  it('gates Railway API runtime start before launching Nest without changing Railway config', () => {
+    const pkg = JSON.parse(readFileSync(API_PACKAGE_PATH, 'utf8')) as {
+      scripts?: Record<string, string>;
+    };
+    const startProd = pkg.scripts?.['start:prod'];
+
+    expect(startProd).toBe(
+      'node scripts/check-production-runtime-gate.cjs && node dist/src/main.js',
+    );
+    expect(startProd).not.toMatch(/db:migrate|prisma migrate/i);
   });
 
   it('keeps Browser Worker Railway preDeploy service-bound and migration-free', () => {
