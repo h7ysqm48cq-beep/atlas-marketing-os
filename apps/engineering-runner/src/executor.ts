@@ -1,4 +1,8 @@
 import { spawn } from 'node:child_process';
+import { createHash } from 'node:crypto';
+import { constants } from 'node:fs';
+import { open, readFile, realpath } from 'node:fs/promises';
+import path from 'node:path';
 import type { WorkerAssignment, WorkerExecutionResult } from './types.ts';
 
 interface ProcessInput {
@@ -122,10 +126,101 @@ export class CommandExecutor {
     this.runProcess = options.runProcess ?? defaultRunProcess;
   }
 
+
+  private async restoreMigrationHistory(
+    assignment: WorkerAssignment, signal?: AbortSignal,
+  ): Promise<WorkerExecutionResult> {
+    try {
+      const payload = JSON.parse(assignment.objective.slice('RESTORE_MIGRATION_HISTORY '.length));
+      const keys = ['afterSha256', 'beforeSha256', 'filePath', 'sourceSha', 'version'];
+      if (!payload || JSON.stringify(Object.keys(payload).sort()) !== JSON.stringify(keys) ||
+          payload.version !== 1 ||
+          typeof payload.filePath !== 'string' ||
+          !/^apps\/api\/prisma\/migrations\/\d{14}_[a-z0-9_]+\/migration\.sql$/.test(payload.filePath) ||
+          typeof payload.sourceSha !== 'string' || !/^[a-f0-9]{40}$/.test(payload.sourceSha) ||
+          typeof payload.beforeSha256 !== 'string' || !/^[a-f0-9]{64}$/.test(payload.beforeSha256) ||
+          typeof payload.afterSha256 !== 'string' || !/^[a-f0-9]{64}$/.test(payload.afterSha256) ||
+          payload.beforeSha256 === payload.afterSha256 ||
+          assignment.workerRole !== 'engineering' || assignment.executionPurpose !== 'IMPLEMENTATION' ||
+          assignment.allowedPaths.length !== 1 || assignment.allowedPaths[0] !== payload.filePath ||
+          !/^[a-f0-9]{40}$/.test(assignment.frozenBaseSha ?? '') ||
+          assignment.forbiddenActions.some(a => ['edit_assigned_files', 'restore_migration_history'].includes(a))) {
+        throw new Error('invalid_contract');
+      }
+      const root = await realpath(this.cwd);
+      const target = path.join(root, payload.filePath);
+      if (await realpath(target) !== target) throw new Error('symlink_target');
+      const git = async (...args: string[]) => {
+        const output = await this.runProcess({
+          command: 'git', args: [
+            '--no-replace-objects', '-c', 'core.hooksPath=/dev/null',
+            '-c', 'core.fsmonitor=false', '-c', 'credential.helper=', ...args,
+          ], cwd: root, stdin: '', signal,
+          env: {
+            PATH: this.environment.PATH ?? process.env.PATH ?? '/usr/bin:/bin',
+            GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: '/dev/null', GIT_TERMINAL_PROMPT: '0',
+          },
+        });
+        if (output.exitCode !== 0) throw new Error('source_git_read_failed');
+        return output.stdout;
+      };
+      if ((await git('rev-parse', '--verify', 'HEAD')).trim() !== assignment.frozenBaseSha ||
+          (await git('status', '--porcelain=v1', '--untracked-files=all')).trim()) {
+        throw new Error('base_or_workspace_mismatch');
+      }
+      await git('merge-base', '--is-ancestor', payload.sourceSha, assignment.frozenBaseSha!);
+      const restored = Buffer.from(await git('show', '--no-ext-diff', '--no-textconv',
+        payload.sourceSha + ':' + payload.filePath), 'utf8');
+      const hash = (bytes: Buffer) => createHash('sha256').update(bytes).digest('hex');
+      if (hash(restored) !== payload.afterSha256) throw new Error('source_checksum_mismatch');
+      const file = await open(target, constants.O_RDWR | constants.O_NOFOLLOW);
+      try {
+        const stat = await file.stat();
+        if (!stat.isFile() || stat.nlink !== 1) throw new Error('non_regular_or_shared_file');
+        const original = await file.readFile();
+        if (hash(original) !== payload.beforeSha256) throw new Error('current_checksum_mismatch');
+        const writeBytes = async (bytes: Buffer) => {
+          let offset = 0;
+          while (offset < bytes.length) {
+            const written = await file.write(bytes, offset, bytes.length - offset, offset);
+            if (!written.bytesWritten) throw new Error('short_write');
+            offset += written.bytesWritten;
+          }
+          await file.truncate(bytes.length);
+          await file.sync();
+        };
+        signal?.throwIfAborted();
+        try {
+          await writeBytes(restored);
+          if (await realpath(target) !== target ||
+              hash(await readFile(target)) !== payload.afterSha256) throw new Error('post_write_checksum_mismatch');
+        } catch (error) {
+          await writeBytes(original);
+          throw error;
+        }
+      } finally { await file.close(); }
+      return {
+        summary: 'Restored immutable migration history bytes; no SQL executed.',
+        evidence: {
+          rootCause: 'historical_migration_bytes_drifted',
+          changedFiles: [payload.filePath], tests: [], build: 'NOT_RUN', regression: [],
+          deploymentState: 'NOT_DEPLOYED', gitState: 'MODIFIED',
+          remainingRisk: ['tests_not_run', 'build_not_run'],
+        },
+      };
+    } catch (error) {
+      throw new Error('migration_history_restore_failed:' +
+        (error instanceof Error ? error.message : 'unknown'));
+    }
+  }
+
   async execute(
     assignment: WorkerAssignment,
     signal?: AbortSignal,
   ): Promise<WorkerExecutionResult> {
+    if (assignment.objective.startsWith('RESTORE_MIGRATION_HISTORY ')) {
+      return this.restoreMigrationHistory(assignment, signal);
+    }
     const output = await this.runProcess({
       command: this.command,
       args: [...this.args],
