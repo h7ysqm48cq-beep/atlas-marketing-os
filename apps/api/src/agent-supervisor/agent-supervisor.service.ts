@@ -889,6 +889,132 @@ export class AgentSupervisorService {
     );
   }
 
+  async retireReservedProductionDeploymentAuthorization(
+    id: string,
+    reason: string,
+    retiredBy: string,
+    now = new Date(),
+  ): Promise<SupervisorTask> {
+    const task = await this.requireTask(id);
+    const expectedUpdatedAt = new Date(task.updatedAt);
+    this.requireStatus(task, ['APPROVED']);
+
+    if (task.evidence?.ownerDeploymentAuthorizationConsumption) {
+      throw new BadRequestException({
+        code: 'owner_deployment_authorization_already_consumed',
+      });
+    }
+
+    const authorization = task.evidence?.ownerDeploymentAuthorization;
+    if (!authorization) {
+      throw new BadRequestException({
+        code: 'owner_deployment_authorization_not_found',
+      });
+    }
+
+    const reservation = task.evidence?.ownerDeploymentDispatchReservation;
+    if (!reservation) {
+      throw new BadRequestException({
+        code: 'owner_deployment_dispatch_reservation_required',
+      });
+    }
+
+    const retirementReason = reason.trim();
+    if (!retirementReason) {
+      throw new BadRequestException({
+        code: 'deployment_authorization_retirement_reason_required',
+      });
+    }
+
+    const ownerId = retiredBy.trim();
+    if (!ownerId) {
+      throw new BadRequestException({ code: 'owner_identity_required' });
+    }
+
+    if (!Number.isFinite(now.getTime())) {
+      throw new BadRequestException({
+        code: 'deployment_authorization_retirement_time_invalid',
+      });
+    }
+
+    const candidate = normalizeSupervisorReviewCandidate(
+      authorization.candidate,
+    );
+    const service = this.requireProductionDeploymentService(
+      authorization.service,
+    );
+    const reservedAt = this.ownerDeploymentAuthorizationVerificationTime(
+      task,
+      candidate,
+      service,
+    );
+    if (!reservedAt) {
+      throw new BadRequestException({
+        code: 'owner_deployment_dispatch_reservation_required',
+      });
+    }
+
+    const claims = this.verifyOwnerDeploymentAuthorization(
+      authorization,
+      candidate,
+      service,
+      reservedAt,
+    );
+    const expiration =
+      typeof claims.exp === 'string' ? claims.exp : '';
+    const expirationMs = Date.parse(expiration);
+    if (
+      !Number.isFinite(expirationMs) ||
+      new Date(expirationMs).toISOString() !== expiration
+    ) {
+      throw new BadRequestException({
+        code: 'owner_deployment_authorization_invalid',
+      });
+    }
+    if (expirationMs > now.getTime()) {
+      throw new BadRequestException({
+        code: 'owner_deployment_authorization_not_expired',
+      });
+    }
+    if (
+      typeof claims.jti !== 'string' ||
+      !claims.jti.trim() ||
+      typeof claims.candidateHash !== 'string' ||
+      !/^[0-9a-f]{64}$/i.test(claims.candidateHash)
+    ) {
+      throw new BadRequestException({
+        code: 'owner_deployment_authorization_invalid',
+      });
+    }
+
+    const retiredAt = now.toISOString();
+    const {
+      ownerDeploymentAuthorization: _deploymentAuthorization,
+      ownerDeploymentDispatchReservation: _dispatchReservation,
+      ...evidence
+    } = task.evidence!;
+
+    task.evidence = {
+      ...evidence,
+      deploymentState: 'DEPLOYMENT_AUTHORIZATION_RETIRED',
+      ownerDeploymentAuthorizationRetirements: [
+        ...(evidence.ownerDeploymentAuthorizationRetirements ?? []),
+        {
+          authorization: structuredClone(authorization),
+          reservation: structuredClone(reservation),
+          approvalJti: claims.jti,
+          candidateHash: claims.candidateHash,
+          authorizationExpiredAt: expiration,
+          retiredBy: ownerId,
+          retiredAt,
+          reason: retirementReason,
+        },
+      ],
+    };
+    task.updatedAt = this.nextMutationTime(expectedUpdatedAt);
+    return this.saveTaskMutationIfUnchanged(task, expectedUpdatedAt);
+  }
+
   async consumeProductionDeploymentAuthorization(
     id: string,
     candidate: SupervisorReviewCandidate,
