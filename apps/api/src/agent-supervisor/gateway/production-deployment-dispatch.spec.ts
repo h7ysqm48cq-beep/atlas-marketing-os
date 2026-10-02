@@ -75,6 +75,7 @@ describe('production deployment dispatch reservation', () => {
       | 'engineering-runner'
       | 'engineering-verifier'
       | 'browser-worker'
+      | 'api'
       | 'web'
       | 'production-deploy-executor' = 'engineering-runner',
   ) {
@@ -85,6 +86,8 @@ describe('production deployment dispatch reservation', () => {
           ? 'apps/engineering-runner/check-verifier-production-deployment.cjs'
           : service === 'browser-worker'
             ? 'apps/browser-worker/railway.json'
+            : service === 'api'
+            ? 'apps/api/**'
             : service === 'web'
               ? 'apps/web/**'
               : 'tools/deployment/atlas-production-deploy-executor.mjs';
@@ -376,6 +379,35 @@ describe('production deployment dispatch reservation', () => {
     });
   });
 
+  it('claims an approved api deployment through the bounded executor scope', async () => {
+    const { task, execution } =
+      await createReadyWorkerDeployment('api');
+    await approve(task.id);
+
+    await expect(
+      gateway.claimProductionDeploymentDispatch({
+        service: 'api',
+        github: CANONICAL_GITHUB,
+        dispatcherId: 'atlas-production-deploy-executor:api',
+      }),
+    ).resolves.toMatchObject({
+      claimed: true,
+      reason: null,
+      service: 'api',
+      commitSha: SHA,
+      taskId: task.id,
+      executionId: execution.id,
+    });
+
+    const persisted = await supervisor.getTask(task.id);
+    expect(
+      persisted.evidence?.ownerDeploymentAuthorizationConsumption,
+    ).toBeUndefined();
+    expect(
+      persisted.evidence?.ownerDeploymentDispatchReservation?.reservedBy,
+    ).toBe('atlas-production-deploy-executor:api');
+  });
+
   it('claims an approved web deployment through the bounded executor scope', async () => {
     const { task, execution } =
       await createReadyWorkerDeployment('web');
@@ -408,7 +440,7 @@ describe('production deployment dispatch reservation', () => {
   it('rejects deployment dispatch for services outside the bounded dispatch scope', async () => {
     await expect(
       gateway.claimProductionDeploymentDispatch({
-        service: 'api' as never,
+        service: 'datadog-agent' as never,
         github: CANONICAL_GITHUB,
         dispatcherId: 'github-actions:104:1:api',
       }),
