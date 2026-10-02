@@ -79,10 +79,11 @@ test('shared deployment gate forwards branchless Railway provenance for Supervis
 
   const requestBody = JSON.parse(request.init.body);
   assert.equal(requestBody.service, 'api');
+  assert.equal(requestBody.provenanceMode, 'supervisor_dispatch_reservation');
   assert.equal(requestBody.github.repositoryOwner, 'h7ysqm48cq-beep');
   assert.equal(requestBody.github.repositoryName, 'atlas-marketing-os');
+  assert.equal(requestBody.github.branch, 'production/atlas');
   assert.equal(requestBody.github.commitSha, '9'.repeat(40));
-  assert.equal('branch' in requestBody.github, false);
 });
 
 test('shared deployment gate retries only unresolved production authorization', async () => {
