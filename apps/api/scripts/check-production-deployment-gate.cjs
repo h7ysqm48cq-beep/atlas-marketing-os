@@ -65,8 +65,12 @@ async function checkProductionDeploymentGate({
   env = process.env,
   fetchImpl = globalThis.fetch,
   sleepImpl = sleep,
+  phase = 'pre_deploy',
 } = {}) {
   for (const key of REQUIRED_ENV) requireEnv(env, key);
+  if (phase !== 'pre_deploy' && phase !== 'runtime_start') {
+    throw new Error('ATLAS_DEPLOY_GATE_DENY unsupported_phase');
+  }
   if (typeof fetchImpl !== 'function') {
     throw new Error('ATLAS_DEPLOY_GATE_DENY fetch_unavailable');
   }
@@ -80,7 +84,7 @@ async function checkProductionDeploymentGate({
   const railwayBranch = env.RAILWAY_GIT_BRANCH?.trim();
   const payload = {
     service,
-    phase: 'pre_deploy',
+    phase,
     deploymentId: requireEnv(env, 'RAILWAY_DEPLOYMENT_ID'),
     provenanceMode: railwayBranch
       ? 'railway_git'
