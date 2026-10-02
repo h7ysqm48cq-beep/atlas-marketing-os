@@ -21,6 +21,10 @@ export const SERVICES = Object.freeze([
     id: 'e1efd98e-b853-4828-b9bd-b900eab68c19',
   },
   {
+    name: 'web',
+    id: '0c3af5de-9f7a-419f-804a-89362d2e1da4',
+  },
+  {
     name: 'production-deploy-executor',
     id: '689174b6-63b6-475c-b1c2-c05edb8babf5',
   },
