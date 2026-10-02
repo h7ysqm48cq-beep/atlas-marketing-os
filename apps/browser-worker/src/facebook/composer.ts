@@ -1,0 +1,1668 @@
+import type {
+  Locator,
+  Page,
+} from "playwright-core";
+
+type CaptionFillResult = {
+  filled: true;
+  attempts: number;
+  writtenLength: number;
+  strategy: string;
+};
+
+export type FacebookComposerImageUploadResult = {
+  strategy:
+    | "PHOTO_VIDEO_FILE_CHOOSER"
+    | "COMPOSER_FILE_INPUT";
+  expectedFileCount: number;
+  inputFileCount: number;
+  photoButtonClicked: boolean;
+  inputAccept: string | null;
+  multiple: boolean | null;
+  controlDiagnostics:
+    FacebookComposerMediaControlDiagnostics;
+};
+
+export type FacebookComposerMediaControlCandidate = {
+  depth: number;
+  index: number;
+  tagName: string;
+  role: string | null;
+  ariaLabel: string | null;
+  text: string;
+  tabIndex: number;
+  disabled: boolean;
+  visible: boolean;
+  sameRow: boolean;
+  rightOfAnchor: boolean;
+  rect: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  } | null;
+};
+
+export type FacebookComposerMediaControlDiagnostics = {
+  anchorFound: boolean;
+  anchorText: string | null;
+  evaluationError: string | null;
+  strategy:
+    | "NAMED_CONTROL"
+    | "ADD_TO_YOUR_POST_ROW"
+    | null;
+  candidates:
+    FacebookComposerMediaControlCandidate[];
+  selected:
+    FacebookComposerMediaControlCandidate | null;
+};
+
+export class FacebookComposerImageUploadError
+  extends Error {
+  readonly diagnostics:
+    FacebookComposerMediaControlDiagnostics;
+
+  constructor(
+    message: string,
+    diagnostics:
+      FacebookComposerMediaControlDiagnostics,
+  ) {
+    super(message);
+    this.name =
+      "FacebookComposerImageUploadError";
+    this.diagnostics = diagnostics;
+  }
+}
+
+const MEDIA_CONTROL_MARKER =
+  "data-atlas-facebook-media-control";
+
+const FACEBOOK_COMPOSER_EDITOR_SELECTOR = [
+  '[contenteditable="true"][role="textbox"]',
+  '[contenteditable="plaintext-only"][role="textbox"]',
+  '[contenteditable="true"][data-lexical-editor="true"]',
+  '[contenteditable="true"][aria-label]',
+  '[contenteditable="true"][aria-placeholder]',
+  '[role="textbox"][aria-label*="mind" i]',
+  '[contenteditable="true"]',
+].join(", ");
+
+const FACEBOOK_COMPOSER_MEDIA_CUE_SELECTOR = [
+  '[aria-label*="Photo" i]',
+  '[aria-label*="Video" i]',
+  'input[type="file"][accept*="image" i]',
+].join(", ");
+
+async function locateAddToYourPostMediaControl(
+  dialog: Locator,
+): Promise<{
+  control: Locator | null;
+  diagnostics:
+    FacebookComposerMediaControlDiagnostics;
+}> {
+  const diagnostics =
+    await dialog
+      .evaluate((root, marker) => {
+        const normalize = (
+          value: string | null,
+        ) =>
+          (value || "")
+            .replace(/\s+/g, " ")
+            .trim();
+        const rootElement =
+          root as HTMLElement;
+
+        rootElement
+          .querySelectorAll(
+            `[${marker}]`,
+          )
+          .forEach((element) =>
+            element.removeAttribute(
+              marker,
+            ),
+          );
+
+        const elements = Array.from(
+          rootElement.querySelectorAll(
+            "*",
+          ),
+        ) as HTMLElement[];
+        const anchors = elements
+          .filter((element) =>
+            normalize(
+              element.textContent,
+            ).toLowerCase() ===
+            "add to your post",
+          )
+          .filter((element) => {
+            const style =
+              window.getComputedStyle(
+                element,
+              );
+            const rect =
+              element.getBoundingClientRect();
+
+            return (
+              style.display !== "none" &&
+              style.visibility !==
+                "hidden" &&
+              Number(style.opacity) > 0 &&
+              rect.width > 0 &&
+              rect.height > 0
+            );
+          })
+          .sort((left, right) =>
+            left.children.length -
+            right.children.length,
+          );
+        const anchor = anchors[0];
+        const candidates:
+          FacebookComposerMediaControlCandidate[] =
+          [];
+
+        if (!anchor) {
+          return {
+            anchorFound: false,
+            anchorText: null,
+            evaluationError: null,
+            strategy: null,
+            candidates,
+            selected: null,
+          };
+        }
+
+        const anchorRect =
+          anchor.getBoundingClientRect();
+        let container:
+          HTMLElement | null =
+          anchor.parentElement;
+
+        for (
+          let depth = 0;
+          container &&
+          rootElement.contains(container) &&
+          depth < 7;
+          depth += 1
+        ) {
+          const controls = Array.from(
+            container.querySelectorAll(
+              [
+                "button",
+                '[role="button"]',
+                '[tabindex]:not([tabindex="-1"])',
+              ].join(","),
+            ),
+          ) as HTMLElement[];
+          const depthCandidates =
+            controls.map(
+              (element, index) => {
+                const style =
+                  window.getComputedStyle(
+                    element,
+                  );
+                const rect =
+                  element.getBoundingClientRect();
+                const disabled =
+                  (element as HTMLButtonElement)
+                    .disabled === true ||
+                  element.getAttribute(
+                    "aria-disabled",
+                  ) === "true";
+                const visible =
+                  style.display !== "none" &&
+                  style.visibility !==
+                    "hidden" &&
+                  Number(style.opacity) > 0 &&
+                  rect.width >= 16 &&
+                  rect.height >= 16;
+                const centerY =
+                  rect.top +
+                  rect.height / 2;
+                const sameRow =
+                  centerY >=
+                    anchorRect.top - 20 &&
+                  centerY <=
+                    anchorRect.bottom + 20;
+                const rightOfAnchor =
+                  rect.left >=
+                  anchorRect.right - 8;
+
+                return {
+                  depth,
+                  index,
+                  tagName:
+                    element.tagName,
+                  role:
+                    element.getAttribute(
+                      "role",
+                    ),
+                  ariaLabel:
+                    element.getAttribute(
+                      "aria-label",
+                    ),
+                  text: normalize(
+                    element.textContent,
+                  ).slice(0, 160),
+                  tabIndex:
+                    element.tabIndex,
+                  disabled,
+                  visible,
+                  sameRow,
+                  rightOfAnchor,
+                  rect: {
+                    x: rect.x,
+                    y: rect.y,
+                    width: rect.width,
+                    height: rect.height,
+                  },
+                  element,
+                };
+              },
+            );
+
+          candidates.push(
+            ...depthCandidates.map(
+              ({ element: _element, ...item }) =>
+                item,
+            ),
+          );
+
+          const selected =
+            depthCandidates
+              .filter((candidate) =>
+                candidate.visible &&
+                !candidate.disabled &&
+                candidate.sameRow &&
+                candidate.rightOfAnchor &&
+                !candidate.element.contains(
+                  anchor,
+                ) &&
+                !anchor.contains(
+                  candidate.element,
+                ),
+              )
+              .sort((left, right) =>
+                (left.rect?.x || 0) -
+                (right.rect?.x || 0),
+              )[0];
+
+          if (selected) {
+            selected.element.setAttribute(
+              marker,
+              "selected",
+            );
+            const {
+              element: _element,
+              ...selectedCandidate
+            } = selected;
+
+            return {
+              anchorFound: true,
+              anchorText: normalize(
+                anchor.textContent,
+              ),
+              evaluationError: null,
+              strategy:
+                "ADD_TO_YOUR_POST_ROW" as const,
+              candidates,
+              selected:
+                selectedCandidate,
+            };
+          }
+
+          if (container === rootElement) {
+            break;
+          }
+
+          container =
+            container.parentElement;
+        }
+
+        return {
+          anchorFound: true,
+          anchorText: normalize(
+            anchor.textContent,
+          ),
+          evaluationError: null,
+          strategy: null,
+          candidates,
+          selected: null,
+        };
+      }, MEDIA_CONTROL_MARKER)
+      .catch((error) => {
+        const evaluationError =
+          error instanceof Error
+            ? `${error.name}: ${error.message}`
+            : String(error);
+        const failedDiagnostics:
+          FacebookComposerMediaControlDiagnostics = {
+            anchorFound: false,
+            anchorText: null,
+            evaluationError,
+            strategy: null,
+            candidates: [],
+            selected: null,
+          };
+
+        console.error(
+          "[facebook/image-upload-control-evaluation-failure]",
+          failedDiagnostics,
+        );
+
+        return failedDiagnostics;
+      });
+  const control = diagnostics.selected
+    ? dialog.locator(
+        `[${MEDIA_CONTROL_MARKER}="selected"]`,
+      )
+    : null;
+
+  return {
+    control,
+    diagnostics,
+  };
+}
+
+function normalizeText(
+  value: string | null | undefined,
+) {
+  return (value || "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+async function visible(
+  locator: Locator,
+) {
+  return locator
+    .isVisible()
+    .catch(() => false);
+}
+
+function acceptsFacebookImageFiles(
+  accept: string | null,
+) {
+  const normalized =
+    (accept || "")
+      .toLowerCase();
+
+  return (
+    normalized.includes("image") ||
+    /\.(jpe?g|png|webp)/i.test(
+      normalized,
+    )
+  );
+}
+
+async function inputFileCount(
+  input: Locator,
+) {
+  return input
+    .evaluate((element) => {
+      if (
+        !(element instanceof HTMLInputElement) ||
+        element.type !== "file"
+      ) {
+        return 0;
+      }
+
+      return element.files?.length || 0;
+    })
+    .catch(() => 0);
+}
+
+async function uploadFacebookComposerImagesFromScopedInput(
+  dialog: Locator,
+  imagePaths: string[],
+  input: {
+    photoButtonClicked: boolean;
+    controlDiagnostics: FacebookComposerMediaControlDiagnostics;
+  },
+): Promise<FacebookComposerImageUploadResult | null> {
+  const fileInputs =
+    dialog.locator(
+      'input[type="file"]',
+    );
+  const inputCount =
+    await fileInputs
+      .count()
+      .catch(() => 0);
+
+  for (
+    let index = 0;
+    index < inputCount;
+    index += 1
+  ) {
+    const fileInput =
+      fileInputs.nth(index);
+    const accept =
+      await fileInput
+        .getAttribute("accept")
+        .catch(() => null);
+
+    if (
+      !acceptsFacebookImageFiles(
+        accept,
+      )
+    ) {
+      continue;
+    }
+
+    const uploaded =
+      await fileInput
+        .setInputFiles(
+          imagePaths,
+        )
+        .then(() => true)
+        .catch(() => false);
+
+    if (!uploaded) {
+      continue;
+    }
+
+    const retainedFileCount =
+      await inputFileCount(
+        fileInput,
+      );
+
+    if (
+      retainedFileCount !==
+      imagePaths.length
+    ) {
+      console.warn(
+        "[facebook/composer-input-consumed]",
+        {
+          expectedFileCount:
+            imagePaths.length,
+          inputFileCount:
+            retainedFileCount,
+        },
+      );
+    }
+
+    return {
+      strategy:
+        "COMPOSER_FILE_INPUT",
+      expectedFileCount:
+        imagePaths.length,
+      inputFileCount:
+        retainedFileCount,
+      photoButtonClicked:
+        input.photoButtonClicked,
+      inputAccept:
+        accept,
+      multiple:
+        await fileInput
+          .getAttribute("multiple")
+          .then((value) =>
+            value !== null,
+          )
+          .catch(() => null),
+      controlDiagnostics:
+        input.controlDiagnostics,
+    };
+  }
+
+  return null;
+}
+
+export async function retryFacebookComposerImageUploadWithScopedInput(
+  dialog: Locator,
+  imagePaths: string[],
+  input: {
+    photoButtonClicked: boolean;
+    controlDiagnostics: FacebookComposerMediaControlDiagnostics;
+    timeoutMs?: number;
+  },
+): Promise<FacebookComposerImageUploadResult> {
+  const timeoutMs =
+    Math.max(
+      250,
+      input.timeoutMs ?? 5000,
+    );
+  const startedAt =
+    Date.now();
+
+  while (
+    Date.now() - startedAt <
+    timeoutMs
+  ) {
+    const result =
+      await uploadFacebookComposerImagesFromScopedInput(
+        dialog,
+        imagePaths,
+        input,
+      );
+
+    if (result) {
+      console.log(
+        "[facebook/composer-scoped-image-input-retry]",
+        {
+          expectedFileCount:
+            imagePaths.length,
+          inputFileCount:
+            result.inputFileCount,
+          waitedMs:
+            Date.now() -
+            startedAt,
+        },
+      );
+
+      return result;
+    }
+
+    await new Promise(
+      (resolve) =>
+        setTimeout(resolve, 250),
+    );
+  }
+
+  throw new FacebookComposerImageUploadError(
+    "Facebook composer-scoped image input did not appear after the consumed file chooser.",
+    input.controlDiagnostics,
+  );
+}
+
+/**
+ * Upload images through the file chooser opened by the active Facebook
+ * composer. A composer-scoped input is retained as a fallback for Facebook
+ * variants that reveal an input without emitting a chooser event.
+ */
+export async function uploadFacebookComposerImages(
+  page: Page,
+  dialog: Locator,
+  imagePaths: string[],
+): Promise<FacebookComposerImageUploadResult> {
+  if (imagePaths.length === 0) {
+    throw new Error(
+      "Facebook image upload requires at least one image.",
+    );
+  }
+
+  const namedPhotoButtonCandidates = [
+    dialog.getByRole(
+      "button",
+      {
+        name:
+          /^(?:add\s+)?photos?\s*(?:\/|or)\s*videos?$/i,
+      },
+    ),
+    dialog.getByRole(
+      "button",
+      {
+        name:
+          /^(?:add\s+)?photos?$/i,
+      },
+    ),
+    dialog.locator(
+      '[aria-label*="Photo" i]',
+    ),
+  ];
+
+  const rowControl =
+    await locateAddToYourPostMediaControl(
+      dialog,
+    );
+  const controlDiagnostics =
+    rowControl.diagnostics;
+
+  const photoButtonCandidates = [
+    ...(rowControl.control
+      ? [rowControl.control]
+      : []),
+    ...namedPhotoButtonCandidates,
+  ];
+
+  let photoButtonClicked = false;
+  let clickedControlStrategy:
+    | "NAMED_CONTROL"
+    | "ADD_TO_YOUR_POST_ROW"
+    | null = null;
+
+  for (
+    const candidate
+    of photoButtonCandidates
+  ) {
+    const count =
+      await candidate
+        .count()
+        .catch(() => 0);
+
+    for (
+      let index = 0;
+      index < count;
+      index += 1
+    ) {
+      const button =
+        candidate.nth(index);
+
+      if (
+        !await visible(button)
+      ) {
+        continue;
+      }
+
+      const chooserPromise =
+        page
+          .waitForEvent(
+            "filechooser",
+            {
+              timeout: 5000,
+            },
+          )
+          .catch(() => null);
+
+      const clicked =
+        await button
+          .click({
+            force: true,
+          })
+          .then(() => true)
+          .catch(() => false);
+
+      if (!clicked) {
+        await chooserPromise;
+        continue;
+      }
+
+      photoButtonClicked = true;
+      clickedControlStrategy =
+        rowControl.control &&
+        candidate === rowControl.control
+          ? "ADD_TO_YOUR_POST_ROW"
+          : "NAMED_CONTROL";
+
+      const chooser =
+        await chooserPromise;
+
+      if (!chooser) {
+        break;
+      }
+
+      await chooser.setFiles(
+        imagePaths,
+      );
+
+      const chooserInput =
+        chooser.element();
+      const chooserFileCount =
+        await chooserInput
+          .evaluate((element) => {
+            if (
+              !(element instanceof HTMLInputElement) ||
+              element.type !== "file"
+            ) {
+              return 0;
+            }
+
+            return element.files?.length || 0;
+          })
+          .catch(() => 0);
+
+      if (
+        chooserFileCount !==
+        imagePaths.length
+      ) {
+        /*
+         * Facebook can consume and replace its temporary chooser input as
+         * soon as setFiles() dispatches the upload. A zero count on that old
+         * input is therefore diagnostic evidence, not proof that the upload
+         * failed. The visible composer preview gate in the publishing flow is
+         * the authoritative attachment verification.
+         */
+        console.warn(
+          "[facebook/file-chooser-input-consumed]",
+          {
+            expectedFileCount:
+              imagePaths.length,
+            inputFileCount:
+              chooserFileCount,
+          },
+        );
+      }
+
+      return {
+        strategy:
+          "PHOTO_VIDEO_FILE_CHOOSER",
+        expectedFileCount:
+          imagePaths.length,
+        inputFileCount:
+          chooserFileCount,
+        photoButtonClicked,
+        inputAccept:
+          await chooserInput
+            .getAttribute("accept")
+            .catch(() => null),
+        multiple:
+          chooser.isMultiple(),
+        controlDiagnostics: {
+          ...controlDiagnostics,
+          strategy:
+            clickedControlStrategy,
+        },
+      };
+    }
+
+    if (photoButtonClicked) {
+      break;
+    }
+  }
+
+  /*
+   * Do not search the whole page. Facebook keeps unrelated upload inputs
+   * mounted outside the composer; accepting one of those makes
+   * setInputFiles succeed without attaching media to the post.
+   */
+  const scopedInputUpload =
+    await uploadFacebookComposerImagesFromScopedInput(
+      dialog,
+      imagePaths,
+      {
+        photoButtonClicked,
+        controlDiagnostics,
+      },
+    );
+
+  if (scopedInputUpload) {
+    return scopedInputUpload;
+  }
+
+  console.error(
+    "[facebook/image-upload-control-diagnostics]",
+    controlDiagnostics,
+  );
+
+  throw new FacebookComposerImageUploadError(
+    photoButtonClicked
+      ? "Facebook Photo/video did not open a usable composer image input."
+      : "Facebook Photo/video control was not found in the active composer.",
+    controlDiagnostics,
+  );
+}
+
+export async function resetFacebookComposer(
+  page: Page,
+) {
+  const dialogs =
+    page.locator(
+      '[role="dialog"]',
+    );
+
+  const count =
+    await dialogs
+      .count()
+      .catch(() => 0);
+
+  let composerFound =
+    false;
+
+  for (
+    let index = count - 1;
+    index >= 0;
+    index -= 1
+  ) {
+    const dialog =
+      dialogs.nth(index);
+
+    if (
+      !await visible(dialog)
+    ) {
+      continue;
+    }
+
+    const hasEditor =
+      await dialog
+        .locator(
+          '[contenteditable="true"][role="textbox"]',
+        )
+        .count()
+        .catch(() => 0);
+
+    const text =
+      normalizeText(
+        await dialog
+          .innerText()
+          .catch(() => ""),
+      );
+
+    if (
+      hasEditor > 0 &&
+      (
+        /create post/i.test(text) ||
+        /what'?s on your mind/i.test(text)
+      )
+    ) {
+      composerFound =
+        true;
+      break;
+    }
+  }
+
+  if (!composerFound) {
+    return {
+      reset: false,
+    };
+  }
+
+  await page.reload({
+    waitUntil:
+      "domcontentloaded",
+    timeout: 30000,
+  });
+
+  await page.waitForTimeout(
+    1200,
+  );
+
+  return {
+    reset: true,
+  };
+}
+
+
+export async function findFacebookCreatePostDialog(
+  page: Page,
+  timeoutMs = 10000,
+) {
+  const startedAt = Date.now();
+
+  while (Date.now() - startedAt < timeoutMs) {
+    /*
+     * Do not retain an nth(index) locator. Every Locator is live, including
+     * nth(), so Facebook inserting or removing another dialog after an editor
+     * click can silently retarget it. This semantic locator is intentionally
+     * re-resolved on every operation and continues to identify the visible
+     * Create post dialog after DOM reordering or React replacement.
+     */
+    const editor = page.locator(
+      FACEBOOK_COMPOSER_EDITOR_SELECTOR,
+    );
+    const mediaCue = page.locator(
+      FACEBOOK_COMPOSER_MEDIA_CUE_SELECTOR,
+    );
+    const visibleDialogs = page.locator(
+      '[role="dialog"]:visible',
+    );
+    const candidates = [
+      visibleDialogs
+        .filter({
+          has: editor,
+        })
+        .filter({
+          has: mediaCue,
+        })
+        .first(),
+      visibleDialogs
+        .filter({
+          has: editor,
+        })
+        .filter({
+          hasText:
+            /create post|what'?s on your mind/i,
+        })
+        .first(),
+    ];
+
+    for (const dialog of candidates) {
+      const dialogCount =
+        await dialog
+          .count()
+          .catch(() => 0);
+
+      if (
+        dialogCount > 0 &&
+        await visible(dialog)
+      ) {
+        return dialog;
+      }
+    }
+
+    /*
+     * Localized Facebook variants may expose neither English composer copy
+     * nor an accessible Photo/video label. If exactly one visible dialog has
+     * a supported editor, it is still an unambiguous active composer.
+     */
+    const editorDialogs =
+      visibleDialogs.filter({
+        has: editor,
+      });
+    const editorDialogCount =
+      await editorDialogs
+        .count()
+        .catch(() => 0);
+
+    if (editorDialogCount === 1) {
+      const dialog =
+        editorDialogs.first();
+
+      if (await visible(dialog)) {
+        return dialog;
+      }
+    }
+
+    const visibleEditors = page.locator(
+      `${FACEBOOK_COMPOSER_EDITOR_SELECTOR}:visible`,
+    );
+    const visibleEditorCount = await visibleEditors
+      .count()
+      .catch(() => 0);
+
+    if (visibleEditorCount === 1) {
+      const body = page.locator("body");
+
+      if (await visible(body)) {
+        return body;
+      }
+    }
+
+    await page.waitForTimeout(250);
+  }
+
+  throw new Error(
+    "Facebook Create post dialog was not found after the composer trigger opened.",
+  );
+}
+
+async function collectEditorCandidates(
+  dialog: Locator,
+) {
+  return [
+    {
+      strategy:
+        "aria-label",
+      locator:
+        dialog.locator(
+          '[contenteditable="true"][role="textbox"][aria-label*="mind" i]',
+        ),
+    },
+    {
+      strategy:
+        "aria-placeholder",
+      locator:
+        dialog.locator(
+          '[contenteditable="true"][aria-placeholder*="mind" i]',
+        ),
+    },
+    {
+      strategy:
+        "lexical-editor",
+      locator:
+        dialog.locator(
+          '[contenteditable="true"][data-lexical-editor="true"]',
+        ),
+    },
+    {
+      strategy:
+        "role-textbox",
+      locator:
+        dialog.locator(
+          '[contenteditable="true"][role="textbox"]',
+        ),
+    },
+    {
+      strategy:
+        "contenteditable",
+      locator:
+        dialog.locator(
+          '[contenteditable="true"]',
+        ),
+    },
+  ];
+}
+
+async function replaceEditorText(
+  page: Page,
+  editor: Locator,
+  caption: string,
+) {
+  await editor
+    .scrollIntoViewIfNeeded()
+    .catch(() => undefined);
+
+  await editor.click({
+    force: true,
+    timeout: 5000,
+  });
+
+  await editor.evaluate(
+    (
+      element,
+      value,
+    ) => {
+      const html =
+        element as HTMLElement;
+
+      html.focus();
+
+      const selection =
+        window.getSelection();
+
+      const range =
+        document.createRange();
+
+      range.selectNodeContents(
+        html,
+      );
+
+      selection?.removeAllRanges();
+      selection?.addRange(
+        range,
+      );
+
+      document.execCommand(
+        "delete",
+        false,
+      );
+
+      const beforeInput =
+        new InputEvent(
+          "beforeinput",
+          {
+            bubbles: true,
+            cancelable: true,
+            inputType:
+              "insertText",
+            data: value,
+          },
+        );
+
+      html.dispatchEvent(
+        beforeInput,
+      );
+
+      document.execCommand(
+        "insertText",
+        false,
+        value,
+      );
+
+      const input =
+        new InputEvent(
+          "input",
+          {
+            bubbles: true,
+            inputType:
+              "insertText",
+            data: value,
+          },
+        );
+
+      html.dispatchEvent(
+        input,
+      );
+
+      html.dispatchEvent(
+        new Event(
+          "change",
+          {
+            bubbles: true,
+          },
+        ),
+      );
+    },
+    caption,
+  );
+
+  await page.waitForTimeout(
+    700,
+  );
+}
+
+
+async function editorContainsCaption(
+  editor: Locator,
+  caption: string,
+) {
+  const innerText =
+    normalizeText(
+      await editor
+        .innerText()
+        .catch(() => ""),
+    );
+
+  const textContent =
+    normalizeText(
+      await editor
+        .textContent()
+        .catch(() => ""),
+    );
+
+  const expected =
+    normalizeText(
+      caption,
+    );
+
+  return {
+    matched:
+      innerText.includes(expected) ||
+      textContent.includes(expected),
+    writtenLength:
+      Math.max(
+        innerText.length,
+        textContent.length,
+      ),
+  };
+}
+
+export async function fillFacebookComposerCaption(
+  page: Page,
+  caption: string,
+): Promise<CaptionFillResult> {
+  const expected =
+    caption.trim();
+
+  if (!expected) {
+    throw new Error(
+      "Facebook caption cannot be empty.",
+    );
+  }
+
+  for (
+    let attempt = 1;
+    attempt <= 3;
+    attempt += 1
+  ) {
+    const editors =
+      page.locator(
+        '[role="dialog"] [contenteditable="true"][role="textbox"][data-lexical-editor="true"][aria-placeholder*="mind" i]',
+      );
+
+    const count =
+      await editors
+        .count()
+        .catch(() => 0);
+
+    const visibleEditors:
+      Locator[] = [];
+
+    for (
+      let index = 0;
+      index < count;
+      index += 1
+    ) {
+      const editor =
+        editors.nth(index);
+
+      if (
+        await editor
+          .isVisible()
+          .catch(() => false)
+      ) {
+        visibleEditors.push(
+          editor,
+        );
+      }
+    }
+
+    if (
+      visibleEditors.length === 0
+    ) {
+      await page.waitForTimeout(
+        700,
+      );
+      continue;
+    }
+
+    /*
+     * Facebook may keep an older Composer editor
+     * mounted behind the current dialog.
+     * The last visible editor matches the active
+     * Composer used by the verified debug route.
+     */
+    const editor =
+      visibleEditors[
+        visibleEditors.length - 1
+      ];
+
+    await editor.fill(
+      expected,
+      {
+        force: true,
+      },
+    );
+
+    await page.waitForTimeout(
+      1000,
+    );
+
+    const verification =
+      await editorContainsCaption(
+        editor,
+        expected,
+      );
+
+    if (
+      verification.matched
+    ) {
+      return {
+        filled: true,
+        attempts:
+          attempt,
+        writtenLength:
+          verification.writtenLength,
+        strategy:
+          "playwright-contenteditable-fill",
+      };
+    }
+
+    await page.waitForTimeout(
+      700,
+    );
+  }
+
+  throw new Error(
+    "Facebook caption could not be verified after 3 attempts.",
+  );
+}
+
+export async function countFacebookComposerImagePreviews(
+  dialog: Locator,
+): Promise<number> {
+  const inspection =
+    await inspectFacebookComposerImagePreviews(
+      dialog,
+    );
+
+  return inspection.count;
+}
+
+export type FacebookComposerImagePreviewCandidate = {
+  tagName: string;
+  role: string | null;
+  sourceType:
+    | "IMG"
+    | "BACKGROUND"
+    | "NONE";
+  source: string;
+  display: string;
+  visibility: string;
+  opacity: number;
+  width: number;
+  height: number;
+  naturalWidth: number;
+  naturalHeight: number;
+};
+
+export function isFacebookComposerImagePreviewCandidate(
+  candidate: FacebookComposerImagePreviewCandidate,
+) {
+  const visible =
+    candidate.display !== "none" &&
+    candidate.visibility !== "hidden" &&
+    candidate.opacity > 0 &&
+    candidate.width >= 100 &&
+    candidate.height >= 100;
+
+  if (!visible || !candidate.source) {
+    return false;
+  }
+
+  if (candidate.sourceType === "BACKGROUND") {
+    return candidate.source !== "none";
+  }
+
+  return (
+    candidate.sourceType === "IMG" &&
+    candidate.naturalWidth >= 100 &&
+    candidate.naturalHeight >= 100
+  );
+}
+
+export function normalizeFacebookComposerImagePreviewSource(
+  value: string,
+) {
+  const normalized = value.trim();
+  const cssUrlMatch =
+    normalized.match(
+      /^url\((?:["']?)(.*?)(?:["']?)\)$/i,
+    );
+
+  return (
+    cssUrlMatch?.[1]?.trim() ||
+    normalized
+  );
+}
+
+export function countFacebookComposerImagePreviewCandidates(
+  candidates: FacebookComposerImagePreviewCandidate[],
+) {
+  const uniqueSources = new Set(
+    candidates
+      .filter(
+        isFacebookComposerImagePreviewCandidate,
+      )
+      .map(
+        (candidate) =>
+          normalizeFacebookComposerImagePreviewSource(
+            candidate.source,
+          ),
+      )
+      .filter(Boolean),
+  );
+
+  return uniqueSources.size;
+}
+
+export async function inspectFacebookComposerImagePreviews(
+  dialog: Locator,
+) {
+  const candidates =
+    await dialog
+      .locator(
+        [
+          "img",
+          '[role="img"]',
+          '[style*="background-image"]',
+          '[data-visualcompletion="media-vc-image"]',
+        ].join(","),
+      )
+    .evaluateAll(
+      (elements) =>
+        elements.map((element) => {
+          const rect = element.getBoundingClientRect();
+          const style = window.getComputedStyle(element);
+          const image =
+            element instanceof HTMLImageElement
+              ? element
+              : null;
+          const imageSource =
+            image?.currentSrc ||
+            image?.src ||
+            "";
+          const backgroundSource =
+            style.backgroundImage &&
+            style.backgroundImage !== "none"
+              ? style.backgroundImage
+              : "";
+
+          return {
+            tagName:
+              element.tagName,
+            role:
+              element.getAttribute("role"),
+            sourceType:
+              imageSource
+                ? "IMG"
+                : backgroundSource
+                  ? "BACKGROUND"
+                  : "NONE",
+            source:
+              imageSource || backgroundSource,
+            display:
+              style.display,
+            visibility:
+              style.visibility,
+            opacity:
+              Number(style.opacity || "1"),
+            width:
+              rect.width,
+            height:
+              rect.height,
+            naturalWidth:
+              image?.naturalWidth || 0,
+            naturalHeight:
+              image?.naturalHeight || 0,
+          };
+        }),
+    )
+    .then(
+      (values) =>
+        values as FacebookComposerImagePreviewCandidate[],
+    )
+    .catch(
+      () => [] as FacebookComposerImagePreviewCandidate[],
+    );
+
+  return {
+    count:
+      countFacebookComposerImagePreviewCandidates(
+        candidates,
+      ),
+    candidates:
+      candidates
+        .slice(0, 20)
+        .map((candidate) => ({
+          ...candidate,
+          source:
+            candidate.source.slice(
+              0,
+              180,
+            ),
+          accepted:
+            isFacebookComposerImagePreviewCandidate(
+              candidate,
+            ),
+        })),
+  };
+}
+
+export async function waitForFacebookComposerImagePreviews(
+  dialog: Locator,
+  input: {
+    baselineCount: number;
+    expectedAddedCount: number;
+    timeoutMs?: number;
+  },
+) {
+  const expectedCount = input.baselineCount + input.expectedAddedCount;
+  const timeoutMs = input.timeoutMs ?? 20000;
+  const startedAt = Date.now();
+  let previewCount = input.baselineCount;
+  let previewCandidates:
+    Awaited<
+      ReturnType<
+        typeof inspectFacebookComposerImagePreviews
+      >
+    >["candidates"] = [];
+
+  while (Date.now() - startedAt < timeoutMs) {
+    const inspection =
+      await inspectFacebookComposerImagePreviews(
+        dialog,
+      );
+
+    previewCount = inspection.count;
+    previewCandidates = inspection.candidates;
+
+    if (previewCount >= expectedCount) {
+      return {
+        attached: true,
+        previewCount,
+        addedCount: previewCount - input.baselineCount,
+        waitedMs: Date.now() - startedAt,
+        previewCandidates,
+      };
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 400));
+  }
+
+  return {
+    attached: false,
+    previewCount,
+    addedCount: Math.max(0, previewCount - input.baselineCount),
+    waitedMs: Date.now() - startedAt,
+    previewCandidates,
+  };
+}
+
+export async function waitForFacebookComposerStable(page: Page) {
+  let previousSignature = "";
+
+  let stableChecks = 0;
+
+  const startedAt =
+    Date.now();
+
+  for (
+    let attempt = 0;
+    attempt < 30;
+    attempt += 1
+  ) {
+    const dialogs =
+      page.locator(
+        '[role="dialog"]',
+      );
+
+    const count =
+      await dialogs
+        .count()
+        .catch(() => 0);
+
+    let signature = "";
+
+    let ready =
+      false;
+
+    for (
+      let index = count - 1;
+      index >= 0;
+      index -= 1
+    ) {
+      const dialog =
+        dialogs.nth(index);
+
+      if (
+        !await dialog
+          .isVisible()
+          .catch(() => false)
+      ) {
+        continue;
+      }
+
+      const editor =
+        dialog.locator(
+          '[contenteditable="true"][role="textbox"][data-lexical-editor="true"]',
+        );
+
+      const editorCount =
+        await editor
+          .count()
+          .catch(() => 0);
+
+      if (
+        editorCount === 0
+      ) {
+        continue;
+      }
+
+      const images =
+        await dialog
+          .locator("img")
+          .count()
+          .catch(() => 0);
+
+      const postButtonVisible =
+        await dialog
+          .getByRole(
+            "button",
+            {
+              name: /^(post|publish)(?: now)?$/i,
+            },
+          )
+          .first()
+          .isVisible()
+          .catch(() => false);
+
+      const mediaControlVisible =
+        await dialog
+          .getByText(
+            /photo\/video|add photo|add video|add reel/i,
+          )
+          .first()
+          .isVisible()
+          .catch(() => false);
+
+      const editorTextLength =
+        normalizeText(
+          await editor
+            .first()
+            .innerText()
+            .catch(() => ""),
+        ).length;
+
+      const text =
+        (
+          await dialog
+            .innerText()
+            .catch(() => "")
+        )
+          .replace(
+            /\s+/g,
+            " ",
+          )
+          .trim();
+
+      const loading =
+        /uploading|processing|please wait/i
+          .test(text);
+
+      const hasPostButton =
+        text.includes(
+          "Post",
+        ) ||
+        postButtonVisible;
+
+      const hasComposer =
+        text.includes(
+          "Add to your post",
+        ) ||
+        mediaControlVisible;
+
+      ready =
+        !loading &&
+        (
+          hasComposer ||
+          hasPostButton
+        );
+
+      signature =
+        [
+          editorCount,
+          images,
+          loading,
+          hasComposer,
+          hasPostButton,
+          editorTextLength,
+        ].join(":");
+
+      break;
+    }
+
+    if (
+      signature &&
+      signature ===
+        previousSignature
+    ) {
+      stableChecks += 1;
+    } else {
+      stableChecks = 0;
+    }
+
+    previousSignature =
+      signature;
+
+    if (
+      ready &&
+      stableChecks >= 1
+    ) {
+      return {
+        stable: true,
+        signature,
+        checks:
+          attempt + 1,
+        durationMs:
+          Date.now() -
+          startedAt,
+      };
+    }
+
+    await page.waitForTimeout(
+      300,
+    );
+  }
+
+  throw new Error(
+    "Facebook Composer did not become stable.",
+  );
+}

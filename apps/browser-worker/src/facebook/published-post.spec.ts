@@ -1,0 +1,425 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import * as publishedPost from "./published-post.js";
+import {
+  buildFacebookPublishedPostReference,
+  createFacebookCaptionFingerprint,
+  hasFacebookPublishErrorSignal,
+  hasFacebookPublishSuccessSignal,
+  extractFacebookPageId,
+  resolveFacebookPublishedFlag,
+  resolveFacebookPublishVerificationStatus,
+  shouldRefreshFacebookPublishConfirmation,
+  shouldAdvanceFacebookPublishedPostSearch,
+  FACEBOOK_PUBLISHED_POST_MAX_ARTICLES_PER_PASS,
+  FACEBOOK_PUBLISHED_POST_MAX_SCROLLS,
+  selectFacebookPublishedPostArticleIndexes,
+  findFacebookPublishedPostReference,
+} from "./published-post.js";
+
+test("uses the first content line as the caption fingerprint", () => {
+  assert.equal(
+    createFacebookCaptionFingerprint(
+      "🏢 M BUSINESS｜M STORY 016\n\n麦当劳的成功关键",
+    ),
+    "M BUSINESS｜M STORY 016",
+  );
+});
+
+test("extracts a numeric Facebook page id", () => {
+  assert.equal(
+    extractFacebookPageId(
+      "https://www.facebook.com/profile.php?id=61592884960509",
+    ),
+    "61592884960509",
+  );
+});
+
+test("prefers a multi-image pcb set as the published post id", () => {
+  assert.deepEqual(
+    buildFacebookPublishedPostReference(
+      "https://www.facebook.com/profile.php?id=61592884960509",
+      [
+        "/photo/?fbid=122112144357429498&set=pcb.122112144501429498",
+        "/photo/?fbid=122112144327429498&set=pcb.122112144501429498",
+      ],
+    ),
+    {
+      pageId: "61592884960509",
+      facebookPostId: "122112144501429498",
+      externalPostId: "61592884960509_122112144501429498",
+      postUrl:
+        "https://www.facebook.com/permalink.php?story_fbid=122112144501429498&id=61592884960509",
+      matchedBy: "photo-set",
+    },
+  );
+});
+
+test("supports text-only post permalinks", () => {
+  assert.equal(
+    buildFacebookPublishedPostReference(
+      "https://www.facebook.com/61592884960509",
+      ["/61592884960509/posts/122112144501429498/"],
+    )?.externalPostId,
+    "61592884960509_122112144501429498",
+  );
+});
+
+test("supports single-image photo links without a pcb set", () => {
+  assert.equal(
+    buildFacebookPublishedPostReference(
+      "https://www.facebook.com/profile.php?id=61592884960509",
+      [
+        "/photo/?fbid=122112144357429498",
+      ],
+    )?.externalPostId,
+    "61592884960509_122112144357429498",
+  );
+});
+
+test("confirms a publish when the new post reference is present", () => {
+  assert.equal(
+    resolveFacebookPublishVerificationStatus({
+      errorSignal: false,
+      successSignal: false,
+      composerStillVisible: true,
+      postReferenceFound: true,
+    }),
+    "CONFIRMED",
+  );
+});
+
+test("keeps an unresolved visible composer unconfirmed", () => {
+  assert.equal(
+    resolveFacebookPublishVerificationStatus({
+      errorSignal: false,
+      successSignal: false,
+      composerStillVisible: true,
+      postReferenceFound: false,
+    }),
+    "UNCONFIRMED",
+  );
+});
+
+test("does not let a post reference override an explicit publish error", () => {
+  assert.equal(
+    resolveFacebookPublishVerificationStatus({
+      errorSignal: true,
+      successSignal: false,
+      composerStillVisible: true,
+      postReferenceFound: true,
+    }),
+    "FAILED",
+  );
+});
+
+test("recognizes Facebook live and shared confirmation messages", () => {
+  assert.equal(
+    hasFacebookPublishSuccessSignal("Your post is now live."),
+    true,
+  );
+  assert.equal(
+    hasFacebookPublishSuccessSignal("Your post has been shared."),
+    true,
+  );
+});
+
+test("recognizes Facebook publish error messages", () => {
+  assert.equal(
+    hasFacebookPublishErrorSignal("Your post couldn't be published."),
+    true,
+  );
+});
+
+test("refreshes confirmation when Facebook leaves the composer unresolved", () => {
+  assert.equal(
+    shouldRefreshFacebookPublishConfirmation({
+      errorSignal: false,
+      successSignal: false,
+      composerStillVisible: true,
+      postReferenceFound: false,
+    }),
+    true,
+  );
+  assert.equal(
+    shouldRefreshFacebookPublishConfirmation({
+      errorSignal: false,
+      successSignal: false,
+      composerStillVisible: true,
+      postReferenceFound: true,
+    }),
+    false,
+  );
+});
+
+test("refreshes confirmation after a clean composer close when no reference is visible yet", () => {
+  assert.equal(
+    shouldRefreshFacebookPublishConfirmation({
+      errorSignal: false,
+      successSignal: false,
+      composerStillVisible: false,
+      postReferenceFound: false,
+    }),
+    true,
+  );
+});
+
+test("does not treat a refresh-closed composer as publish confirmation", () => {
+  const unresolvedAfterRefresh = {
+    errorSignal: false,
+    successSignal: false,
+    composerStillVisible: false,
+    postReferenceFound: false,
+    allowComposerClosed: false,
+  };
+
+  assert.equal(
+    resolveFacebookPublishVerificationStatus(unresolvedAfterRefresh),
+    "UNCONFIRMED",
+  );
+  assert.equal(
+    resolveFacebookPublishedFlag(unresolvedAfterRefresh),
+    false,
+  );
+});
+
+test("reports published when a real post reference confirms the publish", () => {
+  const resolveFacebookPublishedFlag =
+    (
+      publishedPost as typeof publishedPost & {
+        resolveFacebookPublishedFlag?: (input: {
+          errorSignal: boolean;
+          successSignal: boolean;
+          composerStillVisible: boolean;
+          postReferenceFound: boolean;
+        }) => boolean;
+      }
+    ).resolveFacebookPublishedFlag;
+
+  assert.equal(
+    resolveFacebookPublishedFlag?.({
+      errorSignal: false,
+      successSignal: false,
+      composerStillVisible: true,
+      postReferenceFound: true,
+    }),
+    true,
+  );
+});
+
+test("keeps published-post timeline search bounded while allowing older posts to load", () => {
+  assert.equal(FACEBOOK_PUBLISHED_POST_MAX_ARTICLES_PER_PASS, 40);
+  assert.equal(FACEBOOK_PUBLISHED_POST_MAX_SCROLLS, 6);
+
+  assert.equal(
+    shouldAdvanceFacebookPublishedPostSearch({
+      elapsedMs: 699,
+      lastScrollElapsedMs: 0,
+      scrollCount: 0,
+    }),
+    false,
+  );
+
+  assert.equal(
+    shouldAdvanceFacebookPublishedPostSearch({
+      elapsedMs: 700,
+      lastScrollElapsedMs: 0,
+      scrollCount: 0,
+    }),
+    true,
+  );
+
+  assert.equal(
+    shouldAdvanceFacebookPublishedPostSearch({
+      elapsedMs: 5000,
+      lastScrollElapsedMs: 0,
+      scrollCount: FACEBOOK_PUBLISHED_POST_MAX_SCROLLS,
+    }),
+    false,
+  );
+});
+
+test("scans a bounded leading and trailing article window when Facebook appends older posts", () => {
+  assert.deepEqual(
+    selectFacebookPublishedPostArticleIndexes(12, 40),
+    Array.from({ length: 12 }, (_, index) => index),
+  );
+
+  const indexes = selectFacebookPublishedPostArticleIndexes(100, 40);
+
+  assert.equal(indexes.length, 40);
+  assert.deepEqual(indexes.slice(0, 20), Array.from({ length: 20 }, (_, index) => index));
+  assert.deepEqual(
+    indexes.slice(20),
+    Array.from({ length: 20 }, (_, index) => 80 + index),
+  );
+  assert.equal(new Set(indexes).size, indexes.length);
+});
+
+test("confirms an exact post permalink only when the page body matches the caption fingerprint", async () => {
+  let articleLookupCount = 0;
+
+  const page = {
+    locator(selector: string) {
+      if (selector === "body") {
+        return {
+          async innerText() {
+            return "M  BUSINESS｜M STORY 037 99 Speedmart｜为什么它不需要把购物变成体验";
+          },
+        };
+      }
+
+      if (selector === '[role="article"]') {
+        articleLookupCount += 1;
+      }
+
+      throw new Error("timeline lookup should not run for an exact matching permalink");
+    },
+    url() {
+      return "https://www.facebook.com/61592884960509/posts/122117280459429498";
+    },
+  };
+
+  const reference = await findFacebookPublishedPostReference(
+    page as never,
+    "M  BUSINESS｜M STORY 037\n99 Speedmart｜为什么它不需要把购物变成体验",
+    1000,
+  );
+
+  assert.deepEqual(reference, {
+    pageId: "61592884960509",
+    facebookPostId: "122117280459429498",
+    externalPostId: "61592884960509_122117280459429498",
+    postUrl:
+      "https://www.facebook.com/permalink.php?story_fbid=122117280459429498&id=61592884960509",
+    matchedBy: "caption-page-post-path",
+  });
+  assert.equal(articleLookupCount, 0);
+});
+
+test("does not trust an exact post permalink when the page body lacks the caption fingerprint", async () => {
+  const articles = {
+    filter() {
+      return {
+        async count() {
+          return 0;
+        },
+      };
+    },
+    async count() {
+      return 0;
+    },
+  };
+
+  const page = {
+    locator(selector: string) {
+      if (selector === "body") {
+        return {
+          async innerText() {
+            return "A different Facebook post";
+          },
+        };
+      }
+
+      if (selector === '[role="article"]') {
+        return articles;
+      }
+
+      if (selector === "a[href]") {
+        return {
+          filter() {
+            return {
+              async count() {
+                return 0;
+              },
+            };
+          },
+        };
+      }
+
+      throw new Error("unexpected selector: " + selector);
+    },
+    url() {
+      return "https://www.facebook.com/61592884960509/posts/122117280459429498";
+    },
+    async waitForTimeout() {},
+    async evaluate() {},
+  };
+
+  const reference = await findFacebookPublishedPostReference(
+    page as never,
+    "M BUSINESS｜M STORY 037",
+    1,
+  );
+
+  assert.equal(reference, null);
+});
+
+test("finds a caption-matching article even when it sits outside the bounded article window", async () => {
+  const href =
+    "https://www.facebook.com/photo/?fbid=122117280399429498&set=a.122103684285429498";
+
+  const article = {
+    locator(selector: string) {
+      assert.equal(selector, "a[href]");
+      return {
+        async evaluateAll() {
+          return [href];
+        },
+      };
+    },
+  };
+
+  const matchingArticles = {
+    async count() {
+      return 1;
+    },
+    nth(index: number) {
+      assert.equal(index, 0);
+      return article;
+    },
+  };
+
+  const articles = {
+    filter(input: { hasText: string }) {
+      assert.equal(input.hasText, "M BUSINESS｜M STORY 037");
+      return matchingArticles;
+    },
+    async count() {
+      return 100;
+    },
+    nth() {
+      throw new Error("bounded window fallback should not run after a direct caption match");
+    },
+  };
+
+  const page = {
+    locator(selector: string) {
+      if (selector === '[role="article"]') {
+        return articles;
+      }
+
+      throw new Error("unexpected selector: " + selector);
+    },
+    url() {
+      return "https://www.facebook.com/profile.php?id=61592884960509";
+    },
+    async waitForTimeout() {},
+    async evaluate() {},
+  };
+
+  const reference = await findFacebookPublishedPostReference(
+    page as never,
+    "M  BUSINESS｜M STORY 037\n99 Speedmart｜为什么它不需要把购物变成体验",
+    1000,
+  );
+
+  assert.deepEqual(reference, {
+    pageId: "61592884960509",
+    facebookPostId: "122117280399429498",
+    externalPostId: "61592884960509_122117280399429498",
+    postUrl:
+      "https://www.facebook.com/permalink.php?story_fbid=122117280399429498&id=61592884960509",
+    matchedBy: "caption-article-photo-fbid",
+  });
+});

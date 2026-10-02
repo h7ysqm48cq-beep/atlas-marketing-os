@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Atlas Browser Viewer</title>
+    <style>
+      html, body, #screen { width: 100%; height: 100%; margin: 0; background: #111; overflow: hidden; }
+      #status { position: fixed; z-index: 2; top: 12px; left: 12px; color: #fff; font: 14px system-ui, sans-serif; }
+    </style>
+  </head>
+  <body>
+    <div id="status">Connecting to local browser…</div>
+    <div id="screen"></div>
+    <script type="module">
+      import RFB from "/novnc/core/rfb.js";
+
+      const status = document.getElementById("status");
+      const params = new URLSearchParams(window.location.search);
+      const requestedPath = params.get("path") || "websockify";
+      const websocketPath = requestedPath.startsWith("/")
+        ? requestedPath
+        : `/${requestedPath}`;
+      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+      const url = `${protocol}//${window.location.host}${websocketPath}`;
+      const rfb = new RFB(document.getElementById("screen"), url);
+      rfb.scaleViewport = true;
+      rfb.resizeSession = true;
+      rfb.showDotCursor = true;
+      rfb.addEventListener("connect", () => { status.textContent = "Connected"; });
+      rfb.addEventListener("disconnect", (event) => {
+        status.textContent = event.detail.clean ? "Disconnected" : "Browser connection lost";
+      });
+    </script>
+  </body>
+</html>
