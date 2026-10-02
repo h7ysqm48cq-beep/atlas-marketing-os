@@ -48,6 +48,43 @@ test('shared deployment gate accepts engineering-verifier and forwards exact pro
   );
 });
 
+
+test('shared deployment gate forwards branchless Railway provenance for Supervisor reservation validation', async () => {
+  const env = {
+    ATLAS_SUPERVISOR_API_URL: 'https://api.example.test',
+    ATLAS_SUPERVISOR_CI_TOKEN: 'token',
+    ATLAS_DEPLOYMENT_SERVICE: 'api',
+    RAILWAY_GIT_REPO_OWNER: 'h7ysqm48cq-beep',
+    RAILWAY_GIT_REPO_NAME: 'atlas-marketing-os',
+    RAILWAY_GIT_COMMIT_SHA: '9'.repeat(40),
+    RAILWAY_DEPLOYMENT_ID: '00000007-1111-4111-8111-111111111111',
+  };
+  let request;
+
+  await checkProductionDeploymentGate({
+    env,
+    fetchImpl: async (url, init) => {
+      request = { url, init };
+      return {
+        ok: true,
+        status: 200,
+        text: async () => JSON.stringify({
+          allowed: true,
+          taskId: 'task-branchless-api',
+          executionId: 'exec-branchless-api',
+        }),
+      };
+    },
+  });
+
+  const requestBody = JSON.parse(request.init.body);
+  assert.equal(requestBody.service, 'api');
+  assert.equal(requestBody.github.repositoryOwner, 'h7ysqm48cq-beep');
+  assert.equal(requestBody.github.repositoryName, 'atlas-marketing-os');
+  assert.equal(requestBody.github.commitSha, '9'.repeat(40));
+  assert.equal('branch' in requestBody.github, false);
+});
+
 test('shared deployment gate retries only unresolved production authorization', async () => {
   const env = {
     ATLAS_SUPERVISOR_API_URL: 'https://api.example.test',
