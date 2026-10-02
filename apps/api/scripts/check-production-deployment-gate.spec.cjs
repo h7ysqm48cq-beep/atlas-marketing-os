@@ -215,6 +215,72 @@ test('shared deployment gate rejects noncanonical metadata from a different repo
   assert.equal(calls, 0);
 });
 
+test('shared deployment gate forwards runtime_start phase for second-gate revalidation', async () => {
+  const env = {
+    ATLAS_SUPERVISOR_API_URL: 'https://api.example.test',
+    ATLAS_SUPERVISOR_CI_TOKEN: 'token',
+    ATLAS_DEPLOYMENT_SERVICE: 'api',
+    RAILWAY_GIT_REPO_OWNER: 'h7ysqm48cq-beep',
+    RAILWAY_GIT_REPO_NAME: 'atlas-marketing-os',
+    RAILWAY_GIT_BRANCH: 'production/atlas',
+    RAILWAY_GIT_COMMIT_SHA: '7'.repeat(40),
+    RAILWAY_DEPLOYMENT_ID: '00000008-1111-4111-8111-111111111111',
+  };
+  let request;
+
+  await checkProductionDeploymentGate({
+    env,
+    phase: 'runtime_start',
+    fetchImpl: async (url, init) => {
+      request = { url, init };
+      return {
+        ok: true,
+        status: 200,
+        text: async () => JSON.stringify({
+          allowed: true,
+          taskId: 'task-runtime',
+          executionId: 'exec-runtime',
+        }),
+      };
+    },
+  });
+
+  const requestBody = JSON.parse(request.init.body);
+  assert.equal(requestBody.phase, 'runtime_start');
+  assert.equal(
+    requestBody.deploymentId,
+    '00000008-1111-4111-8111-111111111111',
+  );
+});
+
+test('shared deployment gate fails closed on unsupported phase before resolver access', async () => {
+  const env = {
+    ATLAS_SUPERVISOR_API_URL: 'https://api.example.test',
+    ATLAS_SUPERVISOR_CI_TOKEN: 'token',
+    ATLAS_DEPLOYMENT_SERVICE: 'api',
+    RAILWAY_GIT_REPO_OWNER: 'h7ysqm48cq-beep',
+    RAILWAY_GIT_REPO_NAME: 'atlas-marketing-os',
+    RAILWAY_GIT_BRANCH: 'production/atlas',
+    RAILWAY_GIT_COMMIT_SHA: '8'.repeat(40),
+    RAILWAY_DEPLOYMENT_ID: '00000009-1111-4111-8111-111111111111',
+  };
+  let calls = 0;
+
+  await assert.rejects(
+    checkProductionDeploymentGate({
+      env,
+      phase: 'invalid-phase',
+      fetchImpl: async () => {
+        calls += 1;
+        throw new Error('should not run');
+      },
+    }),
+    /ATLAS_DEPLOY_GATE_DENY unsupported_phase/,
+  );
+
+  assert.equal(calls, 0);
+});
+
 test('shared deployment gate retries only unresolved production authorization', async () => {
   const env = {
     ATLAS_SUPERVISOR_API_URL: 'https://api.example.test',
