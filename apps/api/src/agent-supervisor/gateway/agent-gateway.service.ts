@@ -38,6 +38,7 @@ const PRODUCTION_QUALIFICATION_SERVICES = [
 
 const PRODUCTION_DEPLOYMENT_DISPATCH_SERVICES = [
   ...PRODUCTION_QUALIFICATION_SERVICES,
+  'web',
   'production-deploy-executor',
 ] as const;
 

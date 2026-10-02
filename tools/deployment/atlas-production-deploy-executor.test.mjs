@@ -36,8 +36,13 @@ test('executor allowlist includes only the bounded deployment services including
       'engineering-runner',
       'engineering-verifier',
       'browser-worker',
+      'web',
       'production-deploy-executor',
     ],
+  );
+  assert.equal(
+    SERVICES.find((service) => service.name === 'web')?.id,
+    '0c3af5de-9f7a-419f-804a-89362d2e1da4',
   );
   assert.equal(
     SERVICES.find((service) => service.name === 'production-deploy-executor')?.id,
@@ -226,6 +231,7 @@ test('executor claims one authorized worker and deploys the exact production SHA
       'engineering-runner',
       'engineering-verifier',
       'browser-worker',
+      'web',
       'production-deploy-executor',
     ],
   );
@@ -310,7 +316,7 @@ test('already-reserved workers never trigger another Railway deploy', async () =
   });
 
   assert.equal(deployMutations, 0);
-  assert.equal(result.results.length, 4);
+  assert.equal(result.results.length, 5);
   assert.ok(result.results.every((entry) => entry.deployment === null));
 });
 
