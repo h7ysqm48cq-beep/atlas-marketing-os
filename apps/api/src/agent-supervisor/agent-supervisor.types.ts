@@ -265,4 +265,5 @@ export interface ProductionDeploymentResolveInput {
   github?: GithubDeploymentProvenance;
   phase?: 'pre_deploy' | 'runtime_start';
   deploymentId?: string;
+  provenanceMode?: 'railway_git' | 'supervisor_dispatch_reservation';
 }

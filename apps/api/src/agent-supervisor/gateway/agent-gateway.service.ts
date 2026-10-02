@@ -583,13 +583,12 @@ export class AgentGatewayService {
         this.sameCandidate(candidate, existingCandidate)
       ) {
         return {
-          claimed: true,
-          reason: null,
+          claimed: false,
+          reason: 'already_reserved',
           service,
           commitSha: sha,
           taskId: task.id,
           executionId: execution.id,
-          reservationId,
         };
       }
       return {
@@ -678,6 +677,17 @@ export class AgentGatewayService {
       ? `deploy-gate:${deploymentId}`
       : 'deploy-gate';
     const requestedSha = input.github?.commitSha ?? '';
+    const provenanceMode = input.provenanceMode ?? 'railway_git';
+    if (
+      provenanceMode !== 'railway_git' &&
+      provenanceMode !== 'supervisor_dispatch_reservation'
+    ) {
+      throw new BadRequestException({
+        code: 'production_deployment_provenance_mode_invalid',
+      });
+    }
+    const reservationBackedProvenance =
+      provenanceMode === 'supervisor_dispatch_reservation';
     this.productionDeploymentGate.assertProductionDeployment({
       service: input.service,
       supervisorApprovedSha: requestedSha,
@@ -776,6 +786,45 @@ export class AgentGatewayService {
     }
 
     const { task, candidate } = resolvableMatches[0];
+    if (reservationBackedProvenance) {
+      const reservation =
+        task.evidence?.ownerDeploymentDispatchReservation;
+      if (!reservation) {
+        throw new BadRequestException({
+          code: 'production_deployment_dispatch_reservation_required',
+        });
+      }
+
+      let reservedCandidate: SupervisorReviewCandidate;
+      const reservedAtMs = Date.parse(reservation.reservedAt);
+      try {
+        reservedCandidate = this.normalizeCandidate(reservation.candidate);
+      } catch {
+        throw new BadRequestException({
+          code: 'owner_deployment_dispatch_reservation_invalid',
+        });
+      }
+      if (
+        !/^ATLAS-DISPATCH-[0-9a-f]{64}$/i.test(reservation.reservationId) ||
+        !Number.isFinite(reservedAtMs) ||
+        new Date(reservedAtMs).toISOString() !== reservation.reservedAt
+      ) {
+        throw new BadRequestException({
+          code: 'owner_deployment_dispatch_reservation_invalid',
+        });
+      }
+      if (
+        reservation.service !== input.service ||
+        reservation.reservedBy !==
+          `atlas-production-deploy-executor:${input.service}` ||
+        !this.sameCandidate(candidate, reservedCandidate)
+      ) {
+        throw new BadRequestException({
+          code: 'production_deployment_dispatch_reservation_required',
+        });
+      }
+    }
+
     this.productionDeploymentGate.assertProductionDeployment({
       service: input.service,
       supervisorApprovedSha: candidate.headSha,

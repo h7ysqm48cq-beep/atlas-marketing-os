@@ -267,7 +267,7 @@ describe('production deployment dispatch reservation', () => {
     ).toBeUndefined();
   });
 
-  it('idempotently reclaims the exact reservation for the same stable dispatcher identity', async () => {
+  it('treats the exact existing reservation as already reserved for the same dispatcher identity', async () => {
     const { task, execution } = await createReadyWorkerDeployment();
     await approve(task.id);
 
@@ -292,13 +292,12 @@ describe('production deployment dispatch reservation', () => {
     });
 
     expect(second).toEqual({
-      claimed: true,
-      reason: null,
+      claimed: false,
+      reason: 'already_reserved',
       service: 'engineering-runner',
       commitSha: SHA,
       taskId: task.id,
       executionId: execution.id,
-      reservationId: first.reservationId,
     });
 
     const afterSecond = await supervisor.getTask(task.id);
