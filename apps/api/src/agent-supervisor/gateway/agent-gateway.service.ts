@@ -677,14 +677,21 @@ export class AgentGatewayService {
       ? `deploy-gate:${deploymentId}`
       : 'deploy-gate';
     const requestedSha = input.github?.commitSha ?? '';
-    const branchlessRailwayProvenance = !input.github?.branch?.trim();
-    const githubForValidation = branchlessRailwayProvenance
-      ? { ...input.github, branch: 'production/atlas' }
-      : input.github;
+    const provenanceMode = input.provenanceMode ?? 'railway_git';
+    if (
+      provenanceMode !== 'railway_git' &&
+      provenanceMode !== 'supervisor_dispatch_reservation'
+    ) {
+      throw new BadRequestException({
+        code: 'production_deployment_provenance_mode_invalid',
+      });
+    }
+    const reservationBackedProvenance =
+      provenanceMode === 'supervisor_dispatch_reservation';
     this.productionDeploymentGate.assertProductionDeployment({
       service: input.service,
       supervisorApprovedSha: requestedSha,
-      github: githubForValidation,
+      github: input.github,
     });
 
     const normalizedSha = requestedSha.toLowerCase();
@@ -779,7 +786,7 @@ export class AgentGatewayService {
     }
 
     const { task, candidate } = resolvableMatches[0];
-    if (branchlessRailwayProvenance) {
+    if (reservationBackedProvenance) {
       const reservation =
         task.evidence?.ownerDeploymentDispatchReservation;
       if (!reservation) {
@@ -821,7 +828,7 @@ export class AgentGatewayService {
     this.productionDeploymentGate.assertProductionDeployment({
       service: input.service,
       supervisorApprovedSha: candidate.headSha,
-      github: githubForValidation,
+      github: input.github,
     });
     if (phase === 'runtime_start') {
       this.supervisor.assertConsumedProductionDeploymentAuthorization(
