@@ -18,6 +18,66 @@ const SUPPORTED_DEPLOYMENT_SERVICES = new Set([
   'production-deploy-executor',
 ]);
 
+const CANONICAL_REPOSITORY_OWNER = 'h7ysqm48cq-beep';
+const CANONICAL_REPOSITORY_NAME = 'atlas-marketing-os';
+const CANONICAL_PRODUCTION_BRANCH = 'production/atlas';
+const FULL_GIT_SHA = /^[0-9a-f]{40}$/i;
+
+async function fetchCanonicalProductionSha(env, fetchImpl) {
+  const owner = requireEnv(env, 'RAILWAY_GIT_REPO_OWNER');
+  const repository = requireEnv(env, 'RAILWAY_GIT_REPO_NAME');
+  const response = await fetchImpl(
+    `https://github.com/${owner}/${repository}.git/info/refs?service=git-upload-pack`,
+    {
+      headers: {
+        accept: 'application/x-git-upload-pack-advertisement',
+        'user-agent': 'atlas-production-deployment-gate',
+      },
+      signal: AbortSignal.timeout(10_000),
+    },
+  );
+  if (!response.ok) {
+    throw new Error(
+      'ATLAS_DEPLOY_GATE_DENY canonical_production_ref_unavailable',
+    );
+  }
+  const advertisement = await response.text();
+  const match = advertisement.match(
+    /([0-9a-f]{40}) refs\/heads\/production\/atlas(?:\0|\r?\n|$)/i,
+  );
+  const sha = match?.[1]?.toLowerCase() ?? '';
+  if (!FULL_GIT_SHA.test(sha)) {
+    throw new Error(
+      'ATLAS_DEPLOY_GATE_DENY canonical_production_ref_invalid',
+    );
+  }
+  return sha;
+}
+
+async function canonicalDeploymentBranch(env, fetchImpl) {
+  const owner = requireEnv(env, 'RAILWAY_GIT_REPO_OWNER');
+  const repository = requireEnv(env, 'RAILWAY_GIT_REPO_NAME');
+  const branch = requireEnv(env, 'RAILWAY_GIT_BRANCH');
+  const commitSha = requireEnv(env, 'RAILWAY_GIT_COMMIT_SHA').toLowerCase();
+
+  if (branch === CANONICAL_PRODUCTION_BRANCH) return branch;
+  if (
+    owner !== CANONICAL_REPOSITORY_OWNER ||
+    repository !== CANONICAL_REPOSITORY_NAME ||
+    !FULL_GIT_SHA.test(commitSha)
+  ) {
+    return branch;
+  }
+
+  const productionSha = await fetchCanonicalProductionSha(env, fetchImpl);
+  if (productionSha !== commitSha) {
+    throw new Error(
+      'ATLAS_DEPLOY_GATE_DENY canonical_production_branch_required',
+    );
+  }
+  return CANONICAL_PRODUCTION_BRANCH;
+}
+
 function requireEnv(env, key) {
   const value = env[key];
   if (typeof value !== 'string' || !value.trim()) {
@@ -78,15 +138,19 @@ async function checkProductionDeploymentGate({
   const apiUrl = requireEnv(env, 'ATLAS_SUPERVISOR_API_URL').replace(/\/+$/g, '');
   const ciToken = requireEnv(env, 'ATLAS_SUPERVISOR_CI_TOKEN');
   const service = deploymentService(env);
+  const repositoryOwner = requireEnv(env, 'RAILWAY_GIT_REPO_OWNER');
+  const repositoryName = requireEnv(env, 'RAILWAY_GIT_REPO_NAME');
+  const commitSha = requireEnv(env, 'RAILWAY_GIT_COMMIT_SHA');
+  const branch = await canonicalDeploymentBranch(env, fetchImpl);
   const payload = {
     service,
     phase: 'pre_deploy',
     deploymentId: requireEnv(env, 'RAILWAY_DEPLOYMENT_ID'),
     github: {
-      repositoryOwner: requireEnv(env, 'RAILWAY_GIT_REPO_OWNER'),
-      repositoryName: requireEnv(env, 'RAILWAY_GIT_REPO_NAME'),
-      branch: requireEnv(env, 'RAILWAY_GIT_BRANCH'),
-      commitSha: requireEnv(env, 'RAILWAY_GIT_COMMIT_SHA'),
+      repositoryOwner,
+      repositoryName,
+      branch,
+      commitSha,
     },
   };
   const url =
