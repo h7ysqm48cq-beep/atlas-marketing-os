@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
 type RouteContext = {
-  params: Promise<{ path?: string[] }>;
+  params: Promise<{ path?: string[] } | undefined>;
 };
 
 export const WORKER_CAPABILITY_HEADER = "x-atlas-worker-capability";
@@ -45,8 +45,15 @@ function getApiBaseUrl() {
   return configured.replace(/\/+$/, "");
 }
 
+export async function getForwardPath(
+  context: RouteContext,
+): Promise<string[]> {
+  const params = await context.params;
+  return params?.path ?? [];
+}
+
 export async function forward(request: NextRequest, context: RouteContext) {
-  const { path = [] } = await context.params;
+  const path = await getForwardPath(context);
   const workerPath = isSupervisorWorkerPath(path);
   const workerCapability = request.headers.get(WORKER_CAPABILITY_HEADER) ?? "";
 
