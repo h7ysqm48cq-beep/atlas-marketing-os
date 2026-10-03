@@ -1,0 +1,284 @@
+version: 1
+name: atlas-agent-permission-matrix
+
+actions:
+  read_repo: low
+  search_repo: low
+  edit_assigned_files: medium
+  run_tests: low
+  run_build: low
+  commit_assigned_branch: medium
+  change_database_schema: high
+  run_migration: high
+  change_auth_or_identity: high
+  change_runtime_config: high
+  deploy_non_production: high
+  deploy_production: critical
+  merge: critical
+  rebase: critical
+  squash: critical
+  cherry_pick: critical
+  auto_merge: critical
+  force_push: critical
+  delete_branch_for_integration: critical
+
+roles:
+  supervisor:
+    allow:
+      - read_repo
+      - search_repo
+      - run_tests
+      - run_build
+    conditional:
+      edit_assigned_files:
+        requires:
+          - supervisor_is_explicit_task_owner
+      commit_assigned_branch:
+        requires:
+          - current_branch_is_assigned_working_branch
+          - no_implicit_integration
+      change_database_schema:
+        requires:
+          - task_scope_includes_database_schema
+          - database_worker_or_explicit_supervisor_ownership
+          - regression_plan_recorded
+      run_migration:
+        requires:
+          - explicit_task_scope
+          - target_environment_recorded
+          - rollback_or_recovery_plan_recorded
+      change_auth_or_identity:
+        requires:
+          - explicit_task_scope
+          - regression_plan_recorded
+      change_runtime_config:
+        requires:
+          - explicit_task_scope
+          - infra_ownership
+      deploy_non_production:
+        requires:
+          - explicit_deployment_authorization
+      deploy_production:
+        requires:
+          - explicit_user_authorization
+          - deployment_readiness_verified
+      merge:
+        requires: [explicit_user_authorization]
+      rebase:
+        requires: [explicit_user_authorization]
+      squash:
+        requires: [explicit_user_authorization]
+      cherry_pick:
+        requires: [explicit_user_authorization]
+      auto_merge:
+        requires: [explicit_user_authorization]
+      force_push:
+        requires: [explicit_user_authorization]
+      delete_branch_for_integration:
+        requires: [explicit_user_authorization]
+
+  engineering:
+    allow:
+      - read_repo
+      - search_repo
+      - edit_assigned_files
+      - run_tests
+      - run_build
+    conditional:
+      commit_assigned_branch:
+        requires:
+          - current_branch_is_assigned_working_branch
+          - no_implicit_integration
+    deny:
+      - change_database_schema
+      - run_migration
+      - change_auth_or_identity
+      - change_runtime_config
+      - deploy_non_production
+      - deploy_production
+      - merge
+      - rebase
+      - squash
+      - cherry_pick
+      - auto_merge
+      - force_push
+      - delete_branch_for_integration
+
+  frontend:
+    allow:
+      - read_repo
+      - search_repo
+      - edit_assigned_files
+      - run_tests
+      - run_build
+    conditional:
+      commit_assigned_branch:
+        requires:
+          - current_branch_is_assigned_working_branch
+          - no_implicit_integration
+      change_auth_or_identity:
+        requires:
+          - explicit_task_scope
+          - supervisor_authorization
+          - auth_regression_plan
+    deny:
+      - change_database_schema
+      - run_migration
+      - change_runtime_config
+      - deploy_non_production
+      - deploy_production
+      - merge
+      - rebase
+      - squash
+      - cherry_pick
+      - auto_merge
+      - force_push
+      - delete_branch_for_integration
+
+  backend:
+    allow:
+      - read_repo
+      - search_repo
+      - edit_assigned_files
+      - run_tests
+      - run_build
+    conditional:
+      commit_assigned_branch:
+        requires:
+          - current_branch_is_assigned_working_branch
+          - no_implicit_integration
+      change_database_schema:
+        requires:
+          - explicit_task_scope
+          - supervisor_authorization
+          - database_worker_coordination
+      change_auth_or_identity:
+        requires:
+          - explicit_task_scope
+          - supervisor_authorization
+          - auth_regression_plan
+    deny:
+      - run_migration
+      - change_runtime_config
+      - deploy_non_production
+      - deploy_production
+      - merge
+      - rebase
+      - squash
+      - cherry_pick
+      - auto_merge
+      - force_push
+      - delete_branch_for_integration
+
+  database:
+    allow:
+      - read_repo
+      - search_repo
+      - edit_assigned_files
+      - run_tests
+      - run_build
+    conditional:
+      commit_assigned_branch:
+        requires:
+          - current_branch_is_assigned_working_branch
+          - no_implicit_integration
+      change_database_schema:
+        requires:
+          - explicit_task_scope
+          - schema_impact_recorded
+          - regression_plan_recorded
+      run_migration:
+        requires:
+          - explicit_task_scope
+          - supervisor_authorization
+          - target_environment_recorded
+          - rollback_or_recovery_plan_recorded
+    deny:
+      - change_auth_or_identity
+      - change_runtime_config
+      - deploy_non_production
+      - deploy_production
+      - merge
+      - rebase
+      - squash
+      - cherry_pick
+      - auto_merge
+      - force_push
+      - delete_branch_for_integration
+
+  qa:
+    allow:
+      - read_repo
+      - search_repo
+      - run_tests
+      - run_build
+    conditional:
+      edit_assigned_files:
+        requires:
+          - test_or_fixture_scope_only
+      commit_assigned_branch:
+        requires:
+          - current_branch_is_assigned_working_branch
+          - changes_are_tests_or_fixtures
+    deny:
+      - change_database_schema
+      - run_migration
+      - change_auth_or_identity
+      - change_runtime_config
+      - deploy_non_production
+      - deploy_production
+      - merge
+      - rebase
+      - squash
+      - cherry_pick
+      - auto_merge
+      - force_push
+      - delete_branch_for_integration
+
+  infra:
+    allow:
+      - read_repo
+      - search_repo
+      - run_tests
+      - run_build
+    conditional:
+      edit_assigned_files:
+        requires:
+          - infra_or_runtime_scope
+      commit_assigned_branch:
+        requires:
+          - current_branch_is_assigned_working_branch
+          - no_implicit_integration
+      change_runtime_config:
+        requires:
+          - explicit_task_scope
+          - target_environment_recorded
+      deploy_non_production:
+        requires:
+          - explicit_deployment_authorization
+          - deployment_readiness_verified
+      deploy_production:
+        requires:
+          - explicit_user_authorization
+          - deployment_readiness_verified
+          - verification_plan_recorded
+    deny:
+      - change_database_schema
+      - run_migration
+      - change_auth_or_identity
+      - merge
+      - rebase
+      - squash
+      - cherry_pick
+      - auto_merge
+      - force_push
+      - delete_branch_for_integration
+
+global_rules:
+  default: deny
+  path_edit_requires_assignment: true
+  one_active_owner_per_mutable_file: true
+  worker_cannot_self_approve: true
+  integration_actions_require_explicit_user_authorization: true
+  deployment_is_separate_from_implementation: true
+  missing_verification_must_not_be_reported_as_pass: true
