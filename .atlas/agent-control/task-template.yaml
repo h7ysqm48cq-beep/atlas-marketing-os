@@ -1,0 +1,57 @@
+# ATLAS Supervisor task contract
+# Copy this file per supervised task or use it as the schema for an external orchestrator.
+
+id: ATLAS-XXXX
+objective: ""
+owner: engineering
+status: DRAFT
+priority: MEDIUM
+
+scope: []
+allowed_paths: []
+forbidden_paths: []
+
+depends_on: []
+blocks: []
+
+file_ownership: []
+
+permissions:
+  edit: true
+  test: true
+  build: true
+  commit_on_assigned_branch: true
+  deploy: false
+  merge: false
+  rebase: false
+  squash: false
+  cherry_pick: false
+  auto_merge: false
+  force_push: false
+
+acceptance: []
+
+required_evidence:
+  - root_cause
+  - changed_files
+  - tests
+  - build
+  - regression
+  - deployment_state
+  - git_state
+  - remaining_risk
+
+attempts:
+  implementation: 0
+  verification: 0
+  max_similar_failed_attempts: 2
+
+result:
+  root_cause: ""
+  changed_files: []
+  tests: []
+  build: NOT_RUN
+  regression: []
+  deployment_state: NOT_DEPLOYED
+  git_state: NO_INTEGRATION_PERFORMED
+  remaining_risk: []
