@@ -356,6 +356,9 @@ export class BrowserRuntimeBridgeService {
   async publishFacebookPost(
     channelId: string,
     confirmation: string,
+    options?: {
+      includeScreenshotBase64?: boolean;
+    },
   ) {
     if (
       confirmation !==
@@ -391,6 +394,10 @@ export class BrowserRuntimeBridgeService {
             },
             body: JSON.stringify({
               confirmation,
+              includeScreenshotBase64:
+                options
+                  ?.includeScreenshotBase64 ??
+                true,
             }),
           },
           true,
