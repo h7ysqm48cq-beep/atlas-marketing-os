@@ -431,6 +431,123 @@ test('main sync accepts only candidate tree entries identical to pinned producti
   }
 });
 
+
+test('main sync accepts a deletion only when main base contained the path and pinned production also deleted it', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'atlas-main-sync-delete-'));
+  try {
+    const { author, remote, productionHead: initial } = await fixture(root);
+
+    await git(author, ['checkout', '-B', 'main', initial]);
+    await writeFile(path.join(author, 'legacy.txt'), 'legacy\n');
+    await git(author, ['add', '--', 'legacy.txt']);
+    await git(author, ['commit', '-qm', 'main legacy artifact']);
+    const mainBase = await git(author, ['rev-parse', 'HEAD']);
+    await git(author, ['push', remote, 'HEAD:refs/heads/main']);
+
+    await git(author, ['checkout', '-B', 'production/atlas', mainBase]);
+    await git(author, ['rm', '-q', '--', 'legacy.txt']);
+    await git(author, ['commit', '-qm', 'production deletes legacy artifact']);
+    const production = await git(author, ['rev-parse', 'HEAD']);
+    await git(author, ['push', remote, 'HEAD:refs/heads/production/atlas']);
+
+    await git(author, ['checkout', '-B', 'main', mainBase]);
+    await git(author, ['checkout', '-qb', 'main-delete-candidate']);
+    await git(author, ['rm', '-q', '--', 'legacy.txt']);
+    await git(author, ['commit', '-qm', 'candidate deletes legacy artifact']);
+    const head = await git(author, ['rev-parse', 'HEAD']);
+    await git(author, ['push', remote, 'HEAD:refs/heads/main-delete-candidate']);
+
+    const source = new CandidateSourceRepository({
+      repositoryRoot: path.join(root, 'mirror.git'),
+      remote,
+    });
+    await source.ensureExistingCandidate(mainBase, head, 'main');
+    await source.ensureMainSync(mainBase, head, production, ['legacy.txt']);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+
+test('main sync rejects asymmetric deletion when only candidate or production removes the main-base path', async () => {
+  for (const deleteSide of ['candidate', 'production'] as const) {
+    const root = await mkdtemp(path.join(tmpdir(), 'atlas-main-sync-asym-delete-' + deleteSide + '-'));
+    try {
+      const { author, remote, productionHead: initial } = await fixture(root);
+
+      await git(author, ['checkout', '-B', 'main', initial]);
+      await writeFile(path.join(author, 'legacy.txt'), 'legacy\n');
+      await git(author, ['add', '--', 'legacy.txt']);
+      await git(author, ['commit', '-qm', 'main legacy artifact']);
+      const mainBase = await git(author, ['rev-parse', 'HEAD']);
+      await git(author, ['push', remote, 'HEAD:refs/heads/main']);
+
+      await git(author, ['checkout', '-B', 'production/atlas', mainBase]);
+      if (deleteSide === 'production') {
+        await git(author, ['rm', '-q', '--', 'legacy.txt']);
+      } else {
+        await writeFile(path.join(author, 'production-only.txt'), 'advance\n');
+        await git(author, ['add', '--', 'production-only.txt']);
+      }
+      await git(author, ['commit', '-qm', 'production ' + (deleteSide === 'production' ? 'deletes legacy' : 'keeps legacy')]);
+      const production = await git(author, ['rev-parse', 'HEAD']);
+      await git(author, ['push', remote, 'HEAD:refs/heads/production/atlas']);
+
+      await git(author, ['checkout', '-B', 'main', mainBase]);
+      await git(author, ['checkout', '-qb', 'candidate-' + deleteSide]);
+      if (deleteSide === 'candidate') {
+        await git(author, ['rm', '-q', '--', 'legacy.txt']);
+      } else {
+        await writeFile(path.join(author, 'candidate-only.txt'), 'advance\n');
+        await git(author, ['add', '--', 'candidate-only.txt']);
+      }
+      await git(author, ['commit', '-qm', 'candidate ' + (deleteSide === 'candidate' ? 'deletes legacy' : 'keeps legacy')]);
+      const head = await git(author, ['rev-parse', 'HEAD']);
+      await git(author, ['push', remote, 'HEAD:refs/heads/candidate-' + deleteSide]);
+
+      const source = new CandidateSourceRepository({
+        repositoryRoot: path.join(root, 'mirror.git'),
+        remote,
+      });
+      await source.ensureExistingCandidate(mainBase, head, 'main');
+      await assert.rejects(
+        source.ensureMainSync(mainBase, head, production, ['legacy.txt']),
+        /existing_candidate_main_sync_blob_mismatch/,
+      );
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  }
+});
+
+test('main sync rejects an absent-in-candidate-and-production path that did not exist in main base', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'atlas-main-sync-fake-delete-'));
+  try {
+    const { author, remote, productionHead: mainBase } = await fixture(root);
+    await git(author, ['push', remote, mainBase + ':refs/heads/main']);
+
+    await git(author, ['checkout', '-qb', 'main-sync-other-change']);
+    await writeFile(path.join(author, 'actual.txt'), 'candidate\n');
+    await git(author, ['add', '--', 'actual.txt']);
+    await git(author, ['commit', '-qm', 'candidate actual change']);
+    const head = await git(author, ['rev-parse', 'HEAD']);
+    await git(author, ['push', remote, 'HEAD:refs/heads/main-sync-other-change']);
+
+    const production = mainBase;
+    const source = new CandidateSourceRepository({
+      repositoryRoot: path.join(root, 'mirror.git'),
+      remote,
+    });
+    await source.ensureExistingCandidate(mainBase, head, 'main');
+    await assert.rejects(
+      source.ensureMainSync(mainBase, head, production, ['ghost.txt']),
+      /existing_candidate_main_sync_blob_mismatch/,
+    );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 test('main sync rejects candidate content or Git tree metadata that differs from production', async () => {
   const root = await mkdtemp(path.join(tmpdir(), 'atlas-main-sync-mismatch-'));
   try {
