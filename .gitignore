@@ -7,6 +7,8 @@ dist/
 **/dist/
 .next/
 **/.next/
+.next-build/
+**/.next-build/
 out/
 coverage/
 
@@ -61,3 +63,46 @@ apps/api/storage/
 .supabase-*backup*
 .asset-*backup*
 .assets-*backup*
+
+# Atlas local patch framework
+tools/backups/
+.atlas/backup/
+.atlas/tmp/
+tmp/
+
+# Atlas analyzer generated output
+tools/project-manifest.json
+
+# Atlas dependency analyzer generated output
+tools/dependency-graph.json
+
+# Local environment backups
+*.env.backup*
+
+# Local backup files
+*.bak
+*.bak.*
+*.bak-*
+*.before-*
+*.save
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Test and coverage output
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.pytest_cache/
+
+# Atlas Browser Worker
+apps/browser-worker/.env.local
+apps/browser-worker/.browser-profiles/
+.browser-profiles/
+
+test-results/
+
+playwright-report/
