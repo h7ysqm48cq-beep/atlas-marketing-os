@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   getForwardAuthorization,
+  getForwardPath,
   isSupervisorWorkerPath,
   WORKER_CAPABILITY_HEADER,
 } from "../src/app/api/atlas/forward";
@@ -67,5 +68,18 @@ test("rejects missing Worker credentials without weakening ordinary auth", () =>
       sessionAccessToken: "",
     }),
     { error: "session_required" },
+  );
+});
+
+test("normalizes a missing root route context to an empty path without changing catch-all paths", async () => {
+  assert.deepEqual(
+    await getForwardPath({ params: Promise.resolve(undefined) }),
+    [],
+  );
+  assert.deepEqual(
+    await getForwardPath({
+      params: Promise.resolve({ path: ["automation", "channels"] }),
+    }),
+    ["automation", "channels"],
   );
 });
