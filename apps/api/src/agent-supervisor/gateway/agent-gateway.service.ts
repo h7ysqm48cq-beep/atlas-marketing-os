@@ -1015,6 +1015,43 @@ export class AgentGatewayService {
       JSON.stringify([...new Set(right)].sort());
     const runtimeRefresh = assigned.candidateBaseSha === assigned.candidateHeadSha;
     const assignedTarget = assigned.targetBranch ?? 'production/atlas';
+    const deploymentCandidate =
+      !runtimeRefresh &&
+      assignedTarget === 'production/atlas' &&
+      task.acceptance.some(
+        value => value.trim() === 'reviewCandidate.action=deploy_production',
+      ) &&
+      assigned.acceptance.some(
+        value => value.trim() === 'reviewCandidate.action=deploy_production',
+      ) &&
+      task.acceptance.some(
+        value => value.trim() === 'deploymentService=web',
+      ) &&
+      assigned.acceptance.some(
+        value => value.trim() === 'deploymentService=web',
+      ) &&
+      task.acceptance.some(
+        value => value.trim() === 'targetBranch=production/atlas',
+      ) &&
+      assigned.acceptance.some(
+        value => value.trim() === 'targetBranch=production/atlas',
+      ) &&
+      task.acceptance.some(
+        value => value.trim() ===
+          'productionBaselineSha=' + assigned.candidateHeadSha,
+      ) &&
+      assigned.acceptance.some(
+        value => value.trim() ===
+          'productionBaselineSha=' + assigned.candidateHeadSha,
+      ) &&
+      assigned.candidateHeadSha === assigned.productionBaselineSha &&
+      task.owner === 'engineering' &&
+      task.allowedPaths.length > 0 &&
+      task.allowedPaths.every(path => path.startsWith('apps/web/')) &&
+      task.forbiddenActions.includes('edit_assigned_files') &&
+      task.forbiddenActions.includes('commit_assigned_branch') &&
+      task.forbiddenActions.includes('deploy_production') &&
+      task.forbiddenActions.includes('change_runtime_config');
     const expectedPaths = runtimeRefresh ? [] : task.allowedPaths;
     if (!taskProof || !executionProof ||
         execution.status !== 'COMPLETED' ||
@@ -1045,13 +1082,17 @@ export class AgentGatewayService {
           execution.result!.evidence.changedFiles) ||
         !same(taskProof.changedFiles,
           task.evidence!.changedFiles) ||
-        candidate.action !== (runtimeRefresh ? 'deploy_production' : 'merge') ||
+        candidate.action !== (
+          runtimeRefresh || deploymentCandidate ? 'deploy_production' : 'merge'
+        ) ||
         candidate.targetBranch !== assignedTarget ||
         (runtimeRefresh && assignedTarget !== 'production/atlas') ||
         candidate.baseSha !== taskProof.baseSha ||
         candidate.headSha !== taskProof.headSha ||
         (runtimeRefresh && (taskProof.baseSha !== taskProof.headSha ||
           taskProof.headSha !== taskProof.productionBaselineSha)) ||
+        (deploymentCandidate &&
+          taskProof.headSha !== taskProof.productionBaselineSha) ||
         task.evidence!.candidatePublication ||
         execution.result!.evidence.candidatePublication) fail();
   }
