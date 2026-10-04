@@ -579,6 +579,230 @@ export async function getSupervisorStatus(
   };
 }
 
+
+type MergeCandidate = {
+  action: "merge";
+  targetBranch: "main";
+  baseSha: string;
+  headSha: string;
+  changedFiles: string[];
+};
+
+export type ExistingMergeReview = {
+  taskId: string;
+  taskStatus: "READY_FOR_REVIEW" | "APPROVED";
+  sourceVerified: true;
+  deploymentState: "NOT_DEPLOYED";
+  candidate: MergeCandidate;
+  hasMergeAuthorization: boolean;
+  hasMergeConsumption: boolean;
+};
+
+function asMergeCandidate(
+  value: unknown,
+): MergeCandidate | null {
+  const candidate = asRecord(value);
+  const changedFiles = candidate?.changedFiles;
+
+  if (
+    candidate?.action !== "merge" ||
+    candidate?.targetBranch !== "main" ||
+    typeof candidate.baseSha !== "string" ||
+    !/^[0-9a-f]{40}$/u.test(candidate.baseSha) ||
+    typeof candidate.headSha !== "string" ||
+    !/^[0-9a-f]{40}$/u.test(candidate.headSha) ||
+    !Array.isArray(changedFiles) ||
+    changedFiles.length === 0 ||
+    changedFiles.some(
+      (file) =>
+        typeof file !== "string" ||
+        !file.trim(),
+    )
+  ) {
+    return null;
+  }
+
+  return {
+    action: "merge",
+    targetBranch: "main",
+    baseSha: candidate.baseSha,
+    headSha: candidate.headSha,
+    changedFiles: [...changedFiles] as string[],
+  };
+}
+
+function sameMergeCandidate(
+  left: MergeCandidate,
+  right: MergeCandidate,
+): boolean {
+  return (
+    left.action === right.action &&
+    left.targetBranch === right.targetBranch &&
+    left.baseSha === right.baseSha &&
+    left.headSha === right.headSha &&
+    JSON.stringify([...left.changedFiles].sort()) ===
+      JSON.stringify([...right.changedFiles].sort())
+  );
+}
+
+function parseExistingMergeReview(
+  taskId: string,
+  value: unknown,
+): ExistingMergeReview {
+  const task = asRecord(value);
+  const evidence = asRecord(task?.evidence);
+  const verification = asRecord(
+    evidence?.existingCandidateVerification,
+  );
+  const candidate = asMergeCandidate(
+    evidence?.reviewCandidate,
+  );
+
+  if (
+    task?.id !== taskId ||
+    task?.status !== "READY_FOR_REVIEW"
+  ) {
+    throw new Error(
+      "Existing review task must be the exact READY_FOR_REVIEW task.",
+    );
+  }
+
+  if (verification?.sourceVerified !== true) {
+    throw new Error(
+      "Existing review task must have sourceVerified=true before Owner approval.",
+    );
+  }
+
+  if (evidence?.deploymentState !== "NOT_DEPLOYED") {
+    throw new Error(
+      "Existing review task must have deploymentState=NOT_DEPLOYED.",
+    );
+  }
+
+  if (!candidate) {
+    throw new Error(
+      "Existing review task is missing a valid exact main merge candidate.",
+    );
+  }
+
+  if (evidence?.ownerMergeAuthorizationConsumption) {
+    throw new Error(
+      "Existing review task already has merge authorization consumption.",
+    );
+  }
+
+  if (evidence?.ownerMergeAuthorization) {
+    throw new Error(
+      "Existing review task already has an active merge authorization.",
+    );
+  }
+
+  return {
+    taskId,
+    taskStatus: "READY_FOR_REVIEW",
+    sourceVerified: true,
+    deploymentState: "NOT_DEPLOYED",
+    candidate,
+    hasMergeAuthorization: false,
+    hasMergeConsumption: false,
+  };
+}
+
+export async function loadExistingMergeReview(
+  taskId: string,
+  fetchImpl: FetchLike = fetch,
+): Promise<ExistingMergeReview> {
+  const normalizedTaskId = taskId.trim();
+
+  if (!normalizedTaskId) {
+    throw new Error(
+      "Existing review task ID is required.",
+    );
+  }
+
+  const task = await getSupervisor(
+    "read existing review task",
+    `/tasks/${encodeURIComponent(normalizedTaskId)}`,
+    fetchImpl,
+  );
+
+  return parseExistingMergeReview(
+    normalizedTaskId,
+    task,
+  );
+}
+
+export async function approveAndAuthorizeExistingMerge(
+  loaded: ExistingMergeReview,
+  fetchImpl: FetchLike = fetch,
+): Promise<ExistingMergeReview> {
+  const fresh = await loadExistingMergeReview(
+    loaded.taskId,
+    fetchImpl,
+  );
+
+  if (!sameMergeCandidate(fresh.candidate, loaded.candidate)) {
+    throw new Error(
+      "Existing review candidate changed since it was loaded. Reload and review again.",
+    );
+  }
+
+  const approved = asRecord(
+    await postSupervisor(
+      "approve existing review task",
+      `/tasks/${encodeURIComponent(fresh.taskId)}/approve`,
+      {},
+      fetchImpl,
+    ),
+  );
+
+  if (
+    approved?.id !== fresh.taskId ||
+    approved?.status !== "APPROVED"
+  ) {
+    throw new Error(
+      "Supervisor did not confirm the exact task as APPROVED. Stop before merge authorization.",
+    );
+  }
+
+  const authorized = asRecord(
+    await postSupervisor(
+      "authorize exact merge",
+      `/tasks/${encodeURIComponent(fresh.taskId)}/authorize-merge`,
+      { candidate: fresh.candidate },
+      fetchImpl,
+    ),
+  );
+  const evidence = asRecord(authorized?.evidence);
+  const authorization = asRecord(
+    evidence?.ownerMergeAuthorization,
+  );
+  const authorizedCandidate = asMergeCandidate(
+    authorization?.candidate,
+  );
+
+  if (
+    authorized?.id !== fresh.taskId ||
+    authorized?.status !== "APPROVED" ||
+    !authorizedCandidate ||
+    !sameMergeCandidate(
+      fresh.candidate,
+      authorizedCandidate,
+    ) ||
+    evidence?.ownerMergeAuthorizationConsumption
+  ) {
+    throw new Error(
+      "Supervisor did not confirm a fresh signed authorization for the exact candidate.",
+    );
+  }
+
+  return {
+    ...fresh,
+    taskStatus: "APPROVED",
+    hasMergeAuthorization: true,
+  };
+}
+
 function hasString(
   value: unknown,
   expected: string,
@@ -1107,6 +1331,10 @@ export function SupervisorOwnerPanel() {
     useState("");
   const [webDeploymentTaskId, setWebDeploymentTaskId] =
     useState("");
+  const [reviewTaskId, setReviewTaskId] =
+    useState("");
+  const [existingReview, setExistingReview] =
+    useState<ExistingMergeReview | null>(null);
 
   const scopeCount = useMemo(
     () =>
@@ -1211,6 +1439,58 @@ export function SupervisorOwnerPanel() {
         caught instanceof Error
           ? caught.message
           : "Stale task recovery failed.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+
+  async function loadReviewCandidate() {
+    if (busy) {
+      return;
+    }
+
+    setBusy(true);
+    setError(null);
+    setExistingReview(null);
+
+    try {
+      setExistingReview(
+        await loadExistingMergeReview(
+          reviewTaskId,
+        ),
+      );
+    } catch (caught) {
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Existing review candidate load failed.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function authorizeReviewCandidate() {
+    if (busy || !existingReview) {
+      return;
+    }
+
+    setBusy(true);
+    setError(null);
+
+    try {
+      setExistingReview(
+        await approveAndAuthorizeExistingMerge(
+          existingReview,
+        ),
+      );
+    } catch (caught) {
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Existing review authorization failed.",
       );
     } finally {
       setBusy(false);
@@ -1396,6 +1676,125 @@ export function SupervisorOwnerPanel() {
             disabled={busy}
           />
         </label>
+
+
+        <section
+          style={{
+            marginTop: 24,
+            padding: 16,
+            borderRadius: 12,
+            border: "1px solid rgba(251, 191, 36, 0.45)",
+            display: "grid",
+            gap: 12,
+          }}
+        >
+          <strong>Existing review candidate</strong>
+          <span style={{ opacity: 0.72, fontSize: 13 }}>
+            Load the exact READY_FOR_REVIEW candidate first. Owner approval and
+            signed merge authorization stay disabled until the readback passes
+            source verification and confirms NOT_DEPLOYED.
+          </span>
+
+          <label style={{ ...labelStyle, marginTop: 0 }}>
+            Existing review task ID
+            <input
+              value={reviewTaskId}
+              onChange={(event: ChangeEvent<HTMLInputElement>) => {
+                setReviewTaskId(event.target.value);
+                setExistingReview(null);
+              }}
+              spellCheck={false}
+              autoComplete="off"
+              style={fieldStyle}
+              placeholder="ATLAS-..."
+              disabled={busy}
+            />
+          </label>
+
+          <div
+            style={{
+              display: "flex",
+              gap: 12,
+              alignItems: "center",
+              flexWrap: "wrap",
+            }}
+          >
+            <button
+              type="button"
+              onClick={loadReviewCandidate}
+              disabled={busy || !reviewTaskId.trim()}
+              style={{
+                border: "1px solid rgba(251, 191, 36, 0.55)",
+                borderRadius: 10,
+                padding: "10px 14px",
+                font: "inherit",
+                fontWeight: 700,
+                cursor:
+                  busy || !reviewTaskId.trim()
+                    ? "not-allowed"
+                    : "pointer",
+              }}
+            >
+              Load existing review candidate
+            </button>
+
+            <button
+              type="button"
+              onClick={authorizeReviewCandidate}
+              disabled={
+                busy ||
+                !existingReview ||
+                existingReview.hasMergeAuthorization
+              }
+              style={{
+                border: "1px solid rgba(74, 222, 128, 0.55)",
+                borderRadius: 10,
+                padding: "10px 14px",
+                font: "inherit",
+                fontWeight: 700,
+                cursor:
+                  busy ||
+                  !existingReview ||
+                  existingReview.hasMergeAuthorization
+                    ? "not-allowed"
+                    : "pointer",
+              }}
+            >
+              Approve & authorize exact merge
+            </button>
+          </div>
+
+          {existingReview ? (
+            <div
+              style={{
+                padding: 12,
+                borderRadius: 10,
+                background: "rgba(2, 6, 23, 0.45)",
+                display: "grid",
+                gap: 4,
+                fontSize: 13,
+              }}
+            >
+              <span>taskId={existingReview.taskId}</span>
+              <span>taskStatus={existingReview.taskStatus}</span>
+              <span>sourceVerified=true</span>
+              <span>deploymentState=NOT_DEPLOYED</span>
+              <span>targetBranch={existingReview.candidate.targetBranch}</span>
+              <span>baseSha={existingReview.candidate.baseSha}</span>
+              <span>headSha={existingReview.candidate.headSha}</span>
+              <span style={{ whiteSpace: "pre-wrap" }}>
+                changedFiles={existingReview.candidate.changedFiles.join("\n")}
+              </span>
+              <span>
+                mergeAuthorization={
+                  existingReview.hasMergeAuthorization
+                    ? "SIGNED"
+                    : "NOT_YET_AUTHORIZED"
+                }
+              </span>
+            </div>
+          ) : null}
+        </section>
 
         <label style={labelStyle}>
           Browser-worker deployment task ID — optional

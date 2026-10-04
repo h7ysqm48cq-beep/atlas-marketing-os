@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
 
 import {
+  approveAndAuthorizeExistingMerge,
   authorizeEligibleBrowserWorkerDeployment,
   authorizeEligibleWebDeployment,
+  loadExistingMergeReview,
   recoverStaleBrowserWorkerTask,
   getSupervisorStatus,
   runSupervisorAdmission,
@@ -540,6 +542,174 @@ async function main() {
         "web-invalid-path-task",
       ),
     /No approved web production deployment candidate was found for task web-invalid-path-task/,
+  );
+
+
+  const mergeCandidate = {
+    action: "merge" as const,
+    targetBranch: "main" as const,
+    baseSha: "1".repeat(40),
+    headSha: "2".repeat(40),
+    changedFiles: [
+      "apps/api/src/notifications/notification.service.spec.ts",
+    ],
+  };
+
+  const reviewCalls: string[] = [];
+  const loadedReview = await loadExistingMergeReview(
+    " review-task ",
+    async (url, init) => {
+      reviewCalls.push(
+        (init?.method ?? "GET") + " " + String(url),
+      );
+      return response(200, {
+        id: "review-task",
+        status: "READY_FOR_REVIEW",
+        evidence: {
+          deploymentState: "NOT_DEPLOYED",
+          existingCandidateVerification: {
+            sourceVerified: true,
+          },
+          reviewCandidate: mergeCandidate,
+        },
+      });
+    },
+  );
+
+  assert.deepEqual(reviewCalls, [
+    "GET /api/atlas/engineering/supervisor/tasks/review-task",
+  ]);
+  assert.deepEqual(loadedReview, {
+    taskId: "review-task",
+    taskStatus: "READY_FOR_REVIEW",
+    sourceVerified: true,
+    deploymentState: "NOT_DEPLOYED",
+    candidate: mergeCandidate,
+    hasMergeAuthorization: false,
+    hasMergeConsumption: false,
+  });
+
+  await assert.rejects(
+    () =>
+      loadExistingMergeReview(
+        "unverified-task",
+        async () =>
+          response(200, {
+            id: "unverified-task",
+            status: "READY_FOR_REVIEW",
+            evidence: {
+              deploymentState: "NOT_DEPLOYED",
+              existingCandidateVerification: {
+                sourceVerified: false,
+              },
+              reviewCandidate: mergeCandidate,
+            },
+          }),
+      ),
+    /sourceVerified=true/,
+  );
+
+  const mergeAuthorizationCalls: Array<{
+    method: string;
+    url: string;
+    body?: string;
+  }> = [];
+  const authorizedMerge = await approveAndAuthorizeExistingMerge(
+    loadedReview,
+    async (url, init) => {
+      mergeAuthorizationCalls.push({
+        method: init?.method ?? "GET",
+        url: String(url),
+        body:
+          typeof init?.body === "string"
+            ? init.body
+            : undefined,
+      });
+
+      if ((init?.method ?? "GET") === "GET") {
+        return response(200, {
+          id: "review-task",
+          status: "READY_FOR_REVIEW",
+          evidence: {
+            deploymentState: "NOT_DEPLOYED",
+            existingCandidateVerification: {
+              sourceVerified: true,
+            },
+            reviewCandidate: mergeCandidate,
+          },
+        });
+      }
+
+      if (String(url).endsWith("/approve")) {
+        return response(201, {
+          id: "review-task",
+          status: "APPROVED",
+          evidence: {
+            deploymentState: "NOT_DEPLOYED",
+            reviewCandidate: mergeCandidate,
+          },
+        });
+      }
+
+      return response(201, {
+        id: "review-task",
+        status: "APPROVED",
+        evidence: {
+          deploymentState: "NOT_DEPLOYED",
+          reviewCandidate: mergeCandidate,
+          ownerMergeAuthorization: {
+            candidate: mergeCandidate,
+            authorizedBy: "owner",
+            authorizedAt: "2026-10-04T00:00:00.000Z",
+            signature: "signed",
+          },
+        },
+      });
+    },
+  );
+
+  assert.deepEqual(mergeAuthorizationCalls, [
+    {
+      method: "GET",
+      url: "/api/atlas/engineering/supervisor/tasks/review-task",
+      body: undefined,
+    },
+    {
+      method: "POST",
+      url: "/api/atlas/engineering/supervisor/tasks/review-task/approve",
+      body: "{}",
+    },
+    {
+      method: "POST",
+      url: "/api/atlas/engineering/supervisor/tasks/review-task/authorize-merge",
+      body: JSON.stringify({ candidate: mergeCandidate }),
+    },
+  ]);
+  assert.equal(authorizedMerge.taskStatus, "APPROVED");
+  assert.equal(authorizedMerge.hasMergeAuthorization, true);
+  assert.deepEqual(authorizedMerge.candidate, mergeCandidate);
+
+  await assert.rejects(
+    () =>
+      approveAndAuthorizeExistingMerge(
+        loadedReview,
+        async () =>
+          response(200, {
+            id: "review-task",
+            status: "READY_FOR_REVIEW",
+            evidence: {
+              deploymentState: "NOT_DEPLOYED",
+              existingCandidateVerification: {
+                sourceVerified: true,
+              },
+              reviewCandidate: {
+                ...mergeCandidate,
+                headSha: "3".repeat(40),
+              },
+            },
+          }),
+      ),
+    /candidate changed since it was loaded/,
   );
 
 }
