@@ -436,11 +436,9 @@ async function main() {
   const webCandidate = {
     action: "deploy_production",
     targetBranch: "production/atlas",
-    baseSha: "e".repeat(40),
+    baseSha: "f".repeat(40),
     headSha: "f".repeat(40),
-    changedFiles: [
-      "apps/web/src/components/engineering/SupervisorOwnerPanel.tsx",
-    ],
+    changedFiles: [],
   };
   const webAuthorizationCalls: Array<{
     method: string;
@@ -464,6 +462,10 @@ async function main() {
             {
               id: "web-deploy-task",
               status: "APPROVED",
+              allowedPaths: [
+                "apps/web/.railway-redeploy-trigger",
+              ],
+              acceptance: ["service=web"],
               evidence: { reviewCandidate: webCandidate },
             },
           ]);
@@ -526,13 +528,12 @@ async function main() {
               {
                 id: "web-invalid-path-task",
                 status: "APPROVED",
+                allowedPaths: [
+                  "apps/browser-worker/railway.json",
+                ],
+                acceptance: ["service=browser-worker"],
                 evidence: {
-                  reviewCandidate: {
-                    ...webCandidate,
-                    changedFiles: [
-                      "apps/browser-worker/src/index.ts",
-                    ],
-                  },
+                  reviewCandidate: webCandidate,
                 },
               },
             ]);

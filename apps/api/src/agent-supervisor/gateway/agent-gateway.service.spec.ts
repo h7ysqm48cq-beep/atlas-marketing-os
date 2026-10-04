@@ -1058,7 +1058,46 @@ describe('AgentGatewayService', () => {
     );
   });
 
-  it('rejects CI qualification for services outside the bounded worker pair', async () => {
+  it('creates a deterministic same-SHA Web qualification with the Web ownership anchor', async () => {
+    const sha = 'e'.repeat(40);
+    const input = {
+      service: 'web' as const,
+      github: {
+        repositoryOwner: 'h7ysqm48cq-beep',
+        repositoryName: 'atlas-marketing-os',
+        branch: 'production/atlas',
+        commitSha: sha,
+      },
+    };
+
+    const first = await gateway.qualifyProductionDeployment(input);
+
+    expect(first).toMatchObject({
+      service: 'web',
+      commitSha: sha,
+      taskStatus: 'VERIFYING',
+      executionStatus: 'QUEUED',
+    });
+
+    const task = await supervisor.getTask(first.taskId);
+    expect(task.owner).toBe('engineering');
+    expect(task.allowedPaths).toEqual([
+      'apps/web/.railway-redeploy-trigger',
+    ]);
+    expect(task.acceptance).toEqual(
+      expect.arrayContaining([
+        `baseSha=headSha=${sha}`,
+        'service=web',
+        'sourceVerified=true',
+      ]),
+    );
+
+    const second = await gateway.qualifyProductionDeployment(input);
+    expect(second.taskId).toBe(first.taskId);
+    expect(second.executionId).toBe(first.executionId);
+  });
+
+  it('rejects CI qualification for services outside the bounded qualification set', async () => {
     await expect(
       gateway.qualifyProductionDeployment({
         service: 'api' as never,

@@ -1031,6 +1031,24 @@ export function findEligibleWebDeploymentCandidate(
       evidence?.reviewCandidate,
     );
 
+    const legacyWebDelta = Boolean(
+      candidate &&
+      hasPathPrefixInArray(
+        candidate.changedFiles,
+        "apps/web/",
+      ),
+    );
+    const sameShaWebQualification = Boolean(
+      candidate &&
+      candidate.baseSha === candidate.headSha &&
+      candidate.changedFiles.length === 0 &&
+      hasStringInArray(task?.acceptance, "service=web") &&
+      hasStringInArray(
+        task?.allowedPaths,
+        "apps/web/.railway-redeploy-trigger",
+      ),
+    );
+
     if (
       !task ||
       !hasString(task.status, "APPROVED") ||
@@ -1038,10 +1056,7 @@ export function findEligibleWebDeploymentCandidate(
       (normalizedTaskId !== null &&
         task.id !== normalizedTaskId) ||
       !candidate ||
-      !hasPathPrefixInArray(
-        candidate.changedFiles,
-        "apps/web/",
-      )
+      (!legacyWebDelta && !sameShaWebQualification)
     ) {
       return [];
     }

@@ -404,13 +404,18 @@ jobs:
             under(path, 'tools/ai_engineer/'),
           );
 
+          const webAffected = changedFiles.some((path) =>
+            under(path, 'apps/web/'),
+          );
+
           const services = [];
           if (runnerAffected) services.push('engineering-runner');
           if (verifierAffected) services.push('engineering-verifier');
+          if (webAffected) services.push('web');
 
           if (services.length === 0) {
             console.log(
-              'ATLAS production qualification not required for engineering-runner/verifier.',
+              'ATLAS production qualification not required for engineering-runner/verifier/web.',
             );
             process.exit(0);
           }

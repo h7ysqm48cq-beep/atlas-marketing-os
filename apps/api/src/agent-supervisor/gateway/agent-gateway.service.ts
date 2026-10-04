@@ -34,12 +34,12 @@ const PRODUCTION_QUALIFICATION_SERVICES = [
   'engineering-runner',
   'engineering-verifier',
   'browser-worker',
+  'web',
 ] as const;
 
 const PRODUCTION_DEPLOYMENT_DISPATCH_SERVICES = [
   ...PRODUCTION_QUALIFICATION_SERVICES,
   'api',
-  'web',
   'production-deploy-executor',
 ] as const;
 
@@ -88,6 +88,7 @@ const PRODUCTION_QUALIFICATION_ALLOWED_PATH: Record<
   'engineering-verifier':
     'apps/engineering-runner/check-verifier-production-deployment.cjs',
   'browser-worker': 'apps/browser-worker/railway.json',
+  web: 'apps/web/.railway-redeploy-trigger',
 };
 
 function productionQualificationTaskId(
