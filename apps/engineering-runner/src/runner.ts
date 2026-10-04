@@ -213,6 +213,38 @@ export class EngineeringRunner {
         Boolean(session.assignment.candidateHeadSha) &&
         Boolean(session.assignment.productionBaselineSha) &&
         session.assignment.candidateBaseSha !== session.assignment.candidateHeadSha;
+      const deploymentCandidateRequested =
+        session.assignment.acceptance.some(
+          (value) => value.trim() === 'reviewCandidate.action=deploy_production',
+        );
+      const useExistingDeploymentCandidateFlow =
+        useExistingCandidateFlow &&
+        deploymentCandidateRequested &&
+        verificationTarget === 'production/atlas' &&
+        session.assignment.acceptance.some(
+          (value) => value.trim() === 'deploymentService=web',
+        ) &&
+        session.assignment.acceptance.some(
+          (value) =>
+            value.trim() ===
+            'productionBaselineSha=' + session.assignment.candidateHeadSha,
+        ) &&
+        session.assignment.candidateHeadSha ===
+          session.assignment.productionBaselineSha &&
+        session.assignment.allowedPaths.length > 0 &&
+        session.assignment.allowedPaths.every(
+          (path) => path.startsWith('apps/web/'),
+        ) &&
+        session.assignment.forbiddenActions.includes('edit_assigned_files') &&
+        session.assignment.forbiddenActions.includes('commit_assigned_branch') &&
+        session.assignment.forbiddenActions.includes('deploy_production') &&
+        session.assignment.forbiddenActions.includes('change_runtime_config');
+      if (
+        deploymentCandidateRequested &&
+        !useExistingDeploymentCandidateFlow
+      ) {
+        throw new Error('deployment_candidate_identity_invalid');
+      }
       const useMainSyncFlow =
         useExistingCandidateFlow && verificationTarget === 'main';
       const useRuntimeRefreshFlow =
@@ -378,7 +410,9 @@ export class EngineeringRunner {
               sourceVerified: true,
             },
             reviewCandidate: {
-              action: 'merge',
+              action: useExistingDeploymentCandidateFlow
+                ? 'deploy_production'
+                : 'merge',
               targetBranch: verificationTarget,
               baseSha: session.assignment.candidateBaseSha!,
               headSha: session.assignment.candidateHeadSha!,

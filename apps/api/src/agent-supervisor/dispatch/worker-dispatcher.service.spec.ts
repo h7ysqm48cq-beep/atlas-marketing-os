@@ -1086,6 +1086,123 @@ describe('existing candidate PR141 DRAFT-only admission', () => {
       allowedPaths: paths,
     }));
   });
+
+  it('admits and adopts only an explicitly bound Web deployment existing candidate at canonical production head', async () => {
+    const store = new MemorySupervisorTaskStore();
+    const executions = new MemorySupervisorExecutionStore();
+    const supervisor = new AgentSupervisorService(
+      store, new MemoryFileOwnershipStore(),
+    );
+    const dispatcher = new WorkerDispatcherService(
+      supervisor, executions,
+      new SupervisorWorkerCapabilityService(capabilityAuthority()),
+      new SupervisorAdmissionManifestService(),
+    );
+    const base = 'a'.repeat(40);
+    const head = 'b'.repeat(40);
+    const paths = [
+      'apps/web/src/components/engineering/SupervisorOwnerPanel.tsx',
+      'apps/web/tests/supervisor-owner.spec.ts',
+    ];
+    const task = await supervisor.createTask({
+      objective: `Exact Web deployment candidate base ${base}; head ${head}`,
+      owner: 'engineering',
+      allowedPaths: paths,
+      forbiddenActions: [
+        'edit_assigned_files',
+        'commit_assigned_branch',
+        'deploy_production',
+        'change_runtime_config',
+      ],
+      dependsOn: [],
+      acceptance: [
+        'reviewCandidate.action=deploy_production',
+        'deploymentService=web',
+        'targetBranch=production/atlas',
+        `productionBaselineSha=${head}`,
+      ],
+    });
+
+    await expect(
+      dispatcher.dispatchExistingCandidateVerification(task.id, {
+        candidateBaseSha: base,
+        candidateHeadSha: head,
+        productionBaselineSha: 'c'.repeat(40),
+        targetBranch: 'production/atlas',
+        changedPaths: paths,
+      }),
+    ).rejects.toThrow(/deployment_candidate_identity_invalid/);
+
+    const dispatched = await dispatcher.dispatchExistingCandidateVerification(
+      task.id,
+      {
+        candidateBaseSha: base,
+        candidateHeadSha: head,
+        productionBaselineSha: head,
+        targetBranch: 'production/atlas',
+        changedPaths: paths,
+      },
+    );
+    const queued = (await executions.get(dispatched.execution.id))!;
+    queued.status = 'DISPATCHED';
+    queued.runnerId = 'independent-verifier-web-deploy';
+    queued.claimEpoch = 1;
+    queued.assignment.runnerId = queued.runnerId;
+    queued.assignment.claimEpoch = 1;
+    queued.assignment.leaseId = 'web-deploy-verifier-lease';
+    await executions.saveIfStatus(queued, 'QUEUED');
+    await dispatcher.markRunning(dispatched.execution.id);
+
+    const proof = {
+      mode: 'EXISTING_CANDIDATE' as const,
+      taskId: task.id,
+      executionId: dispatched.execution.id,
+      baseSha: base,
+      headSha: head,
+      productionBaselineSha: head,
+      targetBranch: 'production/atlas' as const,
+      changedFiles: paths,
+      gitFingerprint: 'f'.repeat(64),
+      sourceVerified: true as const,
+    };
+    await dispatcher.complete(dispatched.execution.id, {
+      summary: 'Verified exact Web deployment candidate',
+      evidence: {
+        rootCause: 'web_runtime_behind_canonical_production',
+        changedFiles: paths,
+        tests: ['exact_source_verification'],
+        build: 'NOT_RUN',
+        regression: [],
+        deploymentState: 'NOT_DEPLOYED',
+        gitState: 'CLEAN',
+        remainingRisk: ['deployment_not_authorized'],
+        existingCandidateVerification: proof,
+        reviewCandidate: {
+          action: 'deploy_production',
+          targetBranch: 'production/atlas',
+          baseSha: base,
+          headSha: head,
+          changedFiles: paths,
+        },
+      },
+    });
+
+    await expect(
+      dispatcher.adoptExistingCandidateVerification(
+        task.id,
+        dispatched.execution.id,
+      ),
+    ).resolves.toMatchObject({
+      evidence: {
+        reviewCandidate: {
+          action: 'deploy_production',
+          baseSha: base,
+          headSha: head,
+        },
+      },
+    });
+  });
+
   it('admits main verification only when target and production baseline are frozen in the Task', async () => {
     const executions = new MemorySupervisorExecutionStore();
     const supervisor = new AgentSupervisorService(

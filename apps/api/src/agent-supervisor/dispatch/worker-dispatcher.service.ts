@@ -375,6 +375,35 @@ export class WorkerDispatcherService {
       task.acceptance.some(
         value => value.trim().toLowerCase() === `service=${workerQualificationService}`,
       );
+    const deploymentCandidateRequested = task.acceptance.some(
+      value => value.trim() === 'reviewCandidate.action=deploy_production',
+    );
+    const webDeploymentCandidate =
+      !runtimeRefresh &&
+      deploymentCandidateRequested &&
+      targetBranch === 'production/atlas' &&
+      task.owner === 'engineering' &&
+      input.candidateHeadSha.toLowerCase() ===
+        input.productionBaselineSha.toLowerCase() &&
+      task.allowedPaths.length > 0 &&
+      task.allowedPaths.every(path => path.startsWith('apps/web/')) &&
+      task.forbiddenActions.includes('edit_assigned_files') &&
+      task.forbiddenActions.includes('commit_assigned_branch') &&
+      task.forbiddenActions.includes('deploy_production') &&
+      task.forbiddenActions.includes('change_runtime_config') &&
+      task.acceptance.some(
+        value => value.trim() === 'deploymentService=web',
+      ) &&
+      task.acceptance.some(
+        value => value.trim() === 'targetBranch=production/atlas',
+      ) &&
+      task.acceptance.some(
+        value => value.trim() ===
+          'productionBaselineSha=' + input.candidateHeadSha.toLowerCase(),
+      );
+    if (deploymentCandidateRequested && !webDeploymentCandidate) {
+      throw new BadRequestException('deployment_candidate_identity_invalid');
+    }
     const mainSync = !runtimeRefresh && targetBranch === 'main';
     if (mainSync && (
       !task.acceptance.some(value => value.trim() === 'targetBranch=main') ||
@@ -484,6 +513,29 @@ export class WorkerDispatcherService {
       JSON.stringify(paths(left)) === JSON.stringify(paths(right));
     const runtimeRefresh = a.candidateBaseSha === a.candidateHeadSha;
     const targetBranch = a.targetBranch ?? 'production/atlas';
+    const deploymentCandidate =
+      !runtimeRefresh &&
+      targetBranch === 'production/atlas' &&
+      task.acceptance.some(
+        value => value.trim() === 'reviewCandidate.action=deploy_production',
+      ) &&
+      task.acceptance.some(
+        value => value.trim() === 'deploymentService=web',
+      ) &&
+      task.acceptance.some(
+        value => value.trim() === 'targetBranch=production/atlas',
+      ) &&
+      task.acceptance.some(
+        value => value.trim() ===
+          'productionBaselineSha=' + a.candidateHeadSha,
+      ) &&
+      a.candidateHeadSha === a.productionBaselineSha &&
+      task.allowedPaths.length > 0 &&
+      task.allowedPaths.every(path => path.startsWith('apps/web/')) &&
+      task.forbiddenActions.includes('edit_assigned_files') &&
+      task.forbiddenActions.includes('commit_assigned_branch') &&
+      task.forbiddenActions.includes('deploy_production') &&
+      task.forbiddenActions.includes('change_runtime_config');
     const expectedPaths = runtimeRefresh ? [] : task.allowedPaths;
     if (!proof || proof.mode !== a.verificationMode ||
         proof.sourceVerified !== true ||
@@ -501,13 +553,17 @@ export class WorkerDispatcherService {
         !identical(proof.changedFiles, expectedPaths) ||
         !identical(evidence.changedFiles, expectedPaths) ||
         !identical(a.allowedPaths, task.allowedPaths) ||
-        !review || review.action !== (runtimeRefresh ? 'deploy_production' : 'merge') ||
+        !review || review.action !== (
+          runtimeRefresh || deploymentCandidate ? 'deploy_production' : 'merge'
+        ) ||
         review.targetBranch !== targetBranch ||
         (runtimeRefresh && targetBranch !== 'production/atlas') ||
         review.baseSha !== proof.baseSha ||
         review.headSha !== proof.headSha ||
         (runtimeRefresh && (proof.baseSha !== proof.headSha ||
           proof.headSha !== proof.productionBaselineSha)) ||
+        (deploymentCandidate &&
+          proof.headSha !== proof.productionBaselineSha) ||
         !identical(review.changedFiles, expectedPaths) ||
         evidence.candidatePublication) {
       throw new BadRequestException('existing_candidate_verifier_identity_mismatch');

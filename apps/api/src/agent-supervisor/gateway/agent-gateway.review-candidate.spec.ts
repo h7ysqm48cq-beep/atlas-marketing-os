@@ -3,7 +3,7 @@ import { AgentSupervisorService } from '../agent-supervisor.service';
 import { HumanOwnerApprovalService } from '../authority/human-owner-approval.service';
 import { SupervisorAdmissionManifestService } from '../authority/supervisor-admission-manifest.service';
 import { createTestSupervisorAuthority } from '../authority/test-authority';
-import type { SupervisorReviewCandidate } from '../agent-supervisor.types';
+import type { SupervisorAction, SupervisorReviewCandidate } from '../agent-supervisor.types';
 import { WorkerDispatcherService } from '../dispatch/worker-dispatcher.service';
 import { SupervisorWorkerCapabilityService } from '../worker/supervisor-worker-capability.service';
 import { MemoryFileOwnershipStore } from '../stores/memory-file-ownership.store';
@@ -519,6 +519,86 @@ describe('Existing-candidate Gate requires the real verifier provenance binding'
       response: { code: 'existing_candidate_verifier_provenance_invalid' },
     });
   });
+
+  it('accepts exact Web deployment provenance from an explicitly bound existing-candidate verifier', async () => {
+    const {
+      task, completed, gateway, taskStore, executionStore,
+    } = await makeReadyCandidate();
+    const webChangedFile =
+      'apps/web/src/components/engineering/SupervisorOwnerPanel.tsx';
+    const deployCandidate = candidate({
+      action: 'deploy_production',
+      changedFiles: [webChangedFile],
+    });
+    const execution = (await executionStore.get(completed.id))!;
+    const deploymentGuards: SupervisorAction[] = [
+      'edit_assigned_files',
+      'commit_assigned_branch',
+      'deploy_production',
+      'change_runtime_config',
+      'merge',
+    ];
+    execution.assignment.allowedPaths = [webChangedFile];
+    execution.assignment.forbiddenActions = [...deploymentGuards];
+    execution.assignment.acceptance = [
+      'reviewCandidate.action=deploy_production',
+      'deploymentService=web',
+      'targetBranch=production/atlas',
+      `productionBaselineSha=${HEAD_SHA}`,
+    ];
+    execution.assignment.executionPurpose = 'INDEPENDENT_VERIFICATION';
+    execution.assignment.verificationMode = 'EXISTING_CANDIDATE';
+    execution.assignment.candidateBaseSha = BASE_SHA;
+    execution.assignment.candidateHeadSha = HEAD_SHA;
+    execution.assignment.productionBaselineSha = HEAD_SHA;
+    execution.assignment.targetBranch = 'production/atlas';
+    execution.assignment.manifestHash = 'd'.repeat(64);
+    execution.assignment.claimEpoch = 1;
+    execution.assignment.runnerId = 'test-runner';
+    execution.assignment.leaseId = 'test-lease';
+    const proof = {
+      mode: 'EXISTING_CANDIDATE' as const,
+      taskId: task.id,
+      executionId: completed.id,
+      baseSha: BASE_SHA,
+      headSha: HEAD_SHA,
+      productionBaselineSha: HEAD_SHA,
+      targetBranch: 'production/atlas' as const,
+      changedFiles: [webChangedFile],
+      gitFingerprint: 'f'.repeat(64),
+      sourceVerified: true as const,
+    };
+    execution.result!.evidence.changedFiles = [webChangedFile];
+    execution.result!.evidence.existingCandidateVerification = proof;
+    execution.result!.evidence.reviewCandidate = deployCandidate;
+    await executionStore.save(execution);
+
+    const persisted = (await taskStore.get(task.id))!;
+    const before = new Date(persisted.updatedAt);
+    persisted.owner = 'engineering';
+    persisted.allowedPaths = [webChangedFile];
+    persisted.forbiddenActions = [...deploymentGuards];
+    persisted.acceptance = [...execution.assignment.acceptance];
+    persisted.evidence = {
+      ...execution.result!.evidence,
+      existingCandidateVerification: structuredClone(proof),
+      reviewCandidate: structuredClone(deployCandidate),
+    };
+    persisted.updatedAt = new Date(before.getTime() + 1);
+    await taskStore.saveIfUnchanged(persisted, before);
+
+    const validated = await (
+      gateway as unknown as {
+        validatePersistedCandidate(
+          taskId: string,
+          executionId: string,
+        ): Promise<{ persistedCandidate: SupervisorReviewCandidate }>;
+      }
+    ).validatePersistedCandidate(task.id, completed.id);
+
+    expect(validated.persistedCandidate).toEqual(deployCandidate);
+  });
+
   it('accepts matching verifier proof only as a pre-Owner gate and rejects tampering', async () => {
     const {
       task, completed, gateway, supervisor, taskStore, executionStore,
