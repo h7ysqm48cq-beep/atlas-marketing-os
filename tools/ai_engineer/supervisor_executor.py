@@ -721,21 +721,25 @@ class SupervisorAssignmentExecutor:
             if changed != sorted(allowed):
                 return self._failure("existing_candidate_scope_mismatch")
 
-            production_raw = subprocess.run(
-                [
-                    "git", "diff", "--no-renames", "--no-ext-diff",
-                    "--no-textconv", "--name-only", "-z",
-                    base.lower(), baseline.lower(),
-                ],
-                cwd=self.project_root, text=True, capture_output=True, check=True,
-            ).stdout
-            production_changed = {
-                _normalize_relative_path(path)
-                for path in production_raw.split("\0")
-                if path
-            }
-            if production_changed.intersection(changed):
-                return self._failure("existing_candidate_production_scope_overlap")
+            if baseline.lower() not in {base.lower(), head.lower()}:
+                production_raw = subprocess.run(
+                    [
+                        "git", "diff", "--no-renames", "--no-ext-diff",
+                        "--no-textconv", "--name-only", "-z",
+                        base.lower(), baseline.lower(),
+                    ],
+                    cwd=self.project_root, text=True,
+                    capture_output=True, check=True,
+                ).stdout
+                production_changed = {
+                    _normalize_relative_path(path)
+                    for path in production_raw.split("\0")
+                    if path
+                }
+                if production_changed.intersection(changed):
+                    return self._failure(
+                        "existing_candidate_production_scope_overlap"
+                    )
 
             current_head = subprocess.run(
                 ["git", "rev-parse", "--verify", "HEAD"],
