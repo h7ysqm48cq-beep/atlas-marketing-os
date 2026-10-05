@@ -92,6 +92,7 @@ type DeploymentCandidate = {
 };
 
 const OWNER_WORKER_DEPLOYMENT_SERVICES = [
+  "browser-worker",
   "engineering-runner",
   "engineering-verifier",
 ] as const;
@@ -103,6 +104,7 @@ const OWNER_WORKER_DEPLOYMENT_PATHS: Record<
   OwnerWorkerDeploymentService,
   string
 > = {
+  "browser-worker": "apps/browser-worker/railway.json",
   "engineering-runner":
     "apps/engineering-runner/check-runner-production-deployment.cjs",
   "engineering-verifier":
@@ -936,7 +938,8 @@ function isVerifiedSameShaWorkerTask(
 
   if (
     task.id !== taskId ||
-    task.status !== "APPROVED" ||
+    (task.status !== "READY_FOR_REVIEW" &&
+      task.status !== "APPROVED") ||
     !hasExactStringArray(task.allowedPaths, [expectedPath]) ||
     !hasStringInArray(task.acceptance, `service=${service}`) ||
     evidence?.deploymentState !== "NOT_DEPLOYED" ||
@@ -991,7 +994,7 @@ export async function authorizeEligibleWorkerDeployment(
       fetchImpl,
     ),
   );
-  const verified = task
+  let verified = task
     ? isVerifiedSameShaWorkerTask(task, service, taskId)
     : null;
 
@@ -999,6 +1002,76 @@ export async function authorizeEligibleWorkerDeployment(
     throw new Error(
       `Task ${taskId} is not an eligible ${service} same-SHA deployment candidate.`,
     );
+  }
+
+  if (task.status === "READY_FOR_REVIEW") {
+    const candidateBeforeApproval = verified.candidate;
+    const verificationExecutionBeforeApproval =
+      verified.verification.executionId;
+    const approved = asRecord(
+      await postSupervisor(
+        `approve ${service} deployment candidate`,
+        `/tasks/${encodeURIComponent(taskId)}/approve`,
+        {},
+        fetchImpl,
+      ),
+    );
+
+    if (
+      approved?.id !== taskId ||
+      approved?.status !== "APPROVED"
+    ) {
+      throw new Error(
+        `Supervisor did not confirm ${service} deployment candidate approval.`,
+      );
+    }
+
+    const freshTask = asRecord(
+      await getSupervisor(
+        `reload approved ${service} deployment candidate`,
+        `/tasks/${encodeURIComponent(taskId)}`,
+        fetchImpl,
+      ),
+    );
+    const freshVerified = freshTask
+      ? isVerifiedSameShaWorkerTask(
+          freshTask,
+          service,
+          taskId,
+        )
+      : null;
+
+    if (
+      !freshTask ||
+      freshTask.status !== "APPROVED" ||
+      !freshVerified
+    ) {
+      throw new Error(
+        `Task ${taskId} is not an eligible ${service} same-SHA deployment candidate after Owner approval.`,
+      );
+    }
+
+    if (
+      !sameDeploymentCandidate(
+        candidateBeforeApproval,
+        freshVerified.candidate,
+      )
+    ) {
+      throw new Error(
+        `${service} deployment candidate changed after Owner approval.`,
+      );
+    }
+
+    if (
+      freshVerified.verification.executionId !==
+      verificationExecutionBeforeApproval
+    ) {
+      throw new Error(
+        `${service} verification identity changed after Owner approval.`,
+      );
+    }
+
+    verified = freshVerified;
   }
 
   const listedExecutions = await getSupervisor(
@@ -1749,8 +1822,9 @@ export function SupervisorOwnerPanel() {
 
     try {
       setDeploymentAuthorization(
-        await authorizeEligibleBrowserWorkerDeployment(
+        await authorizeEligibleWorkerDeployment(
           fetch,
+          "browser-worker",
           deploymentTaskId,
         ),
       );
@@ -2075,7 +2149,7 @@ export function SupervisorOwnerPanel() {
         </section>
 
         <label style={labelStyle}>
-          Browser-worker deployment task ID — optional
+          Browser-worker deployment task ID — exact
           <input
             value={deploymentTaskId}
             onChange={(event: ChangeEvent<HTMLInputElement>) =>
@@ -2088,8 +2162,7 @@ export function SupervisorOwnerPanel() {
             disabled={busy}
           />
           <span style={{ opacity: 0.68, fontSize: 13 }}>
-            Set this when historical APPROVED deployment candidates exist.
-            Authorization fails closed unless this exact task is eligible.
+            Only an exact READY_FOR_REVIEW or APPROVED, source-verified, zero-diff same-SHA browser-worker candidate with no prior authorization, reservation, or consumption is eligible.
           </span>
         </label>
 
@@ -2127,7 +2200,7 @@ export function SupervisorOwnerPanel() {
             disabled={busy}
           />
           <span style={{ opacity: 0.68, fontSize: 13 }}>
-            Only an APPROVED, source-verified, zero-diff same-SHA engineering-runner candidate with no prior authorization or consumption is eligible.
+            Only an exact READY_FOR_REVIEW or APPROVED, source-verified, zero-diff same-SHA engineering-runner candidate with no prior authorization, reservation, or consumption is eligible.
           </span>
         </label>
 
@@ -2145,7 +2218,7 @@ export function SupervisorOwnerPanel() {
             disabled={busy}
           />
           <span style={{ opacity: 0.68, fontSize: 13 }}>
-            Only an APPROVED, source-verified, zero-diff same-SHA engineering-verifier candidate with no prior authorization or consumption is eligible.
+            Only an exact READY_FOR_REVIEW or APPROVED, source-verified, zero-diff same-SHA engineering-verifier candidate with no prior authorization, reservation, or consumption is eligible.
           </span>
         </label>
 
@@ -2218,16 +2291,17 @@ export function SupervisorOwnerPanel() {
           <button
             type="button"
             onClick={authorizeBrowserWorkerDeployment}
-            disabled={busy}
+            disabled={busy || !deploymentTaskId.trim()}
             style={{
               border: "1px solid rgba(96, 165, 250, 0.55)",
               borderRadius: 10,
               padding: "10px 14px",
               font: "inherit",
               fontWeight: 700,
-              cursor: busy
-                ? "not-allowed"
-                : "pointer",
+              cursor:
+                busy || !deploymentTaskId.trim()
+                  ? "not-allowed"
+                  : "pointer",
             }}
           >
             {busy
