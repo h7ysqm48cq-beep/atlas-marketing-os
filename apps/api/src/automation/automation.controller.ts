@@ -611,22 +611,6 @@ export class AutomationController {
         },
       });
 
-      const ensured = await this.browserRuntime.ensureProfile(
-        previous.channelId,
-        {
-          headless: false,
-          startUrl: 'https://www.facebook.com/',
-        },
-      );
-
-      await this.browserActionTrace.succeedStep(ensureProfileTrace.id, {
-        metadata: {
-          channelId: previous.channelId,
-          browserProfileKey: ensuredProfile.browserProfileKey,
-          ensured: true,
-        },
-      });
-
       const result = await this.browserRuntime.prepareFacebookPost(
         ensuredProfile.browserProfileKey,
         {
