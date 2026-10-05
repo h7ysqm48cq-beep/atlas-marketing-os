@@ -1,7 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { AiRuntimeSettingsService } from '../ai-runtime/ai-runtime-settings.service';
-import OpenAI from 'openai';
 
 export type QueryUnderstanding = {
   intent: string;
@@ -19,20 +16,6 @@ export type QueryUnderstanding = {
 
 @Injectable()
 export class QueryUnderstandingService {
-  private readonly client: OpenAI | null;
-
-  constructor(
-    private readonly configService: ConfigService,
-    private readonly aiRuntime: AiRuntimeSettingsService,
-  ) {
-    const apiKey =
-      this.configService.get<string>('OPENAI_API_KEY');
-
-    this.client = apiKey
-      ? new OpenAI({ apiKey })
-      : null;
-
-  }
 
   async understand(input: {
     topic: string;
