@@ -293,47 +293,6 @@ export class SystemHealthService {
     private readonly browserRuntime: BrowserRuntimeBridgeService,
   ) {}
 
-  async snapshot() {
-
-    const checkedAt = new Date().toISOString();
-
-    return {
-      checkedAt,
-
-      overall: "HEALTHY",
-
-      infrastructure: {
-        web: {
-          status: "ONLINE",
-        },
-
-        api: {
-          status: "ONLINE",
-        },
-
-        browserWorker: {
-          status: "UNKNOWN",
-        },
-      },
-
-      database: {
-        status: "UNKNOWN",
-        guards: {
-          inlineBase64: "UNKNOWN",
-          legacyMedia: "UNKNOWN",
-        },
-      },
-
-      storage: {
-        status: "UNKNOWN",
-      },
-
-      issues: [],
-    };
-
-  }
-
-
 
   private async checkDatabase() {
     try {
