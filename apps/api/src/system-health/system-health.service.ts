@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 
 import { PrismaService } from '../database/prisma.service';
-import { AssetsService } from '../assets/assets.service';
 import { BrowserRuntimeBridgeService } from '../automation/browser-runtime-bridge.service';
 import { ScheduledPostStatus } from '../generated/prisma/enums';
 
@@ -289,7 +288,6 @@ export class SystemHealthService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly assetsService: AssetsService,
     private readonly browserRuntime: BrowserRuntimeBridgeService,
   ) {}
 

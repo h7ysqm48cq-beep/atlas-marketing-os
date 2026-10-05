@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 
 import { DatabaseModule } from '../database/database.module';
-import { AssetsModule } from '../assets/assets.module';
 import { AutomationModule } from '../automation/automation.module';
 import { NotificationModule } from '../notifications/notification.module';
 
@@ -13,7 +12,6 @@ import { SystemHealthAlertService } from './system-health-alert.service';
 @Module({
   imports:[
     DatabaseModule,
-    AssetsModule,
     AutomationModule,
     NotificationModule,
   ],

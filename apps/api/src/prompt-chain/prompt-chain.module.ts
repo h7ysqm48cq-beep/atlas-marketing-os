@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { AiRuntimeModule } from '../ai-runtime/ai-runtime.module';
 import { MemoryModule } from '../memory/memory.module';
 import { KnowledgeModule } from '../knowledge/knowledge.module';
 import { BrandsModule } from '../brands/brands.module';
@@ -8,7 +7,7 @@ import { PromptChainService } from './prompt-chain.service';
 import { QueryUnderstandingService } from './query-understanding.service';
 
 @Module({
-  imports: [AiRuntimeModule, BrandsModule, MemoryModule, KnowledgeModule],
+  imports: [BrandsModule, MemoryModule, KnowledgeModule],
   controllers: [PromptChainController],
   providers: [PromptChainService, QueryUnderstandingService],
   exports: [PromptChainService],

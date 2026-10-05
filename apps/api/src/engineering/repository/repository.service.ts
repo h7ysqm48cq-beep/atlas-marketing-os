@@ -3,10 +3,6 @@ import {
 } from "@nestjs/common";
 
 import {
-  readFile,
-} from "node:fs/promises";
-
-import {
   RepositoryScanner,
 } from "./repository.scanner";
 
@@ -39,15 +35,7 @@ export class RepositoryService {
   }
 
 
-  async getFileContent(
-    path: string,
-  ) {
 
-    return readFile(
-      path,
-      "utf8",
-    );
-  }
 
 
   async searchFiles(

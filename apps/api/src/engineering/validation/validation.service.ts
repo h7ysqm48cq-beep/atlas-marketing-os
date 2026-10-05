@@ -16,10 +16,6 @@ resolve,
 
 
 import {
-execSync,
-} from "node:child_process";
-
-import {
 ValidationResult,
 } from "./validation.types";
 
