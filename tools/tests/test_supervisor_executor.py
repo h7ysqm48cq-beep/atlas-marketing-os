@@ -218,6 +218,49 @@ def test_distinct_sha_existing_candidate_verifies_exact_git_paths_read_only(tmp_
     assert git_changed_files(tmp_path) == []
 
 
+def test_distinct_sha_existing_candidate_accepts_candidate_head_as_production_baseline(tmp_path):
+    target = write_users_service(tmp_path)
+    init_git_repo(tmp_path)
+    base = subprocess.run(
+        ["git", "rev-parse", "HEAD"], cwd=tmp_path, text=True,
+        capture_output=True, check=True,
+    ).stdout.strip()
+
+    target.write_text("export class UsersService { value = 1 }\n", encoding="utf-8")
+    subprocess.run(
+        ["git", "add", "--", "src/users/users.service.ts"],
+        cwd=tmp_path, check=True,
+    )
+    subprocess.run(["git", "commit", "-qm", "candidate"], cwd=tmp_path, check=True)
+    head = subprocess.run(
+        ["git", "rev-parse", "HEAD"], cwd=tmp_path, text=True,
+        capture_output=True, check=True,
+    ).stdout.strip()
+
+    request = assignment(
+        purpose="INDEPENDENT_VERIFICATION",
+        allowed_paths=["src/users/users.service.ts"],
+    )
+    request.update(
+        verificationMode="EXISTING_CANDIDATE",
+        candidateBaseSha=base,
+        candidateHeadSha=head,
+        productionBaselineSha=head,
+    )
+
+    result = import_module(
+        "tools.ai_engineer.supervisor_executor"
+    ).SupervisorAssignmentExecutor(project_root=tmp_path).execute(
+        request, allow_apply=True,
+    )
+
+    assert result.success
+    assert result.evidence["changedFiles"] == ["src/users/users.service.ts"]
+    assert "production_baseline_verified" in result.evidence["tests"]
+    assert "production_scope_no_overlap" in result.evidence["tests"]
+    assert git_changed_files(tmp_path) == []
+
+
 def test_distinct_sha_existing_candidate_accepts_later_non_overlapping_production_baseline(tmp_path):
     target = write_users_service(tmp_path)
     init_git_repo(tmp_path)
