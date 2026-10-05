@@ -189,7 +189,10 @@ export class CandidateWorkspaceManager {
           productionBaselineSha,
           input.allowedPaths,
         );
-      } else if (productionBaselineSha !== frozenBaseSha) {
+      } else if (
+        productionBaselineSha !== frozenBaseSha &&
+        productionBaselineSha !== headSha
+      ) {
         if (!this.ensureProductionAdvance) {
           throw new Error('existing_candidate_production_advance_unverified');
         }
