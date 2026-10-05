@@ -91,6 +91,24 @@ type DeploymentCandidate = {
   changedFiles: string[];
 };
 
+const OWNER_WORKER_DEPLOYMENT_SERVICES = [
+  "engineering-runner",
+  "engineering-verifier",
+] as const;
+
+export type OwnerWorkerDeploymentService =
+  (typeof OWNER_WORKER_DEPLOYMENT_SERVICES)[number];
+
+const OWNER_WORKER_DEPLOYMENT_PATHS: Record<
+  OwnerWorkerDeploymentService,
+  string
+> = {
+  "engineering-runner":
+    "apps/engineering-runner/check-runner-production-deployment.cjs",
+  "engineering-verifier":
+    "apps/engineering-runner/check-verifier-production-deployment.cjs",
+};
+
 export type SupervisorAdmissionResult = {
   taskId: string;
   taskStatus: string;
@@ -876,6 +894,222 @@ function sameDeploymentCandidate(
   );
 }
 
+function hasExactStringArray(
+  value: unknown,
+  expected: string[],
+): boolean {
+  return (
+    Array.isArray(value) &&
+    value.length === expected.length &&
+    value.every(
+      (entry, index) => entry === expected[index],
+    )
+  );
+}
+
+function isOwnerWorkerDeploymentService(
+  value: string,
+): value is OwnerWorkerDeploymentService {
+  return (
+    OWNER_WORKER_DEPLOYMENT_SERVICES as readonly string[]
+  ).includes(value);
+}
+
+function isVerifiedSameShaWorkerTask(
+  task: JsonRecord,
+  service: OwnerWorkerDeploymentService,
+  taskId: string,
+): {
+  candidate: DeploymentCandidate;
+  verification: JsonRecord;
+} | null {
+  const evidence = asRecord(task.evidence);
+  const verification = asRecord(
+    evidence?.existingCandidateVerification,
+  );
+  const candidate = asDeploymentCandidate(
+    evidence?.reviewCandidate,
+  );
+  const expectedPath =
+    OWNER_WORKER_DEPLOYMENT_PATHS[service];
+  const fullSha = /^[0-9a-f]{40}$/u;
+
+  if (
+    task.id !== taskId ||
+    task.status !== "APPROVED" ||
+    !hasExactStringArray(task.allowedPaths, [expectedPath]) ||
+    !hasStringInArray(task.acceptance, `service=${service}`) ||
+    evidence?.deploymentState !== "NOT_DEPLOYED" ||
+    evidence?.ownerDeploymentAuthorization !== undefined ||
+    evidence?.ownerDeploymentAuthorizationConsumption !== undefined ||
+    evidence?.ownerDeploymentDispatchReservation !== undefined ||
+    !candidate ||
+    !fullSha.test(candidate.baseSha) ||
+    candidate.baseSha !== candidate.headSha ||
+    candidate.changedFiles.length !== 0 ||
+    !hasStringInArray(
+      task.acceptance,
+      `baseSha=headSha=${candidate.headSha}`,
+    ) ||
+    verification?.mode !== "EXISTING_CANDIDATE" ||
+    verification?.taskId !== taskId ||
+    verification?.sourceVerified !== true ||
+    verification?.baseSha !== candidate.baseSha ||
+    verification?.headSha !== candidate.headSha ||
+    verification?.productionBaselineSha !== candidate.headSha ||
+    verification?.targetBranch !== "production/atlas" ||
+    !hasExactStringArray(verification?.changedFiles, [])
+  ) {
+    return null;
+  }
+
+  return { candidate, verification };
+}
+
+export async function authorizeEligibleWorkerDeployment(
+  fetchImpl: FetchLike = fetch,
+  service: OwnerWorkerDeploymentService,
+  exactTaskId: string,
+): Promise<SupervisorAdmissionResult> {
+  if (!isOwnerWorkerDeploymentService(service)) {
+    throw new Error(
+      "Unsupported worker production deployment service.",
+    );
+  }
+
+  const taskId = exactTaskId.trim();
+  if (!taskId) {
+    throw new Error(
+      `${service} deployment task ID is required.`,
+    );
+  }
+
+  const task = asRecord(
+    await getSupervisor(
+      `load ${service} deployment candidate`,
+      `/tasks/${encodeURIComponent(taskId)}`,
+      fetchImpl,
+    ),
+  );
+  const verified = task
+    ? isVerifiedSameShaWorkerTask(task, service, taskId)
+    : null;
+
+  if (!task || !verified) {
+    throw new Error(
+      `Task ${taskId} is not an eligible ${service} same-SHA deployment candidate.`,
+    );
+  }
+
+  const listedExecutions = await getSupervisor(
+    `list ${service} candidate executions`,
+    `/tasks/${encodeURIComponent(taskId)}/executions`,
+    fetchImpl,
+  );
+  const executions = Array.isArray(listedExecutions)
+    ? listedExecutions
+    : asRecord(listedExecutions)?.executions;
+  const matchingExecutions = Array.isArray(executions)
+    ? executions.filter((value) => {
+        const execution = asRecord(value);
+        const assignment = asRecord(execution?.assignment);
+        const result = asRecord(execution?.result);
+        const resultEvidence = asRecord(result?.evidence);
+        const resultCandidate = asDeploymentCandidate(
+          resultEvidence?.reviewCandidate,
+        );
+        const resultVerification = asRecord(
+          resultEvidence?.existingCandidateVerification,
+        );
+
+        return Boolean(
+          execution &&
+            execution.status === "COMPLETED" &&
+            assignment?.executionPurpose ===
+              "INDEPENDENT_VERIFICATION" &&
+            assignment?.verificationMode ===
+              "EXISTING_CANDIDATE" &&
+            typeof execution.id === "string" &&
+            resultCandidate &&
+            sameDeploymentCandidate(
+              verified.candidate,
+              resultCandidate,
+            ) &&
+            resultVerification?.mode ===
+              "EXISTING_CANDIDATE" &&
+            resultVerification?.taskId === taskId &&
+            resultVerification?.executionId === execution.id &&
+            resultVerification?.sourceVerified === true &&
+            resultVerification?.baseSha ===
+              verified.candidate.baseSha &&
+            resultVerification?.headSha ===
+              verified.candidate.headSha &&
+            resultVerification?.productionBaselineSha ===
+              verified.candidate.headSha &&
+            resultVerification?.targetBranch ===
+              "production/atlas" &&
+            hasExactStringArray(
+              resultVerification?.changedFiles,
+              [],
+            )
+        );
+      })
+    : [];
+
+  if (matchingExecutions.length !== 1) {
+    throw new Error(
+      `The approved ${service} candidate must have exactly one matching completed independent-verification execution.`,
+    );
+  }
+
+  const executionId = requireStringField(
+    matchingExecutions[0],
+    "id",
+    `${service} deployment execution`,
+  );
+  const authorized = asRecord(
+    await postSupervisor(
+      `authorize ${service} production deployment`,
+      `/tasks/${encodeURIComponent(taskId)}/authorize-production-deployment`,
+      { candidate: verified.candidate, service },
+      fetchImpl,
+    ),
+  );
+  const authorizedEvidence = asRecord(authorized?.evidence);
+  const authorization = asRecord(
+    authorizedEvidence?.ownerDeploymentAuthorization,
+  );
+  const authorizedCandidate = asDeploymentCandidate(
+    authorization?.candidate,
+  );
+
+  if (
+    authorized?.id !== taskId ||
+    authorized?.status !== "APPROVED" ||
+    authorization?.service !== service ||
+    typeof authorization?.signature !== "string" ||
+    !authorization.signature.trim() ||
+    !authorizedCandidate ||
+    !sameDeploymentCandidate(
+      verified.candidate,
+      authorizedCandidate,
+    ) ||
+    authorizedEvidence?.ownerDeploymentAuthorizationConsumption !== undefined ||
+    authorizedEvidence?.ownerDeploymentDispatchReservation !== undefined
+  ) {
+    throw new Error(
+      `Supervisor did not confirm a fresh signed ${service} deployment authorization for the exact candidate.`,
+    );
+  }
+
+  return {
+    taskId,
+    taskStatus: "APPROVED",
+    executionId,
+    executionStatus: "COMPLETED",
+  };
+}
+
 export function findEligibleBrowserWorkerDeploymentCandidate(
   tasks: unknown[],
   exactTaskId?: string,
@@ -1331,6 +1565,12 @@ export function SupervisorOwnerPanel() {
     useState("");
   const [webDeploymentTaskId, setWebDeploymentTaskId] =
     useState("");
+  const [runnerDeploymentTaskId, setRunnerDeploymentTaskId] =
+    useState("");
+  const [verifierDeploymentTaskId, setVerifierDeploymentTaskId] =
+    useState("");
+  const [deploymentAuthorizationService, setDeploymentAuthorizationService] =
+    useState<string | null>(null);
   const [reviewTaskId, setReviewTaskId] =
     useState("");
   const [existingReview, setExistingReview] =
@@ -1505,6 +1745,7 @@ export function SupervisorOwnerPanel() {
     setBusy(true);
     setError(null);
     setDeploymentAuthorization(null);
+    setDeploymentAuthorizationService(null);
 
     try {
       setDeploymentAuthorization(
@@ -1513,6 +1754,7 @@ export function SupervisorOwnerPanel() {
           deploymentTaskId,
         ),
       );
+      setDeploymentAuthorizationService("browser-worker");
     } catch (caught) {
       setError(
         caught instanceof Error
@@ -1532,6 +1774,7 @@ export function SupervisorOwnerPanel() {
     setBusy(true);
     setError(null);
     setDeploymentAuthorization(null);
+    setDeploymentAuthorizationService(null);
 
     try {
       setDeploymentAuthorization(
@@ -1540,11 +1783,46 @@ export function SupervisorOwnerPanel() {
           webDeploymentTaskId,
         ),
       );
+      setDeploymentAuthorizationService("web");
     } catch (caught) {
       setError(
         caught instanceof Error
           ? caught.message
           : "Web production candidate authorization failed.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+
+  async function authorizeWorkerDeployment(
+    service: OwnerWorkerDeploymentService,
+    taskId: string,
+  ) {
+    if (busy) {
+      return;
+    }
+
+    setBusy(true);
+    setError(null);
+    setDeploymentAuthorization(null);
+    setDeploymentAuthorizationService(null);
+
+    try {
+      setDeploymentAuthorization(
+        await authorizeEligibleWorkerDeployment(
+          fetch,
+          service,
+          taskId,
+        ),
+      );
+      setDeploymentAuthorizationService(service);
+    } catch (caught) {
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : `${service} production candidate authorization failed.`,
       );
     } finally {
       setBusy(false);
@@ -1834,6 +2112,43 @@ export function SupervisorOwnerPanel() {
           </span>
         </label>
 
+
+        <label style={labelStyle}>
+          Engineering Runner deployment task ID — exact
+          <input
+            value={runnerDeploymentTaskId}
+            onChange={(event: ChangeEvent<HTMLInputElement>) =>
+              setRunnerDeploymentTaskId(event.target.value)
+            }
+            spellCheck={false}
+            autoComplete="off"
+            style={fieldStyle}
+            placeholder="ATLAS-SYS-..."
+            disabled={busy}
+          />
+          <span style={{ opacity: 0.68, fontSize: 13 }}>
+            Only an APPROVED, source-verified, zero-diff same-SHA engineering-runner candidate with no prior authorization or consumption is eligible.
+          </span>
+        </label>
+
+        <label style={labelStyle}>
+          Engineering Verifier deployment task ID — exact
+          <input
+            value={verifierDeploymentTaskId}
+            onChange={(event: ChangeEvent<HTMLInputElement>) =>
+              setVerifierDeploymentTaskId(event.target.value)
+            }
+            spellCheck={false}
+            autoComplete="off"
+            style={fieldStyle}
+            placeholder="ATLAS-SYS-..."
+            disabled={busy}
+          />
+          <span style={{ opacity: 0.68, fontSize: 13 }}>
+            Only an APPROVED, source-verified, zero-diff same-SHA engineering-verifier candidate with no prior authorization or consumption is eligible.
+          </span>
+        </label>
+
         <div
           style={{
             marginTop: 22,
@@ -1940,6 +2255,59 @@ export function SupervisorOwnerPanel() {
               : "Authorize web candidate"}
           </button>
 
+
+          <button
+            type="button"
+            onClick={() =>
+              authorizeWorkerDeployment(
+                "engineering-runner",
+                runnerDeploymentTaskId,
+              )
+            }
+            disabled={busy || !runnerDeploymentTaskId.trim()}
+            style={{
+              border: "1px solid rgba(34, 197, 94, 0.55)",
+              borderRadius: 10,
+              padding: "10px 14px",
+              font: "inherit",
+              fontWeight: 700,
+              cursor:
+                busy || !runnerDeploymentTaskId.trim()
+                  ? "not-allowed"
+                  : "pointer",
+            }}
+          >
+            {busy
+              ? "Checking Runner candidate…"
+              : "Authorize engineering-runner candidate"}
+          </button>
+
+          <button
+            type="button"
+            onClick={() =>
+              authorizeWorkerDeployment(
+                "engineering-verifier",
+                verifierDeploymentTaskId,
+              )
+            }
+            disabled={busy || !verifierDeploymentTaskId.trim()}
+            style={{
+              border: "1px solid rgba(168, 85, 247, 0.55)",
+              borderRadius: 10,
+              padding: "10px 14px",
+              font: "inherit",
+              fontWeight: 700,
+              cursor:
+                busy || !verifierDeploymentTaskId.trim()
+                  ? "not-allowed"
+                  : "pointer",
+            }}
+          >
+            {busy
+              ? "Checking Verifier candidate…"
+              : "Authorize engineering-verifier candidate"}
+          </button>
+
           <span style={{ opacity: 0.68, fontSize: 13 }}>
             Task/execution IDs are kept after a partial failure; refresh never creates a duplicate.
           </span>
@@ -2011,7 +2379,7 @@ export function SupervisorOwnerPanel() {
             <strong>Production candidate authorized</strong>
             <span>taskId={deploymentAuthorization.taskId}</span>
             <span>executionId={deploymentAuthorization.executionId}</span>
-            <span>service=browser-worker</span>
+            <span>service={deploymentAuthorizationService ?? "unknown"}</span>
             <span>Next: run the separately authorized Railway deployment.</span>
           </div>
         ) : null}

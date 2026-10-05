@@ -4,6 +4,7 @@ import {
   approveAndAuthorizeExistingMerge,
   authorizeEligibleBrowserWorkerDeployment,
   authorizeEligibleWebDeployment,
+  authorizeEligibleWorkerDeployment,
   loadExistingMergeReview,
   recoverStaleBrowserWorkerTask,
   getSupervisorStatus,
@@ -544,6 +545,317 @@ async function main() {
     /No approved web production deployment candidate was found for task web-invalid-path-task/,
   );
 
+
+  const runnerSha = "9".repeat(40);
+  const runnerCandidate = {
+    action: "deploy_production",
+    targetBranch: "production/atlas",
+    baseSha: runnerSha,
+    headSha: runnerSha,
+    changedFiles: [],
+  };
+  const workerAuthorizationCalls: Array<{
+    method: string;
+    url: string;
+    body?: string;
+  }> = [];
+  const runnerAuthorized =
+    await authorizeEligibleWorkerDeployment(
+      async (url, init) => {
+        workerAuthorizationCalls.push({
+          method: init?.method ?? "GET",
+          url: String(url),
+          body:
+            typeof init?.body === "string"
+              ? init.body
+              : undefined,
+        });
+
+        if (
+          String(url).endsWith(
+            "/tasks/runner-deploy-task",
+          )
+        ) {
+          return response(200, {
+            id: "runner-deploy-task",
+            status: "APPROVED",
+            allowedPaths: [
+              "apps/engineering-runner/check-runner-production-deployment.cjs",
+            ],
+            acceptance: [
+              `baseSha=headSha=${runnerSha}`,
+              "service=engineering-runner",
+              "zero git diff",
+              "sourceVerified=true",
+              "candidatePublication absent",
+            ],
+            evidence: {
+              deploymentState: "NOT_DEPLOYED",
+              reviewCandidate: runnerCandidate,
+              existingCandidateVerification: {
+                mode: "EXISTING_CANDIDATE",
+                taskId: "runner-deploy-task",
+                executionId: "runner-deploy-execution",
+                baseSha: runnerSha,
+                headSha: runnerSha,
+                productionBaselineSha: runnerSha,
+                targetBranch: "production/atlas",
+                changedFiles: [],
+                sourceVerified: true,
+              },
+            },
+          });
+        }
+
+        if (
+          String(url).endsWith(
+            "/tasks/runner-deploy-task/executions",
+          )
+        ) {
+          return response(200, [
+            {
+              id: "runner-deploy-execution",
+              status: "COMPLETED",
+              assignment: {
+                executionPurpose: "INDEPENDENT_VERIFICATION",
+                verificationMode: "EXISTING_CANDIDATE",
+              },
+              result: {
+                evidence: {
+                  reviewCandidate: runnerCandidate,
+                  existingCandidateVerification: {
+                    mode: "EXISTING_CANDIDATE",
+                    taskId: "runner-deploy-task",
+                    executionId: "runner-deploy-execution",
+                    baseSha: runnerSha,
+                    headSha: runnerSha,
+                    productionBaselineSha: runnerSha,
+                    targetBranch: "production/atlas",
+                    changedFiles: [],
+                    sourceVerified: true,
+                  },
+                },
+              },
+            },
+          ]);
+        }
+
+        return response(201, {
+          id: "runner-deploy-task",
+          status: "APPROVED",
+          evidence: {
+            deploymentState: "NOT_DEPLOYED",
+            ownerDeploymentAuthorization: {
+              service: "engineering-runner",
+              candidate: runnerCandidate,
+              signature: "signed-runner-authorization",
+            },
+          },
+        });
+      },
+      "engineering-runner",
+      " runner-deploy-task ",
+    );
+
+  assert.deepEqual(runnerAuthorized, {
+    taskId: "runner-deploy-task",
+    taskStatus: "APPROVED",
+    executionId: "runner-deploy-execution",
+    executionStatus: "COMPLETED",
+  });
+  assert.deepEqual(workerAuthorizationCalls, [
+    {
+      method: "GET",
+      url: "/api/atlas/engineering/supervisor/tasks/runner-deploy-task",
+      body: undefined,
+    },
+    {
+      method: "GET",
+      url: "/api/atlas/engineering/supervisor/tasks/runner-deploy-task/executions",
+      body: undefined,
+    },
+    {
+      method: "POST",
+      url: "/api/atlas/engineering/supervisor/tasks/runner-deploy-task/authorize-production-deployment",
+      body: JSON.stringify({
+        candidate: runnerCandidate,
+        service: "engineering-runner",
+      }),
+    },
+  ]);
+
+  const verifierCandidate = {
+    ...runnerCandidate,
+  };
+  const verifierAuthorized =
+    await authorizeEligibleWorkerDeployment(
+      async (url, init) => {
+        if (
+          String(url).endsWith(
+            "/tasks/verifier-deploy-task",
+          )
+        ) {
+          return response(200, {
+            id: "verifier-deploy-task",
+            status: "APPROVED",
+            allowedPaths: [
+              "apps/engineering-runner/check-verifier-production-deployment.cjs",
+            ],
+            acceptance: [
+              `baseSha=headSha=${runnerSha}`,
+              "service=engineering-verifier",
+            ],
+            evidence: {
+              deploymentState: "NOT_DEPLOYED",
+              reviewCandidate: verifierCandidate,
+              existingCandidateVerification: {
+                mode: "EXISTING_CANDIDATE",
+                taskId: "verifier-deploy-task",
+                executionId: "verifier-deploy-execution",
+                baseSha: runnerSha,
+                headSha: runnerSha,
+                productionBaselineSha: runnerSha,
+                targetBranch: "production/atlas",
+                changedFiles: [],
+                sourceVerified: true,
+              },
+            },
+          });
+        }
+
+        if (
+          String(url).endsWith(
+            "/tasks/verifier-deploy-task/executions",
+          )
+        ) {
+          return response(200, [
+            {
+              id: "verifier-deploy-execution",
+              status: "COMPLETED",
+              assignment: {
+                executionPurpose: "INDEPENDENT_VERIFICATION",
+                verificationMode: "EXISTING_CANDIDATE",
+              },
+              result: {
+                evidence: {
+                  reviewCandidate: verifierCandidate,
+                  existingCandidateVerification: {
+                    mode: "EXISTING_CANDIDATE",
+                    taskId: "verifier-deploy-task",
+                    executionId: "verifier-deploy-execution",
+                    baseSha: runnerSha,
+                    headSha: runnerSha,
+                    productionBaselineSha: runnerSha,
+                    targetBranch: "production/atlas",
+                    changedFiles: [],
+                    sourceVerified: true,
+                  },
+                },
+              },
+            },
+          ]);
+        }
+
+        assert.equal(init?.method, "POST");
+        return response(201, {
+          id: "verifier-deploy-task",
+          status: "APPROVED",
+          evidence: {
+            deploymentState: "NOT_DEPLOYED",
+            ownerDeploymentAuthorization: {
+              service: "engineering-verifier",
+              candidate: verifierCandidate,
+              signature: "signed-verifier-authorization",
+            },
+          },
+        });
+      },
+      "engineering-verifier",
+      "verifier-deploy-task",
+    );
+
+  assert.deepEqual(verifierAuthorized, {
+    taskId: "verifier-deploy-task",
+    taskStatus: "APPROVED",
+    executionId: "verifier-deploy-execution",
+    executionStatus: "COMPLETED",
+  });
+
+  await assert.rejects(
+    () =>
+      authorizeEligibleWorkerDeployment(
+        async (url) => {
+          if (
+            String(url).endsWith(
+              "/tasks/verifier-invalid-task",
+            )
+          ) {
+            return response(200, {
+              id: "verifier-invalid-task",
+              status: "APPROVED",
+              allowedPaths: [
+                "apps/engineering-runner/check-verifier-production-deployment.cjs",
+              ],
+              acceptance: [
+                `baseSha=headSha=${runnerSha}`,
+                "service=engineering-verifier",
+              ],
+              evidence: {
+                deploymentState: "NOT_DEPLOYED",
+                reviewCandidate: {
+                  ...runnerCandidate,
+                  changedFiles: ["apps/api/src/main.ts"],
+                },
+                existingCandidateVerification: {
+                  sourceVerified: true,
+                },
+              },
+            });
+          }
+          throw new Error("unexpected request");
+        },
+        "engineering-verifier",
+        "verifier-invalid-task",
+      ),
+    /is not an eligible engineering-verifier same-SHA deployment candidate/,
+  );
+
+  await assert.rejects(
+    () =>
+      authorizeEligibleWorkerDeployment(
+        async (url) => {
+          if (
+            String(url).endsWith(
+              "/tasks/runner-replay-task",
+            )
+          ) {
+            return response(200, {
+              id: "runner-replay-task",
+              status: "APPROVED",
+              allowedPaths: [
+                "apps/engineering-runner/check-runner-production-deployment.cjs",
+              ],
+              acceptance: [
+                `baseSha=headSha=${runnerSha}`,
+                "service=engineering-runner",
+              ],
+              evidence: {
+                deploymentState: "DEPLOYMENT_AUTHORIZATION_CONSUMED",
+                reviewCandidate: runnerCandidate,
+                existingCandidateVerification: {
+                  sourceVerified: true,
+                },
+                ownerDeploymentAuthorizationConsumption: {},
+              },
+            });
+          }
+          throw new Error("unexpected request");
+        },
+        "engineering-runner",
+        "runner-replay-task",
+      ),
+    /is not an eligible engineering-runner same-SHA deployment candidate/,
+  );
 
   const mergeCandidate = {
     action: "merge" as const,
