@@ -1152,13 +1152,7 @@ export class AutomationController {
   }
 
   @Post('facebook/publish')
-  publishFacebook(
-    @Body()
-    body: {
-      content: string;
-      link?: string;
-    },
-  ) {
+  publishFacebook() {
     throw new BadRequestException(
       [
         'Direct Facebook publishing is disabled.',
