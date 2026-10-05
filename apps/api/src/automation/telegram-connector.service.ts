@@ -187,6 +187,38 @@ export class TelegramConnectorService {
     return `${text.slice(0, limit - 1).trimEnd()}…`;
   }
 
+  private removePhotoCaption(fullText: string, caption: string): string {
+    const cleanFullText = fullText.trim();
+    const cleanCaption = caption.trim();
+
+    if (!cleanFullText || !cleanCaption) {
+      return cleanFullText;
+    }
+
+    if (cleanFullText === cleanCaption) {
+      return '';
+    }
+
+    if (cleanFullText.startsWith(cleanCaption)) {
+      return cleanFullText.slice(cleanCaption.length).trim();
+    }
+
+    if (cleanCaption.endsWith('…') && cleanCaption.length > 1) {
+      const prefix = cleanCaption.slice(0, -1).trimEnd();
+
+      if (cleanFullText.startsWith(prefix)) {
+        return cleanFullText.slice(prefix.length).trim();
+      }
+    }
+
+    /*
+     * Safety fallback:
+     * if caption extraction cannot be matched exactly,
+     * do not resend the entire original article.
+     */
+    return '';
+  }
+
   private splitMessage(text: string, limit = 3800): string[] {
     const clean = text.trim();
 
