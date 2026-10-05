@@ -28,5 +28,12 @@ describe('SupervisorSystemController auth surface', () => {
         SupervisorSystemController.prototype.admit,
       ),
     ).toBe('ADMISSION');
+
+    expect(
+      Reflect.getMetadata(
+        SUPERVISOR_SYSTEM_PURPOSE,
+        SupervisorSystemController.prototype.admitVerification,
+      ),
+    ).toBe('VERIFICATION_COORDINATION');
   });
 });

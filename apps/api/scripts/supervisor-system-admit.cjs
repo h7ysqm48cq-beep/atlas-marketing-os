@@ -46,17 +46,43 @@ function normalizedAdmission(input) {
   };
 }
 
-function admissionDigest(input) {
+function normalizedVerificationAdmission(input) {
+  return {
+    admissionId:
+      String(input.admissionId || '').trim().toLowerCase(),
+    task: input.task,
+    candidateBaseSha:
+      String(input.candidateBaseSha || '').trim().toLowerCase(),
+    candidateHeadSha:
+      String(input.candidateHeadSha || '').trim().toLowerCase(),
+    productionBaselineSha:
+      String(input.productionBaselineSha || '')
+        .trim()
+        .toLowerCase(),
+    targetBranch:
+      input.targetBranch || 'production/atlas',
+    changedPaths: input.changedPaths,
+  };
+}
+
+function digest(value) {
   return createHash('sha256')
-    .update(
-      canonicalize(normalizedAdmission(input)),
-      'utf8',
-    )
+    .update(canonicalize(value), 'utf8')
     .digest('hex');
 }
 
-function signAdmissionAssertion(
-  input,
+function admissionDigest(input) {
+  return digest(normalizedAdmission(input));
+}
+
+function verificationAdmissionDigest(input) {
+  return digest(normalizedVerificationAdmission(input));
+}
+
+function signSystemAssertion(
+  normalized,
+  purpose,
+  assertionDigest,
   {
     kid,
     privateKeyPem,
@@ -70,20 +96,19 @@ function signAdmissionAssertion(
     );
   }
 
-  const normalized = normalizedAdmission(input);
   const claims = {
     iss: ISSUER,
     sub: SUBJECT,
     aud: AUDIENCE,
     actorType: 'EXECUTIVE_SUPERVISOR',
     tokenType: 'SYSTEM_ASSERTION',
-    purpose: 'ADMISSION',
+    purpose,
     iat: now.toISOString(),
     exp: new Date(now.getTime() + ttlMs).toISOString(),
     jti: randomUUID(),
     claimEpoch: 0,
     admissionId: normalized.admissionId,
-    admissionDigest: admissionDigest(normalized),
+    admissionDigest: assertionDigest,
   };
   const header = {
     typ: 'ATLAS_AUTHORITY',
@@ -103,11 +128,53 @@ function signAdmissionAssertion(
   return `${signingInput}.${signature}`;
 }
 
+function signAdmissionAssertion(input, options) {
+  const normalized = normalizedAdmission(input);
+  return signSystemAssertion(
+    normalized,
+    'ADMISSION',
+    admissionDigest(normalized),
+    options,
+  );
+}
+
+function signVerificationAdmissionAssertion(
+  input,
+  options,
+) {
+  const normalized =
+    normalizedVerificationAdmission(input);
+  return signSystemAssertion(
+    normalized,
+    'VERIFICATION_COORDINATION',
+    verificationAdmissionDigest(normalized),
+    options,
+  );
+}
+
 async function readInput() {
-  const fromEnv =
+  const verificationFromEnv =
+    process.env
+      .ATLAS_SUPERVISOR_SYSTEM_VERIFICATION_ADMISSION_JSON;
+  const admissionFromEnv =
     process.env.ATLAS_SUPERVISOR_SYSTEM_ADMISSION_JSON;
-  if (fromEnv) {
-    return JSON.parse(fromEnv);
+
+  if (verificationFromEnv && admissionFromEnv) {
+    throw new Error(
+      'supervisor_system_admission_input_conflict',
+    );
+  }
+  if (verificationFromEnv) {
+    return {
+      kind: 'verification',
+      input: JSON.parse(verificationFromEnv),
+    };
+  }
+  if (admissionFromEnv) {
+    return {
+      kind: 'admission',
+      input: JSON.parse(admissionFromEnv),
+    };
   }
 
   const chunks = [];
@@ -120,7 +187,14 @@ async function readInput() {
       'supervisor_system_admission_input_required',
     );
   }
-  return JSON.parse(raw);
+  return {
+    kind:
+      process.env.ATLAS_SUPERVISOR_SYSTEM_PURPOSE ===
+      'VERIFICATION_COORDINATION'
+        ? 'verification'
+        : 'admission',
+    input: JSON.parse(raw),
+  };
 }
 
 function safeFailure(status, body) {
@@ -141,7 +215,8 @@ function safeFailure(status, body) {
 }
 
 async function main() {
-  const input = await readInput();
+  const request = await readInput();
+  const input = request.input;
   const baseUrl =
     process.env.ATLAS_SUPERVISOR_API_URL;
   const kid =
@@ -157,12 +232,25 @@ async function main() {
     );
   }
 
-  const token = signAdmissionAssertion(input, {
-    kid,
-    privateKeyPem,
-  });
+  const verification =
+    request.kind === 'verification';
+  const token =
+    verification
+      ? signVerificationAdmissionAssertion(input, {
+          kid,
+          privateKeyPem,
+        })
+      : signAdmissionAssertion(input, {
+          kid,
+          privateKeyPem,
+        });
+  const route =
+    verification
+      ? 'verification-admissions'
+      : 'admissions';
+
   const response = await fetch(
-    `${baseUrl.replace(/\/$/, '')}/engineering/supervisor/system/admissions`,
+    `${baseUrl.replace(/\/$/, '')}/engineering/supervisor/system/${route}`,
     {
       method: 'POST',
       headers: {
@@ -186,7 +274,8 @@ async function main() {
       body,
     );
     process.stderr.write(
-      `supervisor_system_admission_failed status=${failure.status} code=${failure.code}\n`,
+      `supervisor_system_admission_failed status=${failure.status} code=${failure.code}
+`,
     );
     process.exitCode = 1;
     return;
@@ -199,7 +288,8 @@ async function main() {
       taskStatus: body.taskStatus,
       executionId: body.executionId,
       executionStatus: body.executionStatus,
-    })}\n`,
+    })}
+`,
   );
 }
 
@@ -207,7 +297,10 @@ module.exports = {
   admissionDigest,
   canonicalize,
   normalizedAdmission,
+  normalizedVerificationAdmission,
   signAdmissionAssertion,
+  signVerificationAdmissionAssertion,
+  verificationAdmissionDigest,
 };
 
 if (require.main === module) {
@@ -217,7 +310,8 @@ if (require.main === module) {
         error instanceof Error
           ? error.message
           : 'unknown_error'
-      }\n`,
+      }
+`,
     );
     process.exitCode = 1;
   });

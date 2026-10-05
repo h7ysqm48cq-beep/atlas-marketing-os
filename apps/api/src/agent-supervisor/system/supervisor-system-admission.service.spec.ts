@@ -9,6 +9,7 @@ import {
 } from './supervisor-system-admission.service';
 import type {
   SupervisorSystemAdmissionRequest,
+  SupervisorSystemVerificationAdmissionRequest,
 } from './supervisor-system.guard';
 
 const INPUT: SupervisorSystemAdmissionRequest = {
@@ -22,6 +23,28 @@ const INPUT: SupervisorSystemAdmissionRequest = {
     acceptance: ['passes'],
   },
   frozenBaseSha: 'a'.repeat(40),
+};
+
+const VERIFY_INPUT: SupervisorSystemVerificationAdmissionRequest = {
+  admissionId: '66666666-7777-8888-9999-aaaaaaaaaaaa',
+  task: {
+    objective: `Verify immutable candidate base ${'a'.repeat(40)} head ${'b'.repeat(40)}`,
+    owner: 'engineering',
+    allowedPaths: ['apps/api/src/example.ts'],
+    forbiddenActions: [
+      'merge',
+      'deploy_production',
+      'run_migration',
+      'change_runtime_config',
+    ],
+    dependsOn: [],
+    acceptance: ['exact scope'],
+  },
+  candidateBaseSha: 'a'.repeat(40),
+  candidateHeadSha: 'b'.repeat(40),
+  productionBaselineSha: 'a'.repeat(40),
+  targetBranch: 'production/atlas',
+  changedPaths: ['apps/api/src/example.ts'],
 };
 
 describe('SupervisorSystemAdmissionService', () => {
@@ -106,6 +129,102 @@ describe('SupervisorSystemAdmissionService', () => {
       'IMPLEMENTATION',
       { frozenBaseSha: 'a'.repeat(40) },
     );
+  });
+
+  it('dispatches one exact existing-candidate verifier and reuses it on replay', async () => {
+    let taskStatus = 'DRAFT';
+    const executions: SupervisorExecution[] = [];
+
+    const supervisor = {
+      createSystemTask: jest.fn(async (taskId: string) => ({
+        id: taskId,
+        ...VERIFY_INPUT.task,
+        status: taskStatus,
+        evidence: null,
+        blockingReason: null,
+        failureReason: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })),
+      getTask: jest.fn(async (taskId: string) => ({
+        id: taskId,
+        ...VERIFY_INPUT.task,
+        status: taskStatus,
+        evidence: null,
+        blockingReason: null,
+        failureReason: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })),
+    } as unknown as AgentSupervisorService;
+
+    const dispatcher = {
+      listByTask: jest.fn(async () => [...executions]),
+      dispatchExistingCandidateVerification: jest.fn(
+        async (taskId: string) => {
+          taskStatus = 'VERIFYING';
+          const execution = {
+            id: 'ATLAS-EXEC-VERIFY-1',
+            taskId,
+            workerRole: 'verifier',
+            status: 'QUEUED',
+            assignment: {
+              executionPurpose: 'INDEPENDENT_VERIFICATION',
+              verificationMode: 'EXISTING_CANDIDATE',
+              candidateBaseSha: VERIFY_INPUT.candidateBaseSha,
+              candidateHeadSha: VERIFY_INPUT.candidateHeadSha,
+              productionBaselineSha:
+                VERIFY_INPUT.productionBaselineSha,
+              targetBranch: VERIFY_INPUT.targetBranch,
+            } as never,
+            result: null,
+            error: null,
+            createdAt: new Date(),
+            startedAt: null,
+            completedAt: null,
+            runnerId: null,
+            claimEpoch: 0,
+            lastHeartbeatAt: null,
+            leaseExpiresAt: null,
+          } as SupervisorExecution;
+          executions.push(execution);
+          return {
+            execution,
+            assignment: execution.assignment,
+          };
+        },
+      ),
+    } as unknown as WorkerDispatcherService;
+
+    const service = new SupervisorSystemAdmissionService(
+      supervisor,
+      dispatcher,
+    );
+
+    const first = await service.admitVerification(VERIFY_INPUT);
+    const second = await service.admitVerification(VERIFY_INPUT);
+
+    expect(first).toMatchObject({
+      taskId:
+        'ATLAS-SYS-66666666-7777-8888-9999-aaaaaaaaaaaa',
+      taskStatus: 'VERIFYING',
+      executionId: 'ATLAS-EXEC-VERIFY-1',
+      executionStatus: 'QUEUED',
+    });
+    expect(second.executionId).toBe(first.executionId);
+    expect(
+      dispatcher.dispatchExistingCandidateVerification,
+    ).toHaveBeenCalledTimes(1);
+    expect(
+      dispatcher.dispatchExistingCandidateVerification,
+    ).toHaveBeenCalledWith(first.taskId, {
+      candidateBaseSha: VERIFY_INPUT.candidateBaseSha,
+      candidateHeadSha: VERIFY_INPUT.candidateHeadSha,
+      productionBaselineSha:
+        VERIFY_INPUT.productionBaselineSha,
+      targetBranch: VERIFY_INPUT.targetBranch,
+      changedPaths: VERIFY_INPUT.changedPaths,
+    });
   });
 
   it('fails closed if one admission already has multiple executions', async () => {

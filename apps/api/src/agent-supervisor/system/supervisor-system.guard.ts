@@ -16,7 +16,10 @@ import {
   SupervisorAuthorityService,
   canonicalizeAuthorityValue,
 } from '../authority/supervisor-authority.service';
-import type { CreateSupervisorTaskInput } from '../agent-supervisor.types';
+import type {
+  CreateSupervisorTaskInput,
+  SupervisorMergeTargetBranch,
+} from '../agent-supervisor.types';
 
 export const SUPERVISOR_SYSTEM_PURPOSE =
   'atlas-supervisor-system-purpose';
@@ -33,6 +36,16 @@ export interface SupervisorSystemAdmissionRequest {
   frozenBaseSha?: string;
 }
 
+export interface SupervisorSystemVerificationAdmissionRequest {
+  admissionId: string;
+  task: CreateSupervisorTaskInput;
+  candidateBaseSha: string;
+  candidateHeadSha: string;
+  productionBaselineSha: string;
+  targetBranch?: SupervisorMergeTargetBranch;
+  changedPaths: string[];
+}
+
 export interface SupervisorSystemAuthorizationContext {
   claims: AuthorityClaims;
 }
@@ -45,6 +58,27 @@ export function supervisorSystemAdmissionDigest(
     task: input.task,
     frozenBaseSha:
       input.frozenBaseSha?.trim().toLowerCase() || undefined,
+  };
+  return createHash('sha256')
+    .update(canonicalizeAuthorityValue(normalized), 'utf8')
+    .digest('hex');
+}
+
+export function supervisorSystemVerificationAdmissionDigest(
+  input: SupervisorSystemVerificationAdmissionRequest,
+): string {
+  const normalized = {
+    admissionId: input.admissionId?.trim().toLowerCase(),
+    task: input.task,
+    candidateBaseSha:
+      input.candidateBaseSha?.trim().toLowerCase(),
+    candidateHeadSha:
+      input.candidateHeadSha?.trim().toLowerCase(),
+    productionBaselineSha:
+      input.productionBaselineSha?.trim().toLowerCase(),
+    targetBranch:
+      input.targetBranch ?? 'production/atlas',
+    changedPaths: input.changedPaths,
   };
   return createHash('sha256')
     .update(canonicalizeAuthorityValue(normalized), 'utf8')
@@ -74,8 +108,11 @@ export class SupervisorSystemGuard implements CanActivate {
       headers?: {
         authorization?: string | string[];
       };
-      body?: SupervisorSystemAdmissionRequest;
-      supervisorSystemAuthorization?: SupervisorSystemAuthorizationContext;
+      body?:
+        | SupervisorSystemAdmissionRequest
+        | SupervisorSystemVerificationAdmissionRequest;
+      supervisorSystemAuthorization?:
+        SupervisorSystemAuthorizationContext;
     }>();
     const authorization = request.headers?.authorization;
     if (
@@ -100,7 +137,10 @@ export class SupervisorSystemGuard implements CanActivate {
       },
     );
 
-    if (purpose === 'ADMISSION') {
+    if (
+      purpose === 'ADMISSION' ||
+      purpose === 'VERIFICATION_COORDINATION'
+    ) {
       const body = request.body;
       const admissionId =
         body?.admissionId?.trim().toLowerCase() ?? '';
@@ -109,10 +149,18 @@ export class SupervisorSystemGuard implements CanActivate {
           'supervisor_system_admission_id_mismatch',
         );
       }
+
       const digest =
-        body
-          ? supervisorSystemAdmissionDigest(body)
-          : '';
+        !body
+          ? ''
+          : purpose === 'ADMISSION'
+            ? supervisorSystemAdmissionDigest(
+                body as SupervisorSystemAdmissionRequest,
+              )
+            : supervisorSystemVerificationAdmissionDigest(
+                body as SupervisorSystemVerificationAdmissionRequest,
+              );
+
       if (
         typeof claims.admissionDigest !== 'string' ||
         claims.admissionDigest !== digest
