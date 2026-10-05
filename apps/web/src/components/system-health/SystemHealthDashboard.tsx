@@ -1040,16 +1040,6 @@ useEffect(() => {
                 successful.length
               : null;
 
-          const minimum =
-            successful.length
-              ? Math.min(
-                  ...successful.map(
-                    (sample) =>
-                      sample.ms,
-                  ),
-                )
-              : null;
-
           const maximum =
             successful.length
               ? Math.max(
@@ -1079,7 +1069,6 @@ useEffect(() => {
                   1
               ] ?? null,
             average,
-            minimum,
             maximum,
             maxPayload,
             health:
