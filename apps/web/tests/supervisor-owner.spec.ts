@@ -546,6 +546,349 @@ async function main() {
   );
 
 
+  const browserWorkerSha = "8".repeat(40);
+  const browserWorkerCandidate = {
+    action: "deploy_production",
+    targetBranch: "production/atlas",
+    baseSha: browserWorkerSha,
+    headSha: browserWorkerSha,
+    changedFiles: [],
+  };
+  const browserWorkerCalls: Array<{
+    method: string;
+    url: string;
+    body?: string;
+  }> = [];
+  let browserWorkerTaskReadCount = 0;
+  const browserWorkerAuthorized =
+    await authorizeEligibleWorkerDeployment(
+      async (url, init) => {
+        browserWorkerCalls.push({
+          method: init?.method ?? "GET",
+          url: String(url),
+          body:
+            typeof init?.body === "string"
+              ? init.body
+              : undefined,
+        });
+
+        if (
+          String(url).endsWith(
+            "/tasks/browser-worker-same-sha-task",
+          )
+        ) {
+          browserWorkerTaskReadCount += 1;
+          return response(200, {
+            id: "browser-worker-same-sha-task",
+            status:
+              browserWorkerTaskReadCount === 1
+                ? "READY_FOR_REVIEW"
+                : "APPROVED",
+            allowedPaths: ["apps/browser-worker/railway.json"],
+            acceptance: [
+              `baseSha=headSha=${browserWorkerSha}`,
+              "service=browser-worker",
+              "zero git diff",
+              "sourceVerified=true",
+              "candidatePublication absent",
+            ],
+            evidence: {
+              deploymentState: "NOT_DEPLOYED",
+              reviewCandidate: browserWorkerCandidate,
+              existingCandidateVerification: {
+                mode: "EXISTING_CANDIDATE",
+                taskId: "browser-worker-same-sha-task",
+                executionId: "browser-worker-same-sha-execution",
+                baseSha: browserWorkerSha,
+                headSha: browserWorkerSha,
+                productionBaselineSha: browserWorkerSha,
+                targetBranch: "production/atlas",
+                changedFiles: [],
+                sourceVerified: true,
+              },
+            },
+          });
+        }
+
+        if (
+          String(url).endsWith(
+            "/tasks/browser-worker-same-sha-task/approve",
+          )
+        ) {
+          return response(201, {
+            id: "browser-worker-same-sha-task",
+            status: "APPROVED",
+          });
+        }
+
+        if (
+          String(url).endsWith(
+            "/tasks/browser-worker-same-sha-task/executions",
+          )
+        ) {
+          return response(200, [
+            {
+              id: "browser-worker-same-sha-execution",
+              status: "COMPLETED",
+              assignment: {
+                executionPurpose: "INDEPENDENT_VERIFICATION",
+                verificationMode: "EXISTING_CANDIDATE",
+              },
+              result: {
+                evidence: {
+                  reviewCandidate: browserWorkerCandidate,
+                  existingCandidateVerification: {
+                    mode: "EXISTING_CANDIDATE",
+                    taskId: "browser-worker-same-sha-task",
+                    executionId: "browser-worker-same-sha-execution",
+                    baseSha: browserWorkerSha,
+                    headSha: browserWorkerSha,
+                    productionBaselineSha: browserWorkerSha,
+                    targetBranch: "production/atlas",
+                    changedFiles: [],
+                    sourceVerified: true,
+                  },
+                },
+              },
+            },
+          ]);
+        }
+
+        return response(201, {
+          id: "browser-worker-same-sha-task",
+          status: "APPROVED",
+          evidence: {
+            deploymentState: "NOT_DEPLOYED",
+            ownerDeploymentAuthorization: {
+              service: "browser-worker",
+              candidate: browserWorkerCandidate,
+              signature: "signed-browser-worker-authorization",
+            },
+          },
+        });
+      },
+      "browser-worker",
+      " browser-worker-same-sha-task ",
+    );
+
+  assert.deepEqual(browserWorkerAuthorized, {
+    taskId: "browser-worker-same-sha-task",
+    taskStatus: "APPROVED",
+    executionId: "browser-worker-same-sha-execution",
+    executionStatus: "COMPLETED",
+  });
+  assert.deepEqual(browserWorkerCalls, [
+    {
+      method: "GET",
+      url: "/api/atlas/engineering/supervisor/tasks/browser-worker-same-sha-task",
+      body: undefined,
+    },
+    {
+      method: "POST",
+      url: "/api/atlas/engineering/supervisor/tasks/browser-worker-same-sha-task/approve",
+      body: JSON.stringify({}),
+    },
+    {
+      method: "GET",
+      url: "/api/atlas/engineering/supervisor/tasks/browser-worker-same-sha-task",
+      body: undefined,
+    },
+    {
+      method: "GET",
+      url: "/api/atlas/engineering/supervisor/tasks/browser-worker-same-sha-task/executions",
+      body: undefined,
+    },
+    {
+      method: "POST",
+      url: "/api/atlas/engineering/supervisor/tasks/browser-worker-same-sha-task/authorize-production-deployment",
+      body: JSON.stringify({
+        candidate: browserWorkerCandidate,
+        service: "browser-worker",
+      }),
+    },
+  ]);
+
+  for (const invalid of [
+    {
+      name: "changed-files",
+      allowedPaths: ["apps/browser-worker/railway.json"],
+      sourceVerified: true,
+      deploymentState: "NOT_DEPLOYED",
+      changedFiles: ["apps/browser-worker/src/index.ts"],
+      authorization: undefined,
+      reservation: undefined,
+      consumption: undefined,
+    },
+    {
+      name: "wrong-path",
+      allowedPaths: ["apps/browser-worker/src/index.ts"],
+      sourceVerified: true,
+      deploymentState: "NOT_DEPLOYED",
+      changedFiles: [],
+      authorization: undefined,
+      reservation: undefined,
+      consumption: undefined,
+    },
+    {
+      name: "unverified",
+      allowedPaths: ["apps/browser-worker/railway.json"],
+      sourceVerified: false,
+      deploymentState: "NOT_DEPLOYED",
+      changedFiles: [],
+      authorization: undefined,
+      reservation: undefined,
+      consumption: undefined,
+    },
+    {
+      name: "authorized",
+      allowedPaths: ["apps/browser-worker/railway.json"],
+      sourceVerified: true,
+      deploymentState: "NOT_DEPLOYED",
+      changedFiles: [],
+      authorization: {},
+      reservation: undefined,
+      consumption: undefined,
+    },
+    {
+      name: "reserved",
+      allowedPaths: ["apps/browser-worker/railway.json"],
+      sourceVerified: true,
+      deploymentState: "NOT_DEPLOYED",
+      changedFiles: [],
+      authorization: undefined,
+      reservation: {},
+      consumption: undefined,
+    },
+    {
+      name: "consumed",
+      allowedPaths: ["apps/browser-worker/railway.json"],
+      sourceVerified: true,
+      deploymentState: "DEPLOYMENT_AUTHORIZATION_CONSUMED",
+      changedFiles: [],
+      authorization: undefined,
+      reservation: undefined,
+      consumption: {},
+    },
+  ]) {
+    await assert.rejects(
+      () =>
+        authorizeEligibleWorkerDeployment(
+          async (url) => {
+            if (
+              String(url).endsWith(
+                `/tasks/browser-worker-${invalid.name}`,
+              )
+            ) {
+              return response(200, {
+                id: `browser-worker-${invalid.name}`,
+                status: "READY_FOR_REVIEW",
+                allowedPaths: invalid.allowedPaths,
+                acceptance: [
+                  `baseSha=headSha=${browserWorkerSha}`,
+                  "service=browser-worker",
+                ],
+                evidence: {
+                  deploymentState: invalid.deploymentState,
+                  reviewCandidate: {
+                    ...browserWorkerCandidate,
+                    changedFiles: invalid.changedFiles,
+                  },
+                  existingCandidateVerification: {
+                    mode: "EXISTING_CANDIDATE",
+                    taskId: `browser-worker-${invalid.name}`,
+                    executionId: `browser-worker-${invalid.name}-execution`,
+                    baseSha: browserWorkerSha,
+                    headSha: browserWorkerSha,
+                    productionBaselineSha: browserWorkerSha,
+                    targetBranch: "production/atlas",
+                    changedFiles: invalid.changedFiles,
+                    sourceVerified: invalid.sourceVerified,
+                  },
+                  ownerDeploymentAuthorization:
+                    invalid.authorization,
+                  ownerDeploymentDispatchReservation:
+                    invalid.reservation,
+                  ownerDeploymentAuthorizationConsumption:
+                    invalid.consumption,
+                },
+              });
+            }
+            throw new Error("unexpected request");
+          },
+          "browser-worker",
+          `browser-worker-${invalid.name}`,
+        ),
+      /is not an eligible browser-worker same-SHA deployment candidate/,
+    );
+  }
+
+  let toctouReadCount = 0;
+  await assert.rejects(
+    () =>
+      authorizeEligibleWorkerDeployment(
+        async (url) => {
+          if (
+            String(url).endsWith(
+              "/tasks/browser-worker-toctou",
+            )
+          ) {
+            toctouReadCount += 1;
+            const headSha =
+              toctouReadCount === 1
+                ? browserWorkerSha
+                : "7".repeat(40);
+            return response(200, {
+              id: "browser-worker-toctou",
+              status:
+                toctouReadCount === 1
+                  ? "READY_FOR_REVIEW"
+                  : "APPROVED",
+              allowedPaths: ["apps/browser-worker/railway.json"],
+              acceptance: [
+                `baseSha=headSha=${headSha}`,
+                "service=browser-worker",
+              ],
+              evidence: {
+                deploymentState: "NOT_DEPLOYED",
+                reviewCandidate: {
+                  ...browserWorkerCandidate,
+                  baseSha: headSha,
+                  headSha,
+                },
+                existingCandidateVerification: {
+                  mode: "EXISTING_CANDIDATE",
+                  taskId: "browser-worker-toctou",
+                  executionId: "browser-worker-toctou-execution",
+                  baseSha: headSha,
+                  headSha,
+                  productionBaselineSha: headSha,
+                  targetBranch: "production/atlas",
+                  changedFiles: [],
+                  sourceVerified: true,
+                },
+              },
+            });
+          }
+
+          if (
+            String(url).endsWith(
+              "/tasks/browser-worker-toctou/approve",
+            )
+          ) {
+            return response(201, {
+              id: "browser-worker-toctou",
+              status: "APPROVED",
+            });
+          }
+
+          throw new Error("unexpected request");
+        },
+        "browser-worker",
+        "browser-worker-toctou",
+      ),
+    /candidate changed after Owner approval/,
+  );
+
   const runnerSha = "9".repeat(40);
   const runnerCandidate = {
     action: "deploy_production",
