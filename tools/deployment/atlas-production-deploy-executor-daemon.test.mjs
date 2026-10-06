@@ -154,6 +154,7 @@ test('daemon emits a structured completion heartbeat with exact cadence evidence
         log(event, payload) {
           logs.push([event, payload]);
         },
+        error() {},
       },
     },
   );
@@ -166,6 +167,8 @@ test('daemon emits a structured completion heartbeat with exact cadence evidence
         cycle: 1,
         at: '2026-10-06T15:30:00.000Z',
         heartbeatIntervalMs: 0,
+        staleHeartbeatThresholdMs: 300_000,
+        staleHeartbeatCheckIntervalMs: 60_000,
         cycleTimeoutMs: 1_500_000,
       },
     ],
@@ -222,6 +225,7 @@ test('daemon emits running heartbeats while a long executor cycle is still activ
         log(event, payload) {
           logs.push([event, payload]);
         },
+        error() {},
       },
     },
   );
@@ -263,6 +267,7 @@ test('daemon fails closed when one executor cycle exceeds the watchdog timeout',
           },
           heartbeatIntervalMs: 0,
           cycleTimeoutMs: 5_000,
+          staleHeartbeatThresholdMs: 0,
           setTimeoutFn: (callback, timeoutMs) => {
             timeoutMsSeen = timeoutMs;
             queueMicrotask(callback);
@@ -276,6 +281,7 @@ test('daemon fails closed when one executor cycle exceeds the watchdog timeout',
             log(event, payload) {
               logs.push([event, payload]);
             },
+            error() {},
           },
         },
       ),
@@ -318,4 +324,106 @@ test('daemon propagates an unexpected executor failure without sleeping or retry
   );
 
   assert.equal(sleeps, 0);
+});
+
+test('stale-heartbeat detector does not fire across the normal two-minute idle cap', async () => {
+  const controller = new AbortController();
+  const errors = [];
+  let staleMonitorCallback;
+  let nowMs = Date.parse('2026-10-06T16:00:00.000Z');
+  let sleeps = 0;
+
+  await runDaemon(
+    {},
+    {
+      executeCycle: async () => ({
+        results: [
+          { service: 'engineering-runner', claim: { claimed: false } },
+        ],
+      }),
+      sleep: async (sleepMs) => {
+        sleeps += 1;
+        nowMs += sleepMs;
+        staleMonitorCallback();
+        if (sleeps === 2) controller.abort();
+      },
+      signal: controller.signal,
+      heartbeatIntervalMs: 0,
+      now: () => nowMs,
+      setStaleMonitorIntervalFn: (callback, intervalMs) => {
+        assert.equal(intervalMs, 60_000);
+        staleMonitorCallback = callback;
+        return 'stale-monitor';
+      },
+      clearStaleMonitorIntervalFn: (handle) => {
+        assert.equal(handle, 'stale-monitor');
+      },
+      logger: {
+        log() {},
+        error(event, payload) {
+          errors.push([event, payload]);
+        },
+      },
+    },
+  );
+
+  assert.deepEqual(errors, []);
+  assert.equal(sleeps, 2);
+});
+
+test('stale-heartbeat detector fails closed after five minutes without a pulse', async () => {
+  const errors = [];
+  let staleMonitorCallback;
+  let monitorCleared = false;
+  let nowMs = Date.parse('2026-10-06T16:00:00.000Z');
+
+  await assert.rejects(
+    () =>
+      runDaemon(
+        {},
+        {
+          executeCycle: async () => ({
+            results: [
+              { service: 'engineering-runner', claim: { claimed: false } },
+            ],
+          }),
+          sleep: async () => {
+            nowMs += 300_000;
+            queueMicrotask(() => staleMonitorCallback());
+            return new Promise(() => {});
+          },
+          heartbeatIntervalMs: 0,
+          now: () => nowMs,
+          setStaleMonitorIntervalFn: (callback, intervalMs) => {
+            assert.equal(intervalMs, 60_000);
+            staleMonitorCallback = callback;
+            return 'stale-monitor';
+          },
+          clearStaleMonitorIntervalFn: (handle) => {
+            assert.equal(handle, 'stale-monitor');
+            monitorCleared = true;
+          },
+          logger: {
+            log() {},
+            error(event, payload) {
+              errors.push([event, payload]);
+            },
+          },
+        },
+      ),
+    /production deploy executor heartbeat stale for 300000ms/,
+  );
+
+  assert.equal(monitorCleared, true);
+  assert.deepEqual(errors, [
+    [
+      'ATLAS_PRODUCTION_DEPLOY_EXECUTOR_HEARTBEAT_STALE',
+      {
+        at: '2026-10-06T16:05:00.000Z',
+        lastHeartbeatAt: '2026-10-06T16:00:00.000Z',
+        elapsedMs: 300_000,
+        staleHeartbeatThresholdMs: 300_000,
+      },
+    ],
+  ]);
 });
