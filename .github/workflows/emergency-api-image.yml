@@ -9,6 +9,9 @@ on:
       - .github/workflows/emergency-api-image.yml
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
