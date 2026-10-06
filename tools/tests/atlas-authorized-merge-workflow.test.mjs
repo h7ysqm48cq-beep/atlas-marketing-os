@@ -28,3 +28,46 @@ test("redraft is armed only after exact open-candidate identity is known", async
   assert.match(source, /baseRef:\s*pr\.base\.ref/);
   assert.match(source, /baseSha:\s*pr\.base\.sha/);
 });
+
+
+test("only trusted authorized merge may write repository contents", async () => {
+  const { readdir } = await import("node:fs/promises");
+  const workflowDir = ".github/workflows";
+  const names = (await readdir(workflowDir))
+    .filter((name) => /\.ya?ml$/u.test(name))
+    .sort();
+
+  assert.ok(names.length > 0);
+
+  for (const name of names) {
+    const source = await readFile(`${workflowDir}/${name}`, "utf8");
+    const contentsPermissions = [
+      ...source.matchAll(/^\s{2}contents:\s*(read|write)\s*$/gmu),
+    ].map((match) => match[1]);
+
+    assert.equal(
+      contentsPermissions.length,
+      1,
+      `${name} must declare exactly one top-level contents permission`,
+    );
+
+    const expected =
+      name === "atlas-authorized-merge.yml"
+        ? "write"
+        : "read";
+
+    assert.equal(
+      contentsPermissions[0],
+      expected,
+      `${name} has unexpected repository contents permission`,
+    );
+
+    if (name !== "atlas-authorized-merge.yml") {
+      assert.doesNotMatch(
+        source,
+        /^\s+contents:\s*write\s*$/mu,
+        `${name} must not grant contents: write at any scope`,
+      );
+    }
+  }
+});
