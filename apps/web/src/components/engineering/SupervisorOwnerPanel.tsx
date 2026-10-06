@@ -367,6 +367,60 @@ async function getSupervisor(
   return parsed;
 }
 
+const PRODUCTION_ATLAS_BRANCH_URL =
+  "https://api.github.com/repos/h7ysqm48cq-beep/atlas-marketing-os/branches/production%2Fatlas";
+
+export async function resolveProductionAtlasHead(
+  fetchImpl: FetchLike = fetch,
+): Promise<string> {
+  let response: Awaited<ReturnType<FetchLike>>;
+
+  try {
+    response = await fetchImpl(
+      PRODUCTION_ATLAS_BRANCH_URL,
+      {
+        method: "GET",
+        headers: {
+          Accept: "application/vnd.github+json",
+        },
+      },
+    );
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : "network failure";
+
+    throw new Error(
+      `Canonical production/atlas HEAD read failed before Supervisor mutation: ${message}`,
+    );
+  }
+
+  const parsed = await parseResponse(response);
+
+  if (!response.ok) {
+    throw new Error(
+      `Canonical production/atlas HEAD read failed (HTTP ${response.status}): ${errorDetail(parsed)}`,
+    );
+  }
+
+  const branch = asRecord(parsed);
+  const commit = asRecord(branch?.commit);
+  const sha = commit?.sha;
+
+  if (
+    branch?.name !== "production/atlas" ||
+    typeof sha !== "string" ||
+    !/^[0-9a-f]{40}$/iu.test(sha)
+  ) {
+    throw new Error(
+      "Canonical production/atlas HEAD response is invalid. Stop before Supervisor mutation.",
+    );
+  }
+
+  return sha.toLowerCase();
+}
+
 function requireStringField(
   value: unknown,
   field: string,
@@ -602,7 +656,7 @@ export async function getSupervisorStatus(
 
 type MergeCandidate = {
   action: "merge";
-  targetBranch: "main";
+  targetBranch: "main" | "production/atlas";
   baseSha: string;
   headSha: string;
   changedFiles: string[];
@@ -624,9 +678,12 @@ function asMergeCandidate(
   const candidate = asRecord(value);
   const changedFiles = candidate?.changedFiles;
 
+  const targetBranch = candidate?.targetBranch;
+
   if (
     candidate?.action !== "merge" ||
-    candidate?.targetBranch !== "main" ||
+    (targetBranch !== "main" &&
+      targetBranch !== "production/atlas") ||
     typeof candidate.baseSha !== "string" ||
     !/^[0-9a-f]{40}$/u.test(candidate.baseSha) ||
     typeof candidate.headSha !== "string" ||
@@ -644,7 +701,7 @@ function asMergeCandidate(
 
   return {
     action: "merge",
-    targetBranch: "main",
+    targetBranch,
     baseSha: candidate.baseSha,
     headSha: candidate.headSha,
     changedFiles: [...changedFiles] as string[],
@@ -701,7 +758,7 @@ function parseExistingMergeReview(
 
   if (!candidate) {
     throw new Error(
-      "Existing review task is missing a valid exact main merge candidate.",
+      "Existing review task is missing a valid exact governed merge candidate.",
     );
   }
 
@@ -1616,8 +1673,6 @@ export function SupervisorOwnerPanel() {
     useState(STANDARD_OBJECTIVE);
   const [owner, setOwner] =
     useState<WorkerOwner>("frontend");
-  const [frozenBaseSha, setFrozenBaseSha] =
-    useState("");
   const [allowedPathsText, setAllowedPathsText] =
     useState(STANDARD_ALLOWED_PATHS);
   const [forbiddenActionsText, setForbiddenActionsText] =
@@ -1684,6 +1739,8 @@ export function SupervisorOwnerPanel() {
         dependsOnText: "",
         acceptanceText,
       });
+      const frozenBaseSha =
+        await resolveProductionAtlasHead(fetch);
 
       const admission =
         await runSupervisorAdmission(
@@ -1958,21 +2015,6 @@ export function SupervisorOwnerPanel() {
               </option>
             ))}
           </select>
-        </label>
-
-        <label style={labelStyle}>
-          Frozen base SHA — optional
-          <input
-            value={frozenBaseSha}
-            onChange={(event: ChangeEvent<HTMLInputElement>) =>
-              setFrozenBaseSha(event.target.value)
-            }
-            spellCheck={false}
-            autoComplete="off"
-            style={fieldStyle}
-            placeholder="40-character Git commit SHA"
-            disabled={busy}
-          />
         </label>
 
         <label style={labelStyle}>

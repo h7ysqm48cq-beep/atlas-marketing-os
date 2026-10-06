@@ -8,6 +8,7 @@ import {
   loadExistingMergeReview,
   recoverStaleBrowserWorkerTask,
   getSupervisorStatus,
+  resolveProductionAtlasHead,
   runSupervisorAdmission,
 } from "../src/components/engineering/SupervisorOwnerPanel";
 import type { SupervisorTaskInput } from "../src/components/engineering/SupervisorOwnerPanel";
@@ -30,6 +31,47 @@ function response(status: number, body: unknown) {
 }
 
 async function main() {
+  const canonicalSha = "c".repeat(40);
+  const canonicalCalls: Array<{ url: string; method: string }> = [];
+  const resolvedCanonicalSha = await resolveProductionAtlasHead(
+    async (url, init) => {
+      canonicalCalls.push({
+        url: String(url),
+        method: init?.method ?? "GET",
+      });
+      return response(200, {
+        name: "production/atlas",
+        commit: { sha: canonicalSha },
+      });
+    },
+  );
+  assert.equal(resolvedCanonicalSha, canonicalSha);
+  assert.deepEqual(canonicalCalls, [
+    {
+      url: "https://api.github.com/repos/h7ysqm48cq-beep/atlas-marketing-os/branches/production%2Fatlas",
+      method: "GET",
+    },
+  ]);
+
+  await assert.rejects(
+    () =>
+      resolveProductionAtlasHead(async () =>
+        response(200, {
+          name: "production/atlas",
+          commit: { sha: "not-a-sha" },
+        }),
+      ),
+    /Canonical production\/atlas HEAD response is invalid/,
+  );
+
+  await assert.rejects(
+    () =>
+      resolveProductionAtlasHead(async () =>
+        response(503, { message: "upstream unavailable" }),
+      ),
+    /Canonical production\/atlas HEAD read failed \(HTTP 503\)/,
+  );
+
   const calls: string[] = [];
   let partialError: unknown;
 
@@ -1343,6 +1385,117 @@ async function main() {
   assert.equal(authorizedMerge.taskStatus, "APPROVED");
   assert.equal(authorizedMerge.hasMergeAuthorization, true);
   assert.deepEqual(authorizedMerge.candidate, mergeCandidate);
+
+  const productionMergeCandidate = {
+    ...mergeCandidate,
+    targetBranch: "production/atlas" as const,
+  };
+  const productionLoadedReview = await loadExistingMergeReview(
+    "production-review-task",
+    async () =>
+      response(200, {
+        id: "production-review-task",
+        status: "READY_FOR_REVIEW",
+        evidence: {
+          deploymentState: "NOT_DEPLOYED",
+          existingCandidateVerification: {
+            sourceVerified: true,
+          },
+          reviewCandidate: productionMergeCandidate,
+        },
+      }),
+  );
+  assert.deepEqual(
+    productionLoadedReview.candidate,
+    productionMergeCandidate,
+  );
+
+  const productionAuthorizationCalls: Array<{
+    method: string;
+    url: string;
+    body?: string;
+  }> = [];
+  const productionAuthorizedMerge =
+    await approveAndAuthorizeExistingMerge(
+      productionLoadedReview,
+      async (url, init) => {
+        productionAuthorizationCalls.push({
+          method: init?.method ?? "GET",
+          url: String(url),
+          body:
+            typeof init?.body === "string"
+              ? init.body
+              : undefined,
+        });
+
+        if ((init?.method ?? "GET") === "GET") {
+          return response(200, {
+            id: "production-review-task",
+            status: "READY_FOR_REVIEW",
+            evidence: {
+              deploymentState: "NOT_DEPLOYED",
+              existingCandidateVerification: {
+                sourceVerified: true,
+              },
+              reviewCandidate: productionMergeCandidate,
+            },
+          });
+        }
+
+        if (String(url).endsWith("/approve")) {
+          return response(201, {
+            id: "production-review-task",
+            status: "APPROVED",
+            evidence: {
+              deploymentState: "NOT_DEPLOYED",
+              reviewCandidate: productionMergeCandidate,
+            },
+          });
+        }
+
+        return response(201, {
+          id: "production-review-task",
+          status: "APPROVED",
+          evidence: {
+            deploymentState: "NOT_DEPLOYED",
+            reviewCandidate: productionMergeCandidate,
+            ownerMergeAuthorization: {
+              candidate: productionMergeCandidate,
+              authorizedBy: "owner",
+              authorizedAt: "2026-10-06T00:00:00.000Z",
+              signature: "signed",
+            },
+          },
+        });
+      },
+    );
+
+  assert.deepEqual(productionAuthorizationCalls, [
+    {
+      method: "GET",
+      url: "/api/atlas/engineering/supervisor/tasks/production-review-task",
+      body: undefined,
+    },
+    {
+      method: "POST",
+      url: "/api/atlas/engineering/supervisor/tasks/production-review-task/approve",
+      body: "{}",
+    },
+    {
+      method: "POST",
+      url: "/api/atlas/engineering/supervisor/tasks/production-review-task/authorize-merge",
+      body: JSON.stringify({ candidate: productionMergeCandidate }),
+    },
+  ]);
+  assert.equal(productionAuthorizedMerge.taskStatus, "APPROVED");
+  assert.equal(
+    productionAuthorizedMerge.hasMergeAuthorization,
+    true,
+  );
+  assert.deepEqual(
+    productionAuthorizedMerge.candidate,
+    productionMergeCandidate,
+  );
 
   await assert.rejects(
     () =>
