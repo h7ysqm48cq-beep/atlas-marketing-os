@@ -13,7 +13,7 @@ name: atlas-authorized-merge
 
 permissions:
   actions: read
-  contents: write
+  contents: read
   pull-requests: write
 
 jobs:
@@ -29,6 +29,9 @@ jobs:
       - name: Revalidate trusted upstream run and execute exact authorized merge
         env:
           GITHUB_TOKEN: ${{ github.token }}
+          TRUSTED_MERGE_APP_ID: ${{ secrets.ATLAS_TRUSTED_MERGE_APP_ID }}
+          TRUSTED_MERGE_INSTALLATION_ID: ${{ secrets.ATLAS_TRUSTED_MERGE_INSTALLATION_ID }}
+          TRUSTED_MERGE_PRIVATE_KEY: ${{ secrets.ATLAS_TRUSTED_MERGE_PRIVATE_KEY }}
           REPOSITORY: ${{ github.repository }}
           EVENT_NAME: ${{ github.event_name }}
           RUN_ID: ${{ github.event.workflow_run.id }}
@@ -41,8 +44,13 @@ jobs:
           set -euo pipefail
 
           node <<'NODE'
+          const crypto = require('node:crypto');
+
           const {
             GITHUB_TOKEN,
+            TRUSTED_MERGE_APP_ID,
+            TRUSTED_MERGE_INSTALLATION_ID,
+            TRUSTED_MERGE_PRIVATE_KEY,
             REPOSITORY,
             EVENT_NAME,
             RUN_ID,
@@ -70,6 +78,7 @@ jobs:
             Authorization: `Bearer ${GITHUB_TOKEN}`,
             'X-GitHub-Api-Version': '2022-11-28',
           };
+          let mergeFailureContext = null;
 
           async function github(path, options = {}) {
             const response = await fetch(
@@ -91,6 +100,195 @@ jobs:
               throw new Error(`GitHub request failed ${response.status}: ${typeof body === 'string' ? body : JSON.stringify(body)}`);
             }
             return body;
+          }
+
+          function encodeBase64UrlJson(value) {
+            return Buffer.from(JSON.stringify(value)).toString('base64url');
+          }
+
+          async function createTrustedMergeInstallationToken() {
+            for (const [key, value] of Object.entries({
+              TRUSTED_MERGE_APP_ID,
+              TRUSTED_MERGE_INSTALLATION_ID,
+              TRUSTED_MERGE_PRIVATE_KEY,
+            })) {
+              if (!value) throw new Error(`${key} is missing`);
+            }
+            if (!/^\d+$/.test(TRUSTED_MERGE_APP_ID)) {
+              throw new Error('trusted merge GitHub App ID is invalid');
+            }
+            if (!/^\d+$/.test(TRUSTED_MERGE_INSTALLATION_ID)) {
+              throw new Error('trusted merge GitHub App installation ID is invalid');
+            }
+
+            const [, repositoryName] = REPOSITORY.split('/');
+            if (!repositoryName) throw new Error('invalid GitHub repository identity');
+
+            const now = Math.floor(Date.now() / 1000);
+            const jwtHeader = encodeBase64UrlJson({ alg: 'RS256', typ: 'JWT' });
+            const jwtPayload = encodeBase64UrlJson({
+              iat: now - 60,
+              exp: now + 540,
+              iss: TRUSTED_MERGE_APP_ID,
+            });
+            const unsignedJwt = `${jwtHeader}.${jwtPayload}`;
+            const signature = crypto
+              .sign(
+                'RSA-SHA256',
+                Buffer.from(unsignedJwt),
+                TRUSTED_MERGE_PRIVATE_KEY,
+              )
+              .toString('base64url');
+            const appJwt = `${unsignedJwt}.${signature}`;
+
+            const response = await fetch(
+              `https://api.github.com/app/installations/${TRUSTED_MERGE_INSTALLATION_ID}/access_tokens`,
+              {
+                method: 'POST',
+                headers: {
+                  Accept: 'application/vnd.github+json',
+                  Authorization: `Bearer ${appJwt}`,
+                  'Content-Type': 'application/json',
+                  'X-GitHub-Api-Version': '2022-11-28',
+                },
+                body: JSON.stringify({
+                  repositories: [repositoryName],
+                  permissions: { contents: 'write' },
+                }),
+              },
+            );
+            const text = await response.text();
+            let body = null;
+            if (text) {
+              try { body = JSON.parse(text); } catch { body = text; }
+            }
+            if (!response.ok) {
+              throw new Error(
+                `trusted merge installation token request failed ${response.status}: ` +
+                `${typeof body === 'string' ? body : JSON.stringify(body)}`,
+              );
+            }
+            if (typeof body?.token !== 'string' || !body.token) {
+              throw new Error('trusted merge installation token is missing');
+            }
+            if (body?.permissions?.contents !== 'write') {
+              throw new Error('trusted merge installation token lacks contents: write');
+            }
+            const unexpectedWritePermissions = Object.entries(body?.permissions ?? {})
+              .filter(([name, level]) => name !== 'contents' && level === 'write')
+              .map(([name]) => name);
+            if (unexpectedWritePermissions.length > 0) {
+              throw new Error(
+                `trusted merge installation token has unexpected write permissions: ${unexpectedWritePermissions.join(',')}`,
+              );
+            }
+            const tokenRepositories = Array.isArray(body?.repositories)
+              ? body.repositories.map((repository) => repository?.full_name).filter(Boolean)
+              : [];
+            if (
+              tokenRepositories.length !== 1 ||
+              tokenRepositories[0] !== REPOSITORY
+            ) {
+              throw new Error('trusted merge installation token is not scoped to the exact repository');
+            }
+            const expiresAt = Date.parse(body?.expires_at ?? '');
+            if (!Number.isFinite(expiresAt) || expiresAt <= Date.now() + 60_000) {
+              throw new Error('trusted merge installation token expiry is invalid');
+            }
+
+            return body.token;
+          }
+
+          async function trustedMergePullRequest(prNumber, headSha) {
+            const installationToken = await createTrustedMergeInstallationToken();
+            const response = await fetch(
+              `https://api.github.com/repos/${REPOSITORY}/pulls/${prNumber}/merge`,
+              {
+                method: 'PUT',
+                headers: {
+                  Accept: 'application/vnd.github+json',
+                  Authorization: `Bearer ${installationToken}`,
+                  'Content-Type': 'application/json',
+                  'X-GitHub-Api-Version': '2022-11-28',
+                },
+                body: JSON.stringify({
+                  merge_method: 'merge',
+                  sha: headSha,
+                }),
+              },
+            );
+            const text = await response.text();
+            let body = null;
+            if (text) {
+              try { body = JSON.parse(text); } catch { body = text; }
+            }
+            if (!response.ok) {
+              throw new Error(
+                `trusted GitHub App merge failed ${response.status}: ` +
+                `${typeof body === 'string' ? body : JSON.stringify(body)}`,
+              );
+            }
+            return body;
+          }
+
+          async function githubGraphql(query, variables) {
+            const response = await fetch('https://api.github.com/graphql', {
+              method: 'POST',
+              headers: {
+                ...githubHeaders,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ query, variables }),
+            });
+            const text = await response.text();
+            let body = null;
+            if (text) {
+              try { body = JSON.parse(text); } catch { body = text; }
+            }
+            if (!response.ok || body?.errors?.length) {
+              throw new Error(
+                `GitHub GraphQL request failed ${response.status}: ${typeof body === 'string' ? body : JSON.stringify(body)}`,
+              );
+            }
+            return body?.data;
+          }
+
+          async function redraftOpenCandidateAfterFailure() {
+            if (EVENT_NAME !== 'workflow_run') return;
+            const context = mergeFailureContext;
+            if (!context) return;
+
+            const current = await github(`/pulls/${context.prNumber}`);
+            if (
+              current?.state !== 'open' ||
+              current?.merged === true ||
+              current?.draft === true ||
+              current?.head?.sha !== context.headSha ||
+              current?.base?.ref !== context.baseRef ||
+              current?.base?.sha !== context.baseSha ||
+              typeof current?.node_id !== 'string' ||
+              !current.node_id
+            ) {
+              return;
+            }
+
+            const result = await githubGraphql(
+              `mutation($pullRequestId: ID!) {
+                convertPullRequestToDraft(input: { pullRequestId: $pullRequestId }) {
+                  pullRequest {
+                    id
+                    isDraft
+                  }
+                }
+              }`,
+              { pullRequestId: current.node_id },
+            );
+            if (result?.convertPullRequestToDraft?.pullRequest?.isDraft !== true) {
+              throw new Error('fail-closed redraft was not confirmed');
+            }
+            console.error(
+              `Fail-closed: returned PR #${context.prNumber} to draft after trusted merge failure.`,
+            );
           }
 
           async function supervisor(path, body, options = {}) {
@@ -302,6 +500,15 @@ jobs:
               throw new Error('pull request identity drifted or is not governed');
             }
 
+            if (EVENT_NAME === 'workflow_run' && isOpenCandidate) {
+              mergeFailureContext = {
+                prNumber: PR_NUMBER,
+                headSha: HEAD_SHA,
+                baseRef: pr.base.ref,
+                baseSha: pr.base.sha,
+              };
+            }
+
             const TASK_ID = requireMetadata(
               pr.body,
               'Supervisor task',
@@ -355,16 +562,9 @@ jobs:
                 throw new Error('fresh signed Owner merge authorization is not valid for the exact candidate');
               }
 
-              const response = await github(
-                `/pulls/${PR_NUMBER}/merge`,
-                {
-                  method: 'PUT',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    merge_method: 'merge',
-                    sha: HEAD_SHA,
-                  }),
-                },
+              const response = await trustedMergePullRequest(
+                PR_NUMBER,
+                HEAD_SHA,
               );
               if (response?.merged !== true || !/^[0-9a-f]{40}$/i.test(response?.sha ?? '')) {
                 throw new Error(`GitHub normal merge was not confirmed: ${JSON.stringify(response)}`);
@@ -451,8 +651,15 @@ jobs:
             );
           }
 
-          main().catch((error) => {
+          main().catch(async (error) => {
             console.error(error?.message ?? 'trusted authorized merge failed');
-            process.exit(1);
+            try {
+              await redraftOpenCandidateAfterFailure();
+            } catch (redraftError) {
+              console.error(
+                redraftError?.message ?? 'fail-closed redraft after trusted merge failure failed',
+              );
+            }
+            process.exitCode = 1;
           });
           NODE
