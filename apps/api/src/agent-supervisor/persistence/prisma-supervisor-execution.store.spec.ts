@@ -112,11 +112,12 @@ function heartbeatStore(store: PrismaSupervisorExecutionStore): HeartbeatStore {
 type ReconciliationCandidate = {
   executionId: string;
   taskId: string;
-  status: 'QUEUED' | 'DISPATCHED' | 'RUNNING';
+  status: 'QUEUED' | 'DISPATCHED' | 'RUNNING' | 'FAILED' | 'CANCELLED';
   kind:
     | 'QUEUED_TIMEOUT'
     | 'LEGACY_DISPATCHED_TIMEOUT'
-    | 'RUNNING_LEASE_EXPIRED';
+    | 'RUNNING_LEASE_EXPIRED'
+    | 'TERMINAL_TASK_ORPHANED';
   claimEpoch: number;
   runnerId: string | null;
   createdAt: Date;
@@ -1054,27 +1055,41 @@ describe('PrismaSupervisorExecutionStore', () => {
     expect(query).toMatch(/</);
   });
 
-  it('never returns terminal executions as reconciliation candidates', async () => {
-    const { prisma, transaction } = reconciliationTransaction([]);
-    const store = new PrismaSupervisorExecutionStore(prisma as never);
+  it.each(['FAILED', 'CANCELLED'] as const)(
+    'discovers an orphaned terminal %s execution only through the bounded task-state query',
+    async (status) => {
+      const terminal = reconciliationCandidate({
+        status,
+        kind: 'TERMINAL_TASK_ORPHANED',
+        runnerId: null,
+        leaseExpiresAt: null,
+      });
+      const { prisma, transaction } = reconciliationTransaction([terminal]);
+      const store = new PrismaSupervisorExecutionStore(prisma as never);
 
-    await expect(
-      reconciliationStore(store).findReconciliationCandidates({
-        now: new Date('2026-09-13T00:02:00.000Z'),
-        queuedBefore: new Date('2026-09-13T00:00:00.000Z'),
-        limit: 10,
-      }),
-    ).resolves.toEqual([]);
+      await expect(
+        reconciliationStore(store).findReconciliationCandidates({
+          now: new Date('2026-09-13T00:02:00.000Z'),
+          queuedBefore: new Date('2026-09-13T00:00:00.000Z'),
+          limit: 10,
+        }),
+      ).resolves.toEqual([terminal]);
 
-    const query = `${rawSqlText(transaction.$queryRaw.mock.calls[0]?.[0])} ${JSON.stringify(
-      transaction.$queryRaw.mock.calls[0],
-    )}`;
-    expect(query).toMatch(/QUEUED/i);
-    expect(query).toMatch(/DISPATCHED/i);
-    expect(query).toMatch(/RUNNING/i);
-    expect(query).not.toMatch(/COMPLETED/i);
-    expect(query).not.toMatch(/CANCELLED/i);
-  });
+      const query = `${rawSqlText(transaction.$queryRaw.mock.calls[0]?.[0])} ${JSON.stringify(
+        transaction.$queryRaw.mock.calls[0],
+      )}`;
+      expect(query).toMatch(/SupervisorTask/i);
+      expect(query).toMatch(/FAILED/i);
+      expect(query).toMatch(/CANCELLED/i);
+      expect(query).toMatch(/WORKING/i);
+      expect(query).toMatch(/VERIFYING/i);
+      expect(query).toMatch(/NOT EXISTS/i);
+      expect(query).toMatch(/QUEUED/i);
+      expect(query).toMatch(/DISPATCHED/i);
+      expect(query).toMatch(/RUNNING/i);
+      expect(query).not.toMatch(/COMPLETED/i);
+    },
+  );
 
   it('uses deterministic createdAt/id ordering and a finite positive limit', async () => {
     const rows = [

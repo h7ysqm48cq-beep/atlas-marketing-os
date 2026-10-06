@@ -543,7 +543,7 @@ export class PrismaSupervisorExecutionStore
           Array<{
             executionId: string;
             taskId: string;
-            status: 'QUEUED' | 'DISPATCHED' | 'RUNNING';
+            status: 'QUEUED' | 'DISPATCHED' | 'RUNNING' | 'FAILED' | 'CANCELLED';
             kind: SupervisorExecutionReconciliationCandidate['kind'];
             claimEpoch: number;
             runnerId: string | null;
@@ -558,13 +558,16 @@ export class PrismaSupervisorExecutionStore
             CASE
               WHEN e."status" = 'QUEUED' THEN 'QUEUED_TIMEOUT'
               WHEN e."status" = 'DISPATCHED' THEN 'LEGACY_DISPATCHED_TIMEOUT'
-              ELSE 'RUNNING_LEASE_EXPIRED'
+              WHEN e."status" = 'RUNNING' THEN 'RUNNING_LEASE_EXPIRED'
+              ELSE 'TERMINAL_TASK_ORPHANED'
             END AS "kind",
             e."claimEpoch",
             e."runnerId",
             e."createdAt",
             e."leaseExpiresAt"
           FROM "SupervisorExecution" AS e
+          JOIN "SupervisorTask" AS t
+            ON t."id" = e."taskId"
           WHERE (
             e."status" = 'QUEUED'
             AND e."createdAt" <= ${input.queuedBefore}
@@ -574,6 +577,55 @@ export class PrismaSupervisorExecutionStore
           ) OR (
             e."status" = 'RUNNING'
             AND e."leaseExpiresAt" <= ${input.now}
+          ) OR (
+            e."status" IN ('FAILED', 'CANCELLED')
+            AND (
+              (
+                t."status" = 'WORKING'
+                AND COALESCE(
+                  e."assignment"->>'executionPurpose',
+                  'IMPLEMENTATION'
+                ) = 'IMPLEMENTATION'
+              )
+              OR (
+                t."status" = 'VERIFYING'
+                AND e."assignment"->>'executionPurpose' =
+                  'INDEPENDENT_VERIFICATION'
+              )
+            )
+            AND NOT EXISTS (
+              SELECT 1
+              FROM "SupervisorExecution" AS active
+              WHERE active."taskId" = e."taskId"
+                AND active."status" IN ('QUEUED', 'DISPATCHED', 'RUNNING')
+            )
+            AND NOT EXISTS (
+              SELECT 1
+              FROM "SupervisorExecution" AS newer
+              WHERE newer."taskId" = e."taskId"
+                AND newer."status" IN ('FAILED', 'CANCELLED')
+                AND (
+                  (
+                    t."status" = 'WORKING'
+                    AND COALESCE(
+                      newer."assignment"->>'executionPurpose',
+                      'IMPLEMENTATION'
+                    ) = 'IMPLEMENTATION'
+                  )
+                  OR (
+                    t."status" = 'VERIFYING'
+                    AND newer."assignment"->>'executionPurpose' =
+                      'INDEPENDENT_VERIFICATION'
+                  )
+                )
+                AND (
+                  newer."createdAt" > e."createdAt"
+                  OR (
+                    newer."createdAt" = e."createdAt"
+                    AND newer."id" > e."id"
+                  )
+                )
+            )
           )
           ORDER BY e."createdAt" ASC, e."id" ASC
           LIMIT ${input.limit}
