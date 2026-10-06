@@ -656,7 +656,7 @@ export async function getSupervisorStatus(
 
 type MergeCandidate = {
   action: "merge";
-  targetBranch: "main";
+  targetBranch: "main" | "production/atlas";
   baseSha: string;
   headSha: string;
   changedFiles: string[];
@@ -678,9 +678,12 @@ function asMergeCandidate(
   const candidate = asRecord(value);
   const changedFiles = candidate?.changedFiles;
 
+  const targetBranch = candidate?.targetBranch;
+
   if (
     candidate?.action !== "merge" ||
-    candidate?.targetBranch !== "main" ||
+    (targetBranch !== "main" &&
+      targetBranch !== "production/atlas") ||
     typeof candidate.baseSha !== "string" ||
     !/^[0-9a-f]{40}$/u.test(candidate.baseSha) ||
     typeof candidate.headSha !== "string" ||
@@ -698,7 +701,7 @@ function asMergeCandidate(
 
   return {
     action: "merge",
-    targetBranch: "main",
+    targetBranch,
     baseSha: candidate.baseSha,
     headSha: candidate.headSha,
     changedFiles: [...changedFiles] as string[],
@@ -755,7 +758,7 @@ function parseExistingMergeReview(
 
   if (!candidate) {
     throw new Error(
-      "Existing review task is missing a valid exact main merge candidate.",
+      "Existing review task is missing a valid exact governed merge candidate.",
     );
   }
 
