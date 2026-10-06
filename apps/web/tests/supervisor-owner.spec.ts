@@ -8,6 +8,7 @@ import {
   loadExistingMergeReview,
   recoverStaleBrowserWorkerTask,
   getSupervisorStatus,
+  resolveProductionAtlasHead,
   runSupervisorAdmission,
 } from "../src/components/engineering/SupervisorOwnerPanel";
 import type { SupervisorTaskInput } from "../src/components/engineering/SupervisorOwnerPanel";
@@ -30,6 +31,47 @@ function response(status: number, body: unknown) {
 }
 
 async function main() {
+  const canonicalSha = "c".repeat(40);
+  const canonicalCalls: Array<{ url: string; method: string }> = [];
+  const resolvedCanonicalSha = await resolveProductionAtlasHead(
+    async (url, init) => {
+      canonicalCalls.push({
+        url: String(url),
+        method: init?.method ?? "GET",
+      });
+      return response(200, {
+        name: "production/atlas",
+        commit: { sha: canonicalSha },
+      });
+    },
+  );
+  assert.equal(resolvedCanonicalSha, canonicalSha);
+  assert.deepEqual(canonicalCalls, [
+    {
+      url: "https://api.github.com/repos/h7ysqm48cq-beep/atlas-marketing-os/branches/production%2Fatlas",
+      method: "GET",
+    },
+  ]);
+
+  await assert.rejects(
+    () =>
+      resolveProductionAtlasHead(async () =>
+        response(200, {
+          name: "production/atlas",
+          commit: { sha: "not-a-sha" },
+        }),
+      ),
+    /Canonical production\/atlas HEAD response is invalid/,
+  );
+
+  await assert.rejects(
+    () =>
+      resolveProductionAtlasHead(async () =>
+        response(503, { message: "upstream unavailable" }),
+      ),
+    /Canonical production\/atlas HEAD read failed \(HTTP 503\)/,
+  );
+
   const calls: string[] = [];
   let partialError: unknown;
 
