@@ -560,6 +560,81 @@ async function main() {
     },
   ]);
 
+  const expiredWebAuthorized =
+    await authorizeEligibleWebDeployment(
+      async (url) => {
+        if (String(url).endsWith("/tasks")) {
+          return response(200, [
+            {
+              id: "web-expired-auth-task",
+              status: "APPROVED",
+              evidence: {
+                reviewCandidate: webCandidate,
+                ownerDeploymentAuthorization: {
+                  service: "web",
+                  candidate: webCandidate,
+                  authorizedAt: "2000-01-01T00:00:00.000Z",
+                  signature: "expired",
+                },
+              },
+            },
+          ]);
+        }
+
+        if (
+          String(url).endsWith(
+            "/tasks/web-expired-auth-task/executions",
+          )
+        ) {
+          return response(200, [
+            {
+              id: "web-expired-auth-execution",
+              status: "COMPLETED",
+              result: {
+                evidence: { reviewCandidate: webCandidate },
+              },
+            },
+          ]);
+        }
+
+        return response(201, { status: "APPROVED" });
+      },
+      "web-expired-auth-task",
+    );
+
+  assert.equal(
+    expiredWebAuthorized.taskId,
+    "web-expired-auth-task",
+  );
+
+  await assert.rejects(
+    () =>
+      authorizeEligibleWebDeployment(
+        async (url) => {
+          if (String(url).endsWith("/tasks")) {
+            return response(200, [
+              {
+                id: "web-active-auth-task",
+                status: "APPROVED",
+                evidence: {
+                  reviewCandidate: webCandidate,
+                  ownerDeploymentAuthorization: {
+                    service: "web",
+                    candidate: webCandidate,
+                    authorizedAt: "2999-01-01T00:00:00.000Z",
+                    signature: "active",
+                  },
+                },
+              },
+            ]);
+          }
+          throw new Error("unexpected request");
+        },
+        "web-active-auth-task",
+      ),
+    /No approved web production deployment candidate was found/,
+  );
+
   await assert.rejects(
     () =>
       authorizeEligibleWebDeployment(
@@ -1069,6 +1144,118 @@ async function main() {
     },
   ]);
 
+  const expiredWorkerAuthorizationCalls: string[] = [];
+  const expiredWorkerAuthorized =
+    await authorizeEligibleWorkerDeployment(
+      async (url, init) => {
+        expiredWorkerAuthorizationCalls.push(
+          (init?.method ?? "GET") + " " + String(url),
+        );
+
+        if (
+          String(url).endsWith(
+            "/tasks/runner-expired-auth-task",
+          )
+        ) {
+          return response(200, {
+            id: "runner-expired-auth-task",
+            status: "APPROVED",
+            allowedPaths: [
+              "apps/engineering-runner/check-runner-production-deployment.cjs",
+            ],
+            acceptance: [
+              `baseSha=headSha=${runnerSha}`,
+              "service=engineering-runner",
+            ],
+            evidence: {
+              deploymentState: "NOT_DEPLOYED",
+              reviewCandidate: runnerCandidate,
+              existingCandidateVerification: {
+                mode: "EXISTING_CANDIDATE",
+                taskId: "runner-expired-auth-task",
+                executionId:
+                  "runner-expired-auth-execution",
+                baseSha: runnerSha,
+                headSha: runnerSha,
+                productionBaselineSha: runnerSha,
+                targetBranch: "production/atlas",
+                changedFiles: [],
+                sourceVerified: true,
+              },
+              ownerDeploymentAuthorization: {
+                service: "engineering-runner",
+                candidate: runnerCandidate,
+                authorizedAt: "2000-01-01T00:00:00.000Z",
+                signature: "expired",
+              },
+            },
+          });
+        }
+
+        if (
+          String(url).endsWith(
+            "/tasks/runner-expired-auth-task/executions",
+          )
+        ) {
+          return response(200, [
+            {
+              id: "runner-expired-auth-execution",
+              status: "COMPLETED",
+              assignment: {
+                executionPurpose: "INDEPENDENT_VERIFICATION",
+                verificationMode: "EXISTING_CANDIDATE",
+              },
+              result: {
+                evidence: {
+                  reviewCandidate: runnerCandidate,
+                  existingCandidateVerification: {
+                    mode: "EXISTING_CANDIDATE",
+                    taskId: "runner-expired-auth-task",
+                    executionId:
+                      "runner-expired-auth-execution",
+                    baseSha: runnerSha,
+                    headSha: runnerSha,
+                    productionBaselineSha: runnerSha,
+                    targetBranch: "production/atlas",
+                    changedFiles: [],
+                    sourceVerified: true,
+                  },
+                },
+              },
+            },
+          ]);
+        }
+
+        return response(201, {
+          id: "runner-expired-auth-task",
+          status: "APPROVED",
+          evidence: {
+            deploymentState: "NOT_DEPLOYED",
+            ownerDeploymentAuthorization: {
+              service: "engineering-runner",
+              candidate: runnerCandidate,
+              authorizedAt: "2999-01-01T00:00:00.000Z",
+              signature: "fresh",
+            },
+          },
+        });
+      },
+      "engineering-runner",
+      "runner-expired-auth-task",
+    );
+
+  assert.deepEqual(expiredWorkerAuthorized, {
+    taskId: "runner-expired-auth-task",
+    taskStatus: "APPROVED",
+    executionId: "runner-expired-auth-execution",
+    executionStatus: "COMPLETED",
+  });
+  assert.deepEqual(expiredWorkerAuthorizationCalls, [
+    "GET /api/atlas/engineering/supervisor/tasks/runner-expired-auth-task",
+    "GET /api/atlas/engineering/supervisor/tasks/runner-expired-auth-task/executions",
+    "POST /api/atlas/engineering/supervisor/tasks/runner-expired-auth-task/authorize-production-deployment",
+  ]);
+
   const verifierCandidate = {
     ...runnerCandidate,
   };
@@ -1285,6 +1472,113 @@ async function main() {
     hasMergeAuthorization: false,
     hasMergeConsumption: false,
   });
+
+  await assert.rejects(
+    () =>
+      loadExistingMergeReview(
+        "active-merge-auth-task",
+        async () =>
+          response(200, {
+            id: "active-merge-auth-task",
+            status: "APPROVED",
+            evidence: {
+              deploymentState: "NOT_DEPLOYED",
+              existingCandidateVerification: {
+                sourceVerified: true,
+              },
+              reviewCandidate: mergeCandidate,
+              ownerMergeAuthorization: {
+                candidate: mergeCandidate,
+                authorizedAt: "2999-01-01T00:00:00.000Z",
+                signature: "still-active",
+              },
+            },
+          }),
+      ),
+    /active merge authorization/,
+  );
+
+  const expiredMergeReview = await loadExistingMergeReview(
+    "expired-merge-auth-task",
+    async () =>
+      response(200, {
+        id: "expired-merge-auth-task",
+        status: "APPROVED",
+        evidence: {
+          deploymentState: "NOT_DEPLOYED",
+          existingCandidateVerification: {
+            sourceVerified: true,
+          },
+          reviewCandidate: mergeCandidate,
+          ownerMergeAuthorization: {
+            candidate: mergeCandidate,
+            authorizedAt: "2000-01-01T00:00:00.000Z",
+            signature: "expired",
+          },
+        },
+      }),
+  );
+
+  assert.equal(expiredMergeReview.taskStatus, "APPROVED");
+  assert.equal(expiredMergeReview.hasMergeAuthorization, false);
+
+  const expiredMergeCalls: string[] = [];
+  const refreshedExpiredMerge =
+    await approveAndAuthorizeExistingMerge(
+      expiredMergeReview,
+      async (url, init) => {
+        expiredMergeCalls.push(
+          (init?.method ?? "GET") + " " + String(url),
+        );
+
+        if ((init?.method ?? "GET") === "GET") {
+          return response(200, {
+            id: "expired-merge-auth-task",
+            status: "APPROVED",
+            evidence: {
+              deploymentState: "NOT_DEPLOYED",
+              existingCandidateVerification: {
+                sourceVerified: true,
+              },
+              reviewCandidate: mergeCandidate,
+              ownerMergeAuthorization: {
+                candidate: mergeCandidate,
+                authorizedAt: "2000-01-01T00:00:00.000Z",
+                signature: "expired",
+              },
+            },
+          });
+        }
+
+        assert.equal(
+          String(url).endsWith("/authorize-merge"),
+          true,
+        );
+        return response(201, {
+          id: "expired-merge-auth-task",
+          status: "APPROVED",
+          evidence: {
+            deploymentState: "NOT_DEPLOYED",
+            reviewCandidate: mergeCandidate,
+            ownerMergeAuthorization: {
+              candidate: mergeCandidate,
+              authorizedAt: "2999-01-01T00:00:00.000Z",
+              signature: "fresh",
+            },
+          },
+        });
+      },
+    );
+
+  assert.deepEqual(expiredMergeCalls, [
+    "GET /api/atlas/engineering/supervisor/tasks/expired-merge-auth-task",
+    "POST /api/atlas/engineering/supervisor/tasks/expired-merge-auth-task/authorize-merge",
+  ]);
+  assert.equal(refreshedExpiredMerge.taskStatus, "APPROVED");
+  assert.equal(
+    refreshedExpiredMerge.hasMergeAuthorization,
+    true,
+  );
 
   await assert.rejects(
     () =>
