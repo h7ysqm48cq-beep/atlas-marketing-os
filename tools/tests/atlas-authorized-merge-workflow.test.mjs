@@ -29,8 +29,7 @@ test("redraft is armed only after exact open-candidate identity is known", async
   assert.match(source, /baseSha:\s*pr\.base\.sha/);
 });
 
-
-test("only trusted authorized merge may write repository contents", async () => {
+test("workflow GITHUB_TOKEN has no repository contents write permission", async () => {
   const { readdir } = await import("node:fs/promises");
   const workflowDir = ".github/workflows";
   const names = (await readdir(workflowDir))
@@ -50,24 +49,36 @@ test("only trusted authorized merge may write repository contents", async () => 
       1,
       `${name} must declare exactly one top-level contents permission`,
     );
-
-    const expected =
-      name === "atlas-authorized-merge.yml"
-        ? "write"
-        : "read";
-
     assert.equal(
       contentsPermissions[0],
-      expected,
-      `${name} has unexpected repository contents permission`,
+      "read",
+      `${name} must keep the workflow GITHUB_TOKEN repository-read-only`,
     );
-
-    if (name !== "atlas-authorized-merge.yml") {
-      assert.doesNotMatch(
-        source,
-        /^\s+contents:\s*write\s*$/mu,
-        `${name} must not grant contents: write at any scope`,
-      );
-    }
+    assert.doesNotMatch(
+      source,
+      /^\s+contents:\s*write\s*$/mu,
+      `${name} must not grant workflow-level contents: write at any scope`,
+    );
   }
+});
+
+test("authorized branch write is isolated to an exact-repository GitHub App installation token", async () => {
+  const source = await readFile(workflowPath, "utf8");
+
+  assert.match(source, /ATLAS_TRUSTED_MERGE_APP_ID/);
+  assert.match(source, /ATLAS_TRUSTED_MERGE_INSTALLATION_ID/);
+  assert.match(source, /ATLAS_TRUSTED_MERGE_PRIVATE_KEY/);
+  assert.match(source, /async function createTrustedMergeInstallationToken\(/);
+  assert.match(source, /\/app\/installations\/\$\{TRUSTED_MERGE_INSTALLATION_ID\}\/access_tokens/);
+  assert.match(source, /repositories:\s*\[repositoryName\]/);
+  assert.match(source, /permissions:\s*\{\s*contents:\s*['"]write['"]\s*\}/);
+  assert.match(source, /tokenRepositories\.length\s*!==\s*1/);
+  assert.match(source, /tokenRepositories\[0\]\s*!==\s*REPOSITORY/);
+  assert.match(source, /async function trustedMergePullRequest\(/);
+  assert.match(source, /Authorization:\s*`Bearer \$\{installationToken\}`/);
+  assert.match(source, /await trustedMergePullRequest\([\s\S]{0,120}PR_NUMBER[\s\S]{0,120}HEAD_SHA/);
+  assert.doesNotMatch(
+    source,
+    /await github\(\s*`\/pulls\/\$\{PR_NUMBER\}\/merge`/,
+  );
 });
