@@ -662,6 +662,197 @@ async function main() {
     /No approved web production deployment candidate was found for task web-invalid-path-task/,
   );
 
+  const webSameSha = "a".repeat(40);
+  const webSameShaCandidate = {
+    action: "deploy_production",
+    targetBranch: "production/atlas",
+    baseSha: webSameSha,
+    headSha: webSameSha,
+    changedFiles: [],
+  };
+  const webSameShaTask = {
+    id: "web-same-sha-task",
+    owner: "engineering",
+    status: "APPROVED",
+    allowedPaths: [
+      "apps/web/src/components/engineering/SupervisorOwnerPanel.tsx",
+      "apps/web/tests/supervisor-owner.spec.ts",
+    ],
+    forbiddenActions: [
+      "edit_assigned_files",
+      "commit_assigned_branch",
+      "deploy_production",
+      "change_runtime_config",
+    ],
+    acceptance: [
+      `baseSha=headSha=${webSameSha}`,
+      "service=web",
+      "zero git diff",
+      "sourceVerified=true",
+      "candidatePublication absent",
+    ],
+    evidence: {
+      deploymentState: "NOT_DEPLOYED",
+      reviewCandidate: webSameShaCandidate,
+      existingCandidateVerification: {
+        mode: "EXISTING_CANDIDATE",
+        taskId: "web-same-sha-task",
+        executionId: "web-same-sha-execution",
+        baseSha: webSameSha,
+        headSha: webSameSha,
+        productionBaselineSha: webSameSha,
+        targetBranch: "production/atlas",
+        changedFiles: [],
+        sourceVerified: true,
+      },
+    },
+  };
+  const webSameShaCalls: Array<{
+    method: string;
+    url: string;
+    body?: string;
+  }> = [];
+  const webSameShaAuthorized =
+    await authorizeEligibleWebDeployment(
+      async (url, init) => {
+        webSameShaCalls.push({
+          method: init?.method ?? "GET",
+          url: String(url),
+          body:
+            typeof init?.body === "string"
+              ? init.body
+              : undefined,
+        });
+
+        if (String(url).endsWith("/tasks")) {
+          return response(200, [webSameShaTask]);
+        }
+
+        if (
+          String(url).endsWith(
+            "/tasks/web-same-sha-task",
+          )
+        ) {
+          return response(200, webSameShaTask);
+        }
+
+        if (
+          String(url).endsWith(
+            "/tasks/web-same-sha-task/executions",
+          )
+        ) {
+          return response(200, [
+            {
+              id: "web-same-sha-execution",
+              status: "COMPLETED",
+              assignment: {
+                executionPurpose: "INDEPENDENT_VERIFICATION",
+                verificationMode: "EXISTING_CANDIDATE",
+              },
+              result: {
+                evidence: {
+                  reviewCandidate: webSameShaCandidate,
+                  existingCandidateVerification: {
+                    mode: "EXISTING_CANDIDATE",
+                    taskId: "web-same-sha-task",
+                    executionId: "web-same-sha-execution",
+                    baseSha: webSameSha,
+                    headSha: webSameSha,
+                    productionBaselineSha: webSameSha,
+                    targetBranch: "production/atlas",
+                    changedFiles: [],
+                    sourceVerified: true,
+                  },
+                },
+              },
+            },
+          ]);
+        }
+
+        return response(201, {
+          id: "web-same-sha-task",
+          status: "APPROVED",
+          evidence: {
+            deploymentState: "NOT_DEPLOYED",
+            ownerDeploymentAuthorization: {
+              service: "web",
+              candidate: webSameShaCandidate,
+              authorizedAt: "2999-01-01T00:00:00.000Z",
+              signature: "signed-web-same-sha",
+            },
+          },
+        });
+      },
+      " web-same-sha-task ",
+    );
+
+  assert.deepEqual(webSameShaAuthorized, {
+    taskId: "web-same-sha-task",
+    taskStatus: "APPROVED",
+    executionId: "web-same-sha-execution",
+    executionStatus: "COMPLETED",
+  });
+  assert.deepEqual(webSameShaCalls, [
+    {
+      method: "GET",
+      url: "/api/atlas/engineering/supervisor/tasks",
+      body: undefined,
+    },
+    {
+      method: "GET",
+      url: "/api/atlas/engineering/supervisor/tasks/web-same-sha-task",
+      body: undefined,
+    },
+    {
+      method: "GET",
+      url: "/api/atlas/engineering/supervisor/tasks/web-same-sha-task/executions",
+      body: undefined,
+    },
+    {
+      method: "POST",
+      url: "/api/atlas/engineering/supervisor/tasks/web-same-sha-task/authorize-production-deployment",
+      body: JSON.stringify({
+        candidate: webSameShaCandidate,
+        service: "web",
+      }),
+    },
+  ]);
+
+  await assert.rejects(
+    () =>
+      authorizeEligibleWorkerDeployment(
+        async (url) => {
+          if (
+            String(url).endsWith(
+              "/tasks/web-same-sha-wrong-scope",
+            )
+          ) {
+            return response(200, {
+              ...webSameShaTask,
+              id: "web-same-sha-wrong-scope",
+              allowedPaths: [
+                "apps/api/src/app.module.ts",
+              ],
+              evidence: {
+                ...webSameShaTask.evidence,
+                existingCandidateVerification: {
+                  ...webSameShaTask.evidence
+                    .existingCandidateVerification,
+                  taskId: "web-same-sha-wrong-scope",
+                  executionId:
+                    "web-same-sha-wrong-scope-execution",
+                },
+              },
+            });
+          }
+          throw new Error("unexpected request");
+        },
+        "web",
+        "web-same-sha-wrong-scope",
+      ),
+    /is not an eligible web same-SHA deployment candidate/,
+  );
+
 
   const browserWorkerSha = "8".repeat(40);
   const browserWorkerCandidate = {

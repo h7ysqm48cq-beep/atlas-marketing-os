@@ -95,14 +95,14 @@ const OWNER_WORKER_DEPLOYMENT_SERVICES = [
   "browser-worker",
   "engineering-runner",
   "engineering-verifier",
+  "web",
 ] as const;
 
 export type OwnerWorkerDeploymentService =
   (typeof OWNER_WORKER_DEPLOYMENT_SERVICES)[number];
 
-const OWNER_WORKER_DEPLOYMENT_PATHS: Record<
-  OwnerWorkerDeploymentService,
-  string
+const OWNER_WORKER_DEPLOYMENT_PATHS: Partial<
+  Record<OwnerWorkerDeploymentService, string>
 > = {
   "browser-worker": "apps/browser-worker/railway.json",
   "engineering-runner":
@@ -1011,6 +1011,48 @@ function isOwnerWorkerDeploymentService(
   ).includes(value);
 }
 
+function hasEligibleSameShaWorkerScope(
+  task: JsonRecord,
+  service: OwnerWorkerDeploymentService,
+): boolean {
+  if (service === "web") {
+    return (
+      task.owner === "engineering" &&
+      Array.isArray(task.allowedPaths) &&
+      task.allowedPaths.length > 0 &&
+      task.allowedPaths.every(
+        (path) =>
+          typeof path === "string" &&
+          path.startsWith("apps/web/"),
+      ) &&
+      hasStringInArray(
+        task.forbiddenActions,
+        "edit_assigned_files",
+      ) &&
+      hasStringInArray(
+        task.forbiddenActions,
+        "commit_assigned_branch",
+      ) &&
+      hasStringInArray(
+        task.forbiddenActions,
+        "deploy_production",
+      ) &&
+      hasStringInArray(
+        task.forbiddenActions,
+        "change_runtime_config",
+      )
+    );
+  }
+
+  const expectedPath =
+    OWNER_WORKER_DEPLOYMENT_PATHS[service];
+
+  return Boolean(
+    expectedPath &&
+      hasExactStringArray(task.allowedPaths, [expectedPath]),
+  );
+}
+
 function isVerifiedSameShaWorkerTask(
   task: JsonRecord,
   service: OwnerWorkerDeploymentService,
@@ -1026,15 +1068,13 @@ function isVerifiedSameShaWorkerTask(
   const candidate = asDeploymentCandidate(
     evidence?.reviewCandidate,
   );
-  const expectedPath =
-    OWNER_WORKER_DEPLOYMENT_PATHS[service];
   const fullSha = /^[0-9a-f]{40}$/u;
 
   if (
     task.id !== taskId ||
     (task.status !== "READY_FOR_REVIEW" &&
       task.status !== "APPROVED") ||
-    !hasExactStringArray(task.allowedPaths, [expectedPath]) ||
+    !hasEligibleSameShaWorkerScope(task, service) ||
     !hasStringInArray(task.acceptance, `service=${service}`) ||
     evidence?.deploymentState !== "NOT_DEPLOYED" ||
     isOwnerAuthorizationActive(
@@ -1493,6 +1533,31 @@ export async function authorizeEligibleWebDeployment(
     throw new Error(
       "list Supervisor tasks response is missing tasks.",
     );
+  }
+
+  const normalizedTaskId =
+    exactTaskId?.trim() || null;
+  if (normalizedTaskId) {
+    const exactTask = tasks
+      .map((value) => asRecord(value))
+      .find((task) => task?.id === normalizedTaskId);
+    const exactEvidence = asRecord(exactTask?.evidence);
+    const exactCandidate = asDeploymentCandidate(
+      exactEvidence?.reviewCandidate,
+    );
+
+    if (
+      exactTask &&
+      exactCandidate &&
+      exactCandidate.baseSha === exactCandidate.headSha &&
+      exactCandidate.changedFiles.length === 0
+    ) {
+      return authorizeEligibleWorkerDeployment(
+        fetchImpl,
+        "web",
+        normalizedTaskId,
+      );
+    }
   }
 
   const { task, candidate } =
@@ -2253,7 +2318,7 @@ export function SupervisorOwnerPanel() {
         </label>
 
         <label style={labelStyle}>
-          Web deployment task ID — optional
+          Web deployment task ID — exact / optional
           <input
             value={webDeploymentTaskId}
             onChange={(event: ChangeEvent<HTMLInputElement>) =>
@@ -2266,8 +2331,11 @@ export function SupervisorOwnerPanel() {
             disabled={busy}
           />
           <span style={{ opacity: 0.68, fontSize: 13 }}>
-            Select an exact APPROVED Web deployment candidate.
-            Authorization fails closed unless the candidate includes apps/web changes.
+            Supports either an exact source-verified zero-diff
+            same-SHA Web qualification or an approved Web
+            candidate with apps/web changes. Authorization
+            remains fail-closed on active authorization,
+            reservation, consumption, or scope mismatch.
           </span>
         </label>
 
