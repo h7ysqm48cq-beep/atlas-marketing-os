@@ -565,6 +565,9 @@ jobs:
       - name: Production deploy executor tests
         run: node --test tools/deployment/atlas-production-deploy-executor.test.mjs
 
+      - name: Authorized merge fail-closed contract
+        run: node --test tools/tests/atlas-authorized-merge-workflow.test.mjs
+
       - name: Supervisor Python exact-edit tests
         run: python -m pytest -q tools/tests/test_workspace_edit_ir.py tools/tests/test_supervisor_executor.py
 

@@ -70,6 +70,7 @@ jobs:
             Authorization: `Bearer ${GITHUB_TOKEN}`,
             'X-GitHub-Api-Version': '2022-11-28',
           };
+          let mergeFailureContext = null;
 
           async function github(path, options = {}) {
             const response = await fetch(
@@ -91,6 +92,66 @@ jobs:
               throw new Error(`GitHub request failed ${response.status}: ${typeof body === 'string' ? body : JSON.stringify(body)}`);
             }
             return body;
+          }
+
+          async function githubGraphql(query, variables) {
+            const response = await fetch('https://api.github.com/graphql', {
+              method: 'POST',
+              headers: {
+                ...githubHeaders,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ query, variables }),
+            });
+            const text = await response.text();
+            let body = null;
+            if (text) {
+              try { body = JSON.parse(text); } catch { body = text; }
+            }
+            if (!response.ok || body?.errors?.length) {
+              throw new Error(
+                `GitHub GraphQL request failed ${response.status}: ${typeof body === 'string' ? body : JSON.stringify(body)}`,
+              );
+            }
+            return body?.data;
+          }
+
+          async function redraftOpenCandidateAfterFailure() {
+            if (EVENT_NAME !== 'workflow_run') return;
+            const context = mergeFailureContext;
+            if (!context) return;
+
+            const current = await github(`/pulls/${context.prNumber}`);
+            if (
+              current?.state !== 'open' ||
+              current?.merged === true ||
+              current?.draft === true ||
+              current?.head?.sha !== context.headSha ||
+              current?.base?.ref !== context.baseRef ||
+              current?.base?.sha !== context.baseSha ||
+              typeof current?.node_id !== 'string' ||
+              !current.node_id
+            ) {
+              return;
+            }
+
+            const result = await githubGraphql(
+              `mutation($pullRequestId: ID!) {
+                convertPullRequestToDraft(input: { pullRequestId: $pullRequestId }) {
+                  pullRequest {
+                    id
+                    isDraft
+                  }
+                }
+              }`,
+              { pullRequestId: current.node_id },
+            );
+            if (result?.convertPullRequestToDraft?.pullRequest?.isDraft !== true) {
+              throw new Error('fail-closed redraft was not confirmed');
+            }
+            console.error(
+              `Fail-closed: returned PR #${context.prNumber} to draft after trusted merge failure.`,
+            );
           }
 
           async function supervisor(path, body, options = {}) {
@@ -302,6 +363,15 @@ jobs:
               throw new Error('pull request identity drifted or is not governed');
             }
 
+            if (EVENT_NAME === 'workflow_run' && isOpenCandidate) {
+              mergeFailureContext = {
+                prNumber: PR_NUMBER,
+                headSha: HEAD_SHA,
+                baseRef: pr.base.ref,
+                baseSha: pr.base.sha,
+              };
+            }
+
             const TASK_ID = requireMetadata(
               pr.body,
               'Supervisor task',
@@ -451,8 +521,15 @@ jobs:
             );
           }
 
-          main().catch((error) => {
+          main().catch(async (error) => {
             console.error(error?.message ?? 'trusted authorized merge failed');
-            process.exit(1);
+            try {
+              await redraftOpenCandidateAfterFailure();
+            } catch (redraftError) {
+              console.error(
+                redraftError?.message ?? 'fail-closed redraft after trusted merge failure failed',
+              );
+            }
+            process.exitCode = 1;
           });
           NODE
