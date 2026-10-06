@@ -67,12 +67,16 @@ export interface SupervisorExecutionHeartbeatStore {
 export type SupervisorExecutionReconciliationKind =
   | 'QUEUED_TIMEOUT'
   | 'LEGACY_DISPATCHED_TIMEOUT'
-  | 'RUNNING_LEASE_EXPIRED';
+  | 'RUNNING_LEASE_EXPIRED'
+  | 'TERMINAL_TASK_ORPHANED';
 
 export interface SupervisorExecutionReconciliationCandidate {
   executionId: string;
   taskId: string;
-  status: Extract<SupervisorExecutionStatus, 'QUEUED' | 'DISPATCHED' | 'RUNNING'>;
+  status: Extract<
+    SupervisorExecutionStatus,
+    'QUEUED' | 'DISPATCHED' | 'RUNNING' | 'FAILED' | 'CANCELLED'
+  >;
   kind: SupervisorExecutionReconciliationKind;
   claimEpoch: number;
   runnerId: string | null;

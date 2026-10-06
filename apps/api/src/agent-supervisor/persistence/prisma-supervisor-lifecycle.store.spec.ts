@@ -84,11 +84,12 @@ function execution(overrides: Partial<SupervisorExecution> = {}): SupervisorExec
 type RecoveryCandidate = {
   executionId: string;
   taskId: string;
-  status: 'QUEUED' | 'DISPATCHED' | 'RUNNING';
+  status: 'QUEUED' | 'DISPATCHED' | 'RUNNING' | 'FAILED' | 'CANCELLED';
   kind:
     | 'QUEUED_TIMEOUT'
     | 'LEGACY_DISPATCHED_TIMEOUT'
-    | 'RUNNING_LEASE_EXPIRED';
+    | 'RUNNING_LEASE_EXPIRED'
+    | 'TERMINAL_TASK_ORPHANED';
   claimEpoch: number;
   runnerId: string | null;
   createdAt: Date;
@@ -710,6 +711,167 @@ describe('PrismaSupervisorLifecycleStore', () => {
       },
     });
     expect(transaction.supervisorExecution.updateMany).toHaveBeenCalledTimes(1);
+    expect(transaction.supervisorTask.updateMany).not.toHaveBeenCalled();
+    expect(transaction.supervisorFileLock.deleteMany).not.toHaveBeenCalled();
+  });
+
+  it.each(['FAILED', 'CANCELLED'] as const)(
+    'blocks a WORKING task and releases locks for an orphaned terminal %s execution without rewriting execution history',
+    async (status) => {
+      const { prisma, transaction } = recoveryTransaction();
+      const completedAt = new Date('2026-09-13T00:01:30.000Z');
+      const currentExecution = execution({
+        status,
+        completedAt,
+        error: status === 'FAILED' ? 'supervisor_objective_requires_review' : 'cancelled upstream',
+        runnerId: null,
+        leaseExpiresAt: null,
+      });
+      const candidate = recoveryCandidate({
+        status,
+        kind: 'TERMINAL_TASK_ORPHANED',
+        runnerId: null,
+        leaseExpiresAt: null,
+      });
+      transaction.$queryRaw.mockResolvedValue([]);
+      transaction.supervisorExecution.findUnique.mockResolvedValue(currentExecution);
+      transaction.supervisorTask.findUnique.mockResolvedValue(task());
+      transaction.supervisorTask.updateMany.mockResolvedValue({ count: 1 });
+      transaction.supervisorFileLock.deleteMany.mockResolvedValue({ count: 2 });
+
+      const store = new PrismaSupervisorLifecycleStore(prisma as never);
+      const recovered = await recoveryStore(store).recoverExecutionAndBlockTask({
+        candidate,
+        now: new Date('2026-09-13T00:02:00.000Z'),
+      });
+
+      expect(recovered?.execution).toEqual(currentExecution);
+      expect(recovered?.task).toMatchObject({
+        status: 'BLOCKED',
+        blockingReason: `supervisor_execution_terminal_orphaned:${status.toLowerCase()}`,
+      });
+      expect(transaction.supervisorExecution.updateMany).not.toHaveBeenCalled();
+      expect(transaction.supervisorTask.updateMany).toHaveBeenCalledWith({
+        where: {
+          id: candidate.taskId,
+          status: 'WORKING',
+        },
+        data: expect.objectContaining({
+          status: 'BLOCKED',
+          blockingReason: `supervisor_execution_terminal_orphaned:${status.toLowerCase()}`,
+        }),
+      });
+      expect(transaction.supervisorFileLock.deleteMany).toHaveBeenCalledWith({
+        where: { taskId: candidate.taskId },
+      });
+    },
+  );
+
+  it('recovers an orphaned terminal verifier only while the parent task is VERIFYING', async () => {
+    const { prisma, transaction } = recoveryTransaction();
+    const currentExecution = execution({
+      status: 'FAILED',
+      completedAt: new Date('2026-09-13T00:01:30.000Z'),
+      error: 'verifier_failed',
+      runnerId: null,
+      leaseExpiresAt: null,
+      assignment: {
+        ...execution().assignment,
+        executionPurpose: 'INDEPENDENT_VERIFICATION',
+      },
+    });
+    const candidate = recoveryCandidate({
+      status: 'FAILED',
+      kind: 'TERMINAL_TASK_ORPHANED',
+      runnerId: null,
+      leaseExpiresAt: null,
+    });
+    transaction.$queryRaw.mockResolvedValue([]);
+    transaction.supervisorExecution.findUnique.mockResolvedValue(currentExecution);
+    transaction.supervisorTask.findUnique.mockResolvedValue(task({ status: 'VERIFYING' }));
+    transaction.supervisorTask.updateMany.mockResolvedValue({ count: 1 });
+    transaction.supervisorFileLock.deleteMany.mockResolvedValue({ count: 2 });
+
+    const store = new PrismaSupervisorLifecycleStore(prisma as never);
+    const recovered = await recoveryStore(store).recoverExecutionAndBlockTask({
+      candidate,
+      now: new Date('2026-09-13T00:02:00.000Z'),
+    });
+
+    expect(recovered?.execution).toEqual(currentExecution);
+    expect(recovered?.task).toMatchObject({
+      status: 'BLOCKED',
+      blockingReason: 'supervisor_execution_terminal_orphaned:failed',
+    });
+    expect(transaction.supervisorExecution.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('fails closed for a terminal orphan candidate if an active sibling execution exists', async () => {
+    const { prisma, transaction } = recoveryTransaction();
+    const currentExecution = execution({
+      status: 'FAILED',
+      completedAt: new Date('2026-09-13T00:01:30.000Z'),
+      error: 'failed',
+      runnerId: null,
+      leaseExpiresAt: null,
+    });
+    const candidate = recoveryCandidate({
+      status: 'FAILED',
+      kind: 'TERMINAL_TASK_ORPHANED',
+      runnerId: null,
+      leaseExpiresAt: null,
+    });
+    transaction.$queryRaw
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([{ id: 'EXEC-ACTIVE-SIBLING' }]);
+    transaction.supervisorExecution.findUnique.mockResolvedValue(currentExecution);
+    transaction.supervisorTask.findUnique.mockResolvedValue(task());
+
+    const store = new PrismaSupervisorLifecycleStore(prisma as never);
+    await expect(
+      recoveryStore(store).recoverExecutionAndBlockTask({
+        candidate,
+        now: new Date('2026-09-13T00:02:00.000Z'),
+      }),
+    ).resolves.toBeNull();
+
+    expect(transaction.supervisorExecution.updateMany).not.toHaveBeenCalled();
+    expect(transaction.supervisorTask.updateMany).not.toHaveBeenCalled();
+    expect(transaction.supervisorFileLock.deleteMany).not.toHaveBeenCalled();
+  });
+
+  it('does not use a terminal implementation failure to block a task that has already advanced to VERIFYING', async () => {
+    const { prisma, transaction } = recoveryTransaction();
+    const currentExecution = execution({
+      status: 'FAILED',
+      completedAt: new Date('2026-09-13T00:01:30.000Z'),
+      error: 'old implementation failure',
+      runnerId: null,
+      leaseExpiresAt: null,
+      assignment: {
+        ...execution().assignment,
+        executionPurpose: 'IMPLEMENTATION',
+      },
+    });
+    const candidate = recoveryCandidate({
+      status: 'FAILED',
+      kind: 'TERMINAL_TASK_ORPHANED',
+      runnerId: null,
+      leaseExpiresAt: null,
+    });
+    transaction.$queryRaw.mockResolvedValue([]);
+    transaction.supervisorExecution.findUnique.mockResolvedValue(currentExecution);
+    transaction.supervisorTask.findUnique.mockResolvedValue(task({ status: 'VERIFYING' }));
+
+    const store = new PrismaSupervisorLifecycleStore(prisma as never);
+    await expect(
+      recoveryStore(store).recoverExecutionAndBlockTask({
+        candidate,
+        now: new Date('2026-09-13T00:02:00.000Z'),
+      }),
+    ).resolves.toBeNull();
+
     expect(transaction.supervisorTask.updateMany).not.toHaveBeenCalled();
     expect(transaction.supervisorFileLock.deleteMany).not.toHaveBeenCalled();
   });
