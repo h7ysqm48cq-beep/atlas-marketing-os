@@ -240,6 +240,34 @@ function asRecord(
   return value as JsonRecord;
 }
 
+const OWNER_AUTHORIZATION_TTL_MS = 10 * 60 * 1_000;
+
+function isOwnerAuthorizationActive(
+  value: unknown,
+  nowMs = Date.now(),
+): boolean {
+  const authorization = asRecord(value);
+
+  if (!authorization) {
+    return false;
+  }
+
+  const authorizedAt = authorization.authorizedAt;
+  if (
+    typeof authorizedAt !== "string" ||
+    !authorizedAt.trim()
+  ) {
+    return true;
+  }
+
+  const authorizedAtMs = Date.parse(authorizedAt);
+  if (!Number.isFinite(authorizedAtMs)) {
+    return true;
+  }
+
+  return nowMs < authorizedAtMs + OWNER_AUTHORIZATION_TTL_MS;
+}
+
 async function parseResponse(
   response: Awaited<ReturnType<FetchLike>>,
 ): Promise<unknown> {
@@ -735,12 +763,15 @@ function parseExistingMergeReview(
     evidence?.reviewCandidate,
   );
 
+  const taskStatus = task?.status;
+
   if (
     task?.id !== taskId ||
-    task?.status !== "READY_FOR_REVIEW"
+    (taskStatus !== "READY_FOR_REVIEW" &&
+      taskStatus !== "APPROVED")
   ) {
     throw new Error(
-      "Existing review task must be the exact READY_FOR_REVIEW task.",
+      "Existing review task must be the exact READY_FOR_REVIEW or APPROVED task.",
     );
   }
 
@@ -768,7 +799,11 @@ function parseExistingMergeReview(
     );
   }
 
-  if (evidence?.ownerMergeAuthorization) {
+  if (
+    isOwnerAuthorizationActive(
+      evidence?.ownerMergeAuthorization,
+    )
+  ) {
     throw new Error(
       "Existing review task already has an active merge authorization.",
     );
@@ -776,7 +811,7 @@ function parseExistingMergeReview(
 
   return {
     taskId,
-    taskStatus: "READY_FOR_REVIEW",
+    taskStatus,
     sourceVerified: true,
     deploymentState: "NOT_DEPLOYED",
     candidate,
@@ -824,22 +859,24 @@ export async function approveAndAuthorizeExistingMerge(
     );
   }
 
-  const approved = asRecord(
-    await postSupervisor(
-      "approve existing review task",
-      `/tasks/${encodeURIComponent(fresh.taskId)}/approve`,
-      {},
-      fetchImpl,
-    ),
-  );
-
-  if (
-    approved?.id !== fresh.taskId ||
-    approved?.status !== "APPROVED"
-  ) {
-    throw new Error(
-      "Supervisor did not confirm the exact task as APPROVED. Stop before merge authorization.",
+  if (fresh.taskStatus === "READY_FOR_REVIEW") {
+    const approved = asRecord(
+      await postSupervisor(
+        "approve existing review task",
+        `/tasks/${encodeURIComponent(fresh.taskId)}/approve`,
+        {},
+        fetchImpl,
+      ),
     );
+
+    if (
+      approved?.id !== fresh.taskId ||
+      approved?.status !== "APPROVED"
+    ) {
+      throw new Error(
+        "Supervisor did not confirm the exact task as APPROVED. Stop before merge authorization.",
+      );
+    }
   }
 
   const authorized = asRecord(
@@ -1000,7 +1037,9 @@ function isVerifiedSameShaWorkerTask(
     !hasExactStringArray(task.allowedPaths, [expectedPath]) ||
     !hasStringInArray(task.acceptance, `service=${service}`) ||
     evidence?.deploymentState !== "NOT_DEPLOYED" ||
-    evidence?.ownerDeploymentAuthorization !== undefined ||
+    isOwnerAuthorizationActive(
+      evidence?.ownerDeploymentAuthorization,
+    ) ||
     evidence?.ownerDeploymentAuthorizationConsumption !== undefined ||
     evidence?.ownerDeploymentDispatchReservation !== undefined ||
     !candidate ||
@@ -1402,6 +1441,11 @@ export function findEligibleWebDeploymentCandidate(
       (normalizedTaskId !== null &&
         task.id !== normalizedTaskId) ||
       !candidate ||
+      isOwnerAuthorizationActive(
+        evidence?.ownerDeploymentAuthorization,
+      ) ||
+      evidence?.ownerDeploymentAuthorizationConsumption !== undefined ||
+      evidence?.ownerDeploymentDispatchReservation !== undefined ||
       !hasPathPrefixInArray(
         candidate.changedFiles,
         "apps/web/",
