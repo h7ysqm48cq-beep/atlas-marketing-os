@@ -6,6 +6,7 @@ jest.mock('../assets/assets.service', () => ({ AssetsService: class {} }));
 import {
   buildDeploymentAutomationHealth,
   buildSportsSchedulerHealth,
+  buildSupervisorGovernanceHealth,
   buildSystemHealthIssues,
   SystemHealthService,
 } from './system-health.service';
@@ -75,11 +76,25 @@ describe('SystemHealthService', () => {
           .fn()
           .mockReturnValue(new Date().toISOString()),
       } as never,
+      {
+        list: jest.fn().mockResolvedValue([]),
+      } as never,
     );
 
     const health = await service.getSystemHealth();
 
     expect(health.calendar).toEqual({ status: 'healthy', scheduledPosts: 3 });
+    expect(health.supervisorGovernance).toEqual({
+      status: 'healthy',
+      totalTasks: 0,
+      activeTasks: 0,
+      staleActiveTasks: 0,
+      activeMergeAuthorizations: 0,
+      activeDeploymentAuthorizations: 0,
+      activeDeploymentReservations: 0,
+      oldestStaleTaskAgeSeconds: null,
+      staleAfterHours: 24,
+    });
     expect(health.deploymentAutomation).toEqual(
       expect.objectContaining({
         status: 'healthy',
@@ -175,6 +190,9 @@ describe('SystemHealthService', () => {
           .fn()
           .mockReturnValue(new Date().toISOString()),
       } as never,
+      {
+        list: jest.fn().mockResolvedValue([]),
+      } as never,
     );
 
     const health = await service.getSystemHealth();
@@ -239,6 +257,9 @@ describe('SystemHealthService', () => {
         getObservationStartedAt: jest
           .fn()
           .mockReturnValue(new Date().toISOString()),
+      } as never,
+      {
+        list: jest.fn().mockResolvedValue([]),
       } as never,
     );
 
@@ -306,6 +327,9 @@ describe('SystemHealthService', () => {
           .fn()
           .mockReturnValue(new Date().toISOString()),
       } as never,
+      {
+        list: jest.fn().mockResolvedValue([]),
+      } as never,
     );
 
     const health = await service.getSystemHealth();
@@ -324,6 +348,107 @@ describe('SystemHealthService', () => {
         count: 3,
       },
     ]);
+  });
+});
+
+
+describe('buildSupervisorGovernanceHealth', () => {
+  const now = new Date('2026-10-08T00:00:00.000Z');
+
+  const task = (
+    status: string,
+    updatedAt: string,
+    evidence: Record<string, unknown> | null = null,
+  ) => ({
+    id: 'ATLAS-TEST',
+    objective: 'test',
+    owner: 'engineering',
+    status,
+    allowedPaths: [],
+    forbiddenActions: [],
+    dependsOn: [],
+    acceptance: [],
+    evidence,
+    blockingReason: null,
+    failureReason: null,
+    createdAt: new Date(updatedAt),
+    updatedAt: new Date(updatedAt),
+  }) as never;
+
+  it('reports healthy when active tasks are fresh and no authority residue exists', () => {
+    expect(
+      buildSupervisorGovernanceHealth([
+        task('DRAFT', '2026-10-07T23:00:00.000Z'),
+        task('APPROVED', '2026-10-06T00:00:00.000Z', {
+          deploymentState: 'DEPLOYMENT_AUTHORIZATION_CONSUMED',
+          ownerDeploymentDispatchReservation: {},
+          ownerDeploymentAuthorizationConsumption: {},
+        }),
+      ], now),
+    ).toEqual({
+      status: 'healthy',
+      totalTasks: 2,
+      activeTasks: 1,
+      staleActiveTasks: 0,
+      activeMergeAuthorizations: 0,
+      activeDeploymentAuthorizations: 0,
+      activeDeploymentReservations: 0,
+      oldestStaleTaskAgeSeconds: null,
+      staleAfterHours: 24,
+    });
+  });
+
+  it('degrades for stale active tasks without treating them as authority residue', () => {
+    const health = buildSupervisorGovernanceHealth([
+      task('BLOCKED', '2026-10-06T23:00:00.000Z'),
+    ], now);
+
+    expect(health.status).toBe('degraded');
+    expect(health.staleActiveTasks).toBe(1);
+    expect(health.oldestStaleTaskAgeSeconds).toBe(90_000);
+  });
+
+  it('fails closed for active unconsumed merge, deploy, or reservation authority', () => {
+    const health = buildSupervisorGovernanceHealth([
+      task('APPROVED', '2026-10-07T23:00:00.000Z', {
+        ownerMergeAuthorization: {},
+      }),
+      task('APPROVED', '2026-10-07T23:00:00.000Z', {
+        ownerDeploymentAuthorization: {},
+      }),
+      task('APPROVED', '2026-10-07T23:00:00.000Z', {
+        deploymentState: 'NOT_DEPLOYED',
+        ownerDeploymentDispatchReservation: {},
+      }),
+    ], now);
+
+    expect(health.status).toBe('critical');
+    expect(health.activeMergeAuthorizations).toBe(1);
+    expect(health.activeDeploymentAuthorizations).toBe(1);
+    expect(health.activeDeploymentReservations).toBe(1);
+  });
+
+  it('ignores retired deployment reservations and fails closed when persistence is unavailable', () => {
+    expect(
+      buildSupervisorGovernanceHealth([
+        task('APPROVED', '2026-10-07T23:00:00.000Z', {
+          deploymentState: 'DEPLOYMENT_AUTHORIZATION_RETIRED',
+          ownerDeploymentDispatchReservation: {},
+        }),
+      ], now).activeDeploymentReservations,
+    ).toBe(0);
+
+    expect(buildSupervisorGovernanceHealth(null, now)).toEqual({
+      status: 'unknown',
+      totalTasks: null,
+      activeTasks: null,
+      staleActiveTasks: null,
+      activeMergeAuthorizations: null,
+      activeDeploymentAuthorizations: null,
+      activeDeploymentReservations: null,
+      oldestStaleTaskAgeSeconds: null,
+      staleAfterHours: 24,
+    });
   });
 });
 
@@ -462,6 +587,13 @@ describe('buildSystemHealthIssues', () => {
       status: 'healthy',
       primary: { ageSeconds: 0, phase: 'cycle_complete' },
     },
+    supervisorGovernance: {
+      status: 'healthy',
+      staleActiveTasks: 0,
+      activeMergeAuthorizations: 0,
+      activeDeploymentAuthorizations: 0,
+      activeDeploymentReservations: 0,
+    },
     database: { status: 'healthy' },
     browserWorker: { healthy: true },
     assets: { status: 'healthy' },
@@ -487,6 +619,60 @@ describe('buildSystemHealthIssues', () => {
 
   it('returns no issues for healthy core subsystems', () => {
     expect(buildSystemHealthIssues(healthy)).toEqual([]);
+  });
+
+  it('surfaces supervisor governance authority residue as critical and stale tasks as warning', () => {
+    expect(
+      buildSystemHealthIssues({
+        ...healthy,
+        supervisorGovernance: {
+          status: 'critical',
+          staleActiveTasks: 0,
+          activeMergeAuthorizations: 1,
+          activeDeploymentAuthorizations: 2,
+          activeDeploymentReservations: 1,
+        },
+      }),
+    ).toContainEqual({
+      code: 'supervisor_governance_authority_residue',
+      severity: 'critical',
+      activeMergeAuthorizations: 1,
+      activeDeploymentAuthorizations: 2,
+      activeDeploymentReservations: 1,
+    });
+
+    expect(
+      buildSystemHealthIssues({
+        ...healthy,
+        supervisorGovernance: {
+          status: 'degraded',
+          staleActiveTasks: 3,
+          activeMergeAuthorizations: 0,
+          activeDeploymentAuthorizations: 0,
+          activeDeploymentReservations: 0,
+        },
+      }),
+    ).toContainEqual({
+      code: 'supervisor_governance_stale_tasks',
+      severity: 'warning',
+      count: 3,
+    });
+
+    expect(
+      buildSystemHealthIssues({
+        ...healthy,
+        supervisorGovernance: {
+          status: 'unknown',
+          staleActiveTasks: null,
+          activeMergeAuthorizations: null,
+          activeDeploymentAuthorizations: null,
+          activeDeploymentReservations: null,
+        },
+      }),
+    ).toContainEqual({
+      code: 'supervisor_governance_health_unknown',
+      severity: 'critical',
+    });
   });
 
   it('promotes database, browser, calendar, and queue availability failures to critical issues', () => {
@@ -533,6 +719,17 @@ describe('buildSystemHealthIssues', () => {
 
   it('promotes unknown sports scheduler health to a critical issue', () => {
     const healthy = {
+      deploymentAutomation: {
+        status: 'healthy',
+        primary: { ageSeconds: 0, phase: 'cycle_complete' },
+      },
+      supervisorGovernance: {
+        status: 'healthy',
+        staleActiveTasks: 0,
+        activeMergeAuthorizations: 0,
+        activeDeploymentAuthorizations: 0,
+        activeDeploymentReservations: 0,
+      },
       database: { status: 'healthy' },
       browserWorker: { healthy: true },
       assets: { status: 'healthy' },
