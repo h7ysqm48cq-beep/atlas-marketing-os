@@ -499,11 +499,29 @@ export class AgentGatewayService {
       }
 
       const candidate = this.normalizeCandidate(rawCandidate);
-      if (
-        candidate.headSha !== sha ||
-        candidate.baseSha !== sha ||
-        candidate.changedFiles.length !== 0
-      ) {
+      const sameShaCandidate =
+        candidate.baseSha === sha && candidate.changedFiles.length === 0;
+      const verifiedWebChanges =
+        service === 'web' &&
+        candidate.baseSha !== sha &&
+        candidate.changedFiles.length > 0 &&
+        candidate.changedFiles.every((path) => path.startsWith('apps/web/')) &&
+        task.owner === 'engineering' &&
+        task.allowedPaths.length === candidate.changedFiles.length &&
+        this.sameStringArray(
+          this.normalizeChangedFileSet(task.allowedPaths),
+          candidate.changedFiles,
+        ) &&
+        task.forbiddenActions.includes('edit_assigned_files') &&
+        task.forbiddenActions.includes('commit_assigned_branch') &&
+        task.forbiddenActions.includes('deploy_production') &&
+        task.forbiddenActions.includes('change_runtime_config') &&
+        task.acceptance.includes('reviewCandidate.action=deploy_production') &&
+        task.acceptance.includes('deploymentService=web') &&
+        task.acceptance.includes('targetBranch=production/atlas') &&
+        task.acceptance.includes(`productionBaselineSha=${sha}`);
+      if (candidate.headSha !== sha ||
+          (!sameShaCandidate && !verifiedWebChanges)) {
         continue;
       }
       if (

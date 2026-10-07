@@ -17,6 +17,11 @@ import { SupervisorCiGuard } from './supervisor-ci.guard';
 import { SupervisorGatewayController } from './supervisor-gateway.controller';
 
 const SHA = 'c'.repeat(40);
+const WEB_BASE_SHA = 'b'.repeat(40);
+const WEB_CHANGED_PATHS = [
+  'apps/web/src/components/engineering/SupervisorOwnerPanel.tsx',
+  'apps/web/tests/supervisor-owner.spec.ts',
+];
 const OWNER_TOKEN = 'dispatch-owner-token';
 const OWNER_ID = 'dispatch-owner-1';
 const CANONICAL_GITHUB = {
@@ -78,7 +83,11 @@ describe('production deployment dispatch reservation', () => {
       | 'api'
       | 'web'
       | 'production-deploy-executor' = 'engineering-runner',
+    { webChangedFiles = false }: { webChangedFiles?: boolean } = {},
   ) {
+    if (webChangedFiles && service !== 'web') {
+      throw new Error('changed-files test fixture is Web only');
+    }
     const allowedPath =
       service === 'engineering-runner'
         ? 'apps/engineering-runner/check-runner-production-deployment.cjs'
@@ -91,11 +100,14 @@ describe('production deployment dispatch reservation', () => {
             : service === 'web'
               ? 'apps/web/**'
               : 'tools/deployment/atlas-production-deploy-executor.mjs';
+    const candidateBaseSha = webChangedFiles ? WEB_BASE_SHA : SHA;
+    const candidatePaths = webChangedFiles ? WEB_CHANGED_PATHS : [];
     const task = await supervisor.createTask({
-      objective:
-        `zero-git-diff ${service} production qualification for exact canonical production SHA ${SHA}`,
+      objective: webChangedFiles
+        ? `Independently qualify Web deploy candidate base ${WEB_BASE_SHA} head ${SHA}`
+        : `zero-git-diff ${service} production qualification for exact canonical production SHA ${SHA}`,
       owner: 'engineering',
-      allowedPaths: [allowedPath],
+      allowedPaths: webChangedFiles ? [...WEB_CHANGED_PATHS] : [allowedPath],
       forbiddenActions: [
         'edit_assigned_files',
         'commit_assigned_branch',
@@ -114,13 +126,22 @@ describe('production deployment dispatch reservation', () => {
         'delete_branch_for_integration',
       ],
       dependsOn: [],
-      acceptance: [
-        `baseSha=headSha=${SHA}`,
-        `service=${service}`,
-        'zero git diff',
-        'sourceVerified=true',
-        'candidatePublication absent',
-      ],
+      acceptance: webChangedFiles
+        ? [
+            'reviewCandidate.action=deploy_production',
+            'deploymentService=web',
+            'targetBranch=production/atlas',
+            `productionBaselineSha=${SHA}`,
+            'sourceVerified=true',
+            'candidatePublication absent',
+          ]
+        : [
+            `baseSha=headSha=${SHA}`,
+            `service=${service}`,
+            'zero git diff',
+            'sourceVerified=true',
+            'candidatePublication absent',
+          ],
     });
     await supervisor.admitExistingCandidateVerification(task.id);
 
@@ -128,24 +149,25 @@ describe('production deployment dispatch reservation', () => {
     const candidate: SupervisorReviewCandidate = {
       action: 'deploy_production',
       targetBranch: 'production/atlas',
-      baseSha: SHA,
+      baseSha: candidateBaseSha,
       headSha: SHA,
-      changedFiles: [],
+      changedFiles: [...candidatePaths],
     };
     const proof = {
       mode: 'EXISTING_CANDIDATE' as const,
       taskId: task.id,
       executionId,
-      baseSha: SHA,
+      baseSha: candidateBaseSha,
       headSha: SHA,
       productionBaselineSha: SHA,
-      changedFiles: [],
+      ...(webChangedFiles ? { targetBranch: 'production/atlas' as const } : {}),
+      changedFiles: [...candidatePaths],
       gitFingerprint: 'd'.repeat(64),
       sourceVerified: true as const,
     };
     const evidence: SupervisorEvidence = {
       rootCause: 'Exact worker production candidate independently verified',
-      changedFiles: [],
+      changedFiles: [...candidatePaths],
       tests: ['dispatch reservation verifier PASS'],
       build: 'PASS',
       regression: ['no runtime mutation'],
@@ -173,9 +195,10 @@ describe('production deployment dispatch reservation', () => {
         acceptance: [...task.acceptance],
         requiredEvidence: [],
         verificationMode: 'EXISTING_CANDIDATE',
-        candidateBaseSha: SHA,
+        candidateBaseSha,
         candidateHeadSha: SHA,
         productionBaselineSha: SHA,
+        ...(webChangedFiles ? { targetBranch: 'production/atlas' as const } : {}),
         manifestHash: 'e'.repeat(64),
         claimEpoch: 1,
         leaseId: 'dispatch-lease-1',
@@ -434,6 +457,60 @@ describe('production deployment dispatch reservation', () => {
     expect(
       persisted.evidence?.ownerDeploymentDispatchReservation?.reservedBy,
     ).toBe('atlas-production-deploy-executor:web');
+  });
+
+  it('claims independently verified changed-files Web deployment with exact signed authorization', async () => {
+    const { task, execution, candidate } =
+      await createReadyWorkerDeployment('web', { webChangedFiles: true });
+    await approve(task.id);
+
+    const claim = await gateway.claimProductionDeploymentDispatch({
+      service: 'web',
+      github: CANONICAL_GITHUB,
+      dispatcherId: 'atlas-production-deploy-executor:web',
+    });
+    expect(claim).toMatchObject({
+      claimed: true,
+      service: 'web',
+      commitSha: SHA,
+      taskId: task.id,
+      executionId: execution.id,
+      reservationId: expect.stringMatching(/^ATLAS-DISPATCH-[0-9a-f]{64}$/i),
+    });
+    expect(candidate).toMatchObject({
+      baseSha: WEB_BASE_SHA,
+      headSha: SHA,
+      changedFiles: WEB_CHANGED_PATHS,
+    });
+    const persisted = await supervisor.getTask(task.id);
+    expect(persisted.evidence?.ownerDeploymentDispatchReservation).toEqual(
+      expect.objectContaining({ candidate, service: 'web' }),
+    );
+    expect(persisted.evidence?.ownerDeploymentAuthorizationConsumption).toBeUndefined();
+
+    await expect(gateway.claimProductionDeploymentDispatch({
+      service: 'web',
+      github: CANONICAL_GITHUB,
+      dispatcherId: 'atlas-production-deploy-executor:web',
+    })).resolves.toMatchObject({ claimed: false, reason: 'already_reserved' });
+  });
+
+  it('does not claim a changed-files Web candidate for another service or SHA', async () => {
+    const { task } =
+      await createReadyWorkerDeployment('web', { webChangedFiles: true });
+    await approve(task.id);
+    for (const [service, commitSha] of [
+      ['api', SHA],
+      ['web', WEB_BASE_SHA],
+    ] as const) {
+      await expect(gateway.claimProductionDeploymentDispatch({
+        service,
+        github: { ...CANONICAL_GITHUB, commitSha },
+        dispatcherId: `atlas-production-deploy-executor:${service}`,
+      })).resolves.toMatchObject({ claimed: false, reason: 'not_found' });
+    }
+    expect((await supervisor.getTask(task.id)).evidence?.ownerDeploymentDispatchReservation)
+      .toBeUndefined();
   });
 
   it('rejects deployment dispatch for services outside the bounded dispatch scope', async () => {
