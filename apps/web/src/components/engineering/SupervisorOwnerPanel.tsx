@@ -92,6 +92,7 @@ type DeploymentCandidate = {
 };
 
 const OWNER_WORKER_DEPLOYMENT_SERVICES = [
+  "api",
   "browser-worker",
   "engineering-runner",
   "engineering-verifier",
@@ -1017,7 +1018,10 @@ function hasEligibleSameShaWorkerScope(
   task: JsonRecord,
   service: OwnerWorkerDeploymentService,
 ): boolean {
-  if (service === "web") {
+  if (service === "web" || service === "api") {
+    const allowedPrefix =
+      service === "web" ? "apps/web/" : "apps/api/";
+
     return (
       task.owner === "engineering" &&
       Array.isArray(task.allowedPaths) &&
@@ -1025,7 +1029,7 @@ function hasEligibleSameShaWorkerScope(
       task.allowedPaths.every(
         (path) =>
           typeof path === "string" &&
-          path.startsWith("apps/web/"),
+          path.startsWith(allowedPrefix),
       ) &&
       hasStringInArray(
         task.forbiddenActions,
@@ -1804,6 +1808,8 @@ export function SupervisorOwnerPanel() {
     useState("");
   const [webDeploymentTaskId, setWebDeploymentTaskId] =
     useState("");
+  const [apiDeploymentTaskId, setApiDeploymentTaskId] =
+    useState("");
   const [runnerDeploymentTaskId, setRunnerDeploymentTaskId] =
     useState("");
   const [verifierDeploymentTaskId, setVerifierDeploymentTaskId] =
@@ -2343,6 +2349,26 @@ export function SupervisorOwnerPanel() {
 
 
         <label style={labelStyle}>
+          API deployment task ID — exact
+          <input
+            value={apiDeploymentTaskId}
+            onChange={(event: ChangeEvent<HTMLInputElement>) =>
+              setApiDeploymentTaskId(event.target.value)
+            }
+            spellCheck={false}
+            autoComplete="off"
+            style={fieldStyle}
+            placeholder="ATLAS-API-..."
+            disabled={busy}
+          />
+          <span style={{ opacity: 0.68, fontSize: 13 }}>
+            Only an exact READY_FOR_REVIEW or APPROVED, source-verified,
+            zero-diff same-SHA API candidate with engineering-owned apps/api/
+            scope and no prior authorization, reservation, or consumption is eligible.
+          </span>
+        </label>
+
+        <label style={labelStyle}>
           Engineering Runner deployment task ID — exact
           <input
             value={runnerDeploymentTaskId}
@@ -2485,6 +2511,32 @@ export function SupervisorOwnerPanel() {
               : "Authorize web candidate"}
           </button>
 
+
+          <button
+            type="button"
+            onClick={() =>
+              authorizeWorkerDeployment(
+                "api",
+                apiDeploymentTaskId,
+              )
+            }
+            disabled={busy || !apiDeploymentTaskId.trim()}
+            style={{
+              border: "1px solid rgba(59, 130, 246, 0.55)",
+              borderRadius: 10,
+              padding: "10px 14px",
+              font: "inherit",
+              fontWeight: 700,
+              cursor:
+                busy || !apiDeploymentTaskId.trim()
+                  ? "not-allowed"
+                  : "pointer",
+            }}
+          >
+            {busy
+              ? "Checking API candidate…"
+              : "Authorize api candidate"}
+          </button>
 
           <button
             type="button"
