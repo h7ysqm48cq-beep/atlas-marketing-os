@@ -940,10 +940,12 @@ function hasPathPrefixInArray(
 ): boolean {
   return (
     Array.isArray(value) &&
-    value.some(
+    value.length > 0 &&
+    value.every(
       (entry) =>
         typeof entry === "string" &&
-        entry.startsWith(prefix),
+        entry.startsWith(prefix) &&
+        !entry.includes("*"),
     )
   );
 }
