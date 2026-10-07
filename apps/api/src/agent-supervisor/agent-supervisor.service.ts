@@ -369,7 +369,10 @@ export class AgentSupervisorService {
       });
     }
 
-    const previousStatus = task.status;
+    const previousStatus = task.status as
+      | 'DRAFT'
+      | 'BLOCKED'
+      | 'READY_FOR_REVIEW';
     const retiredAt = new Date();
 
     task.evidence = {
