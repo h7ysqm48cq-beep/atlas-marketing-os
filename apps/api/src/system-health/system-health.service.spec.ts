@@ -390,11 +390,23 @@ describe('buildDeploymentAutomationHealth', () => {
     receivedAt: '2026-10-07T15:59:00.000Z',
   };
 
-  it('fails closed when no daemon heartbeat has been observed', () => {
-    const health = buildDeploymentAutomationHealth(null, now);
+  it('uses a startup grace before failing closed on a missing daemon heartbeat', () => {
+    const warming = buildDeploymentAutomationHealth(
+      null,
+      now,
+      '2026-10-07T15:58:00.000Z',
+    );
+    const stale = buildDeploymentAutomationHealth(
+      null,
+      now,
+      '2026-10-07T15:55:00.000Z',
+    );
 
-    expect(health.status).toBe('unknown');
-    expect(health.primary.lastHeartbeatAt).toBeNull();
+    expect(warming.status).toBe('degraded');
+    expect(warming.primary.lastHeartbeatAt).toBeNull();
+    expect(warming.primary.observationAgeSeconds).toBe(120);
+    expect(stale.status).toBe('critical');
+    expect(stale.primary.observationAgeSeconds).toBe(300);
   });
 
   it('reports a recent daemon heartbeat as healthy', () => {
