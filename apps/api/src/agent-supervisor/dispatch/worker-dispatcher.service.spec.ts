@@ -958,6 +958,7 @@ describe('existing candidate PR141 DRAFT-only admission', () => {
     expect((await supervisor.getTask(task.id)).status).toBe('VERIFYING');
   });
   it.each([
+    'api',
     'engineering-runner',
     'engineering-verifier',
     'browser-worker',
