@@ -131,6 +131,15 @@ type HealthSnapshot = {
       service?: string;
       expectedCadenceSeconds?: number;
       livenessSource?: string;
+      lastHeartbeatAt?: string | null;
+      ageSeconds?: number | null;
+      degradedAfterSeconds?: number;
+      staleAfterSeconds?: number;
+      phase?: string | null;
+      cycle?: number | null;
+      commitSha?: string | null;
+      claimedWork?: boolean | null;
+      nextPollMs?: number | null;
     };
     fallback?: {
       provider?: string;
