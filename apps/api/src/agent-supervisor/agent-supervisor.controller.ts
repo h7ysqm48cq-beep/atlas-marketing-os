@@ -92,6 +92,24 @@ export class AgentSupervisorController {
     return this.supervisor.failTask(id, body.reason ?? '');
   }
 
+  @Post('tasks/:id/retire')
+  retireTask(
+    @Param('id') id: string,
+    @Body()
+    body: {
+      reason: string;
+      reconciledAgainstSha: string;
+    },
+    @Req() request: { user?: { id?: string } },
+  ) {
+    return this.supervisor.retireTask(
+      id,
+      body.reason ?? '',
+      body.reconciledAgainstSha ?? '',
+      request.user?.id ?? '',
+    );
+  }
+
   @Post('tasks/:id/implementation')
   submitImplementation(
     @Param('id') id: string,
