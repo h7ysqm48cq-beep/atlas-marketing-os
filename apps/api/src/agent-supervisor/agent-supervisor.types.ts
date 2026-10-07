@@ -16,7 +16,8 @@ export type SupervisorTaskStatus =
   | 'VERIFYING'
   | 'READY_FOR_REVIEW'
   | 'APPROVED'
-  | 'FAILED';
+  | 'FAILED'
+  | 'RETIRED';
 
 export type SupervisorAction =
   | 'read_repo'
@@ -150,6 +151,15 @@ export interface SupervisorOwnerDeploymentAuthorizationRetirement {
   reason: string;
 }
 
+export interface SupervisorTaskRetirement {
+  previousStatus: 'DRAFT' | 'BLOCKED' | 'READY_FOR_REVIEW';
+  reason: string;
+  reconciledAgainstSha: string;
+  retiredBy: string;
+  retiredAt: string;
+  basis: 'HUMAN_OWNER_RECONCILIATION';
+}
+
 /** Read-only verifier provenance, not an implementation or publication receipt. */
 export interface SupervisorExistingCandidateVerification {
   mode: 'EXISTING_CANDIDATE';
@@ -184,6 +194,7 @@ export interface SupervisorEvidence {
   ownerDeploymentAuthorizationRevocations?: SupervisorOwnerDeploymentAuthorizationRevocation[];
   ownerDeploymentAuthorizationRetirements?: SupervisorOwnerDeploymentAuthorizationRetirement[];
   ownerDeploymentDispatchReservation?: SupervisorOwnerDeploymentDispatchReservation;
+  taskRetirement?: SupervisorTaskRetirement;
 }
 
 export interface SupervisorTask {
