@@ -5,6 +5,7 @@ import {
   claimDispatch,
   execute,
   fetchProductionSha,
+  pollDeployment,
 } from './atlas-production-deploy-executor.mjs';
 
 const SHA = '9'.repeat(40);
@@ -468,6 +469,46 @@ test('executor rejects successful deployment evidence for the wrong commit', asy
       }),
     /deployment SHA mismatch/,
   );
+});
+
+test('deployment REMOVING fails closed immediately without polling again', async () => {
+  let polls = 0;
+  let sleeps = 0;
+  const deploymentId = 'dep-removing';
+  await assert.rejects(
+    () => pollDeployment(
+      'railway-project-token',
+      SERVICES[4],
+      SHA,
+      deploymentId,
+      {
+        fetchImpl: async (_url, options = {}) => {
+          const request = JSON.parse(options.body);
+          assert.ok(request.query.includes('deployment(id:'));
+          assert.equal(request.variables.id, deploymentId);
+          polls += 1;
+          return json({
+            data: {
+              deployment: {
+                id: deploymentId,
+                status: 'REMOVING',
+                serviceId: SERVICES[4].id,
+                environmentId: '62379618-8890-40fb-bff8-2db75c57027c',
+                meta: { commitHash: SHA },
+              },
+            },
+          });
+        },
+        maxAttempts: 2,
+        intervalMs: 0,
+        sleep: async () => { sleeps += 1; },
+        logger: quietLogger(),
+      },
+    ),
+    /terminal status REMOVING/,
+  );
+  assert.equal(polls, 1);
+  assert.equal(sleeps, 0);
 });
 
 test('dispatch claim rejects any service outside the frozen production executor allowlist', async () => {
