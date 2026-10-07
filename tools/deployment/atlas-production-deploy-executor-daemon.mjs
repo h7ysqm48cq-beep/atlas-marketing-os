@@ -6,6 +6,49 @@ function defaultSleep(ms) {
   return new Promise((resolveSleep) => setTimeout(resolveSleep, ms));
 }
 
+export async function reportDeploymentAutomationHeartbeat(
+  env,
+  payload,
+  fetchImpl = fetch,
+) {
+  const apiBase = env.ATLAS_SUPERVISOR_API_URL?.trim();
+  const ciToken = env.ATLAS_SUPERVISOR_CI_TOKEN?.trim();
+  if (!apiBase || !ciToken) {
+    throw new Error('deployment automation telemetry credentials missing');
+  }
+
+  const apiUrl = new URL(apiBase);
+  if (apiUrl.protocol !== 'https:') {
+    throw new Error('ATLAS_SUPERVISOR_API_URL must use https');
+  }
+
+  const response = await fetchImpl(
+    `${apiBase.replace(/\/+$/g, '')}/engineering/supervisor/gateway/deployment-automation/heartbeat`,
+    {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-atlas-supervisor-ci-token': ciToken,
+      },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(15_000),
+    },
+  );
+
+  const text = await response.text();
+  let body;
+  try {
+    body = text ? JSON.parse(text) : null;
+  } catch {
+    throw new Error('deployment automation heartbeat returned invalid JSON');
+  }
+  if (!response.ok) {
+    const code = body?.code || body?.message || `http_${response.status}`;
+    throw new Error(`deployment automation heartbeat failed: ${code}`);
+  }
+  return body;
+}
+
 function createStaleHeartbeatMonitor({
   logger,
   now,
@@ -65,9 +108,44 @@ function createStaleHeartbeatMonitor({
   };
 }
 
-function logHeartbeat(logger, monitor, atMs, payload) {
+function logHeartbeat(
+  logger,
+  monitor,
+  atMs,
+  payload,
+  reportHeartbeat,
+) {
   monitor.pulse(atMs);
   logger.log('ATLAS_PRODUCTION_DEPLOY_EXECUTOR_HEARTBEAT', payload);
+
+  if (!reportHeartbeat) return;
+
+  const report = {
+    service: 'production-deploy-executor',
+    phase: payload.phase,
+    cycle: payload.cycle,
+    commitSha: typeof payload.sha === 'string' ? payload.sha : null,
+    claimedWork:
+      typeof payload.claimedWork === 'boolean' ? payload.claimedWork : null,
+    nextPollMs:
+      Number.isInteger(payload.nextPollMs) ? payload.nextPollMs : null,
+  };
+
+  Promise.resolve()
+    .then(() => reportHeartbeat(report))
+    .catch((error) => {
+      logger.error(
+        'ATLAS_PRODUCTION_DEPLOY_EXECUTOR_HEARTBEAT_REPORT_FAILED',
+        {
+          phase: payload.phase,
+          cycle: payload.cycle,
+          error:
+            error instanceof Error
+              ? error.message
+              : String(error),
+        },
+      );
+    });
 }
 
 async function executeCycleWithTimeout(
@@ -115,6 +193,7 @@ export async function runDaemon(
     staleHeartbeatCheckIntervalMs = 60_000,
     cycleTimeoutMs = 25 * 60_000,
     logger = console,
+    reportHeartbeat = null,
     signal,
     now = () => Date.now(),
     setIntervalFn = setInterval,
@@ -149,7 +228,7 @@ export async function runDaemon(
         staleHeartbeatThresholdMs,
         staleHeartbeatCheckIntervalMs,
         cycleTimeoutMs,
-      });
+      }, reportHeartbeat);
 
       let heartbeatHandle;
       if (heartbeatIntervalMs > 0) {
@@ -162,7 +241,7 @@ export async function runDaemon(
             elapsedMs: Math.max(0, heartbeatAt - cycleStartedAt),
             heartbeatIntervalMs,
             cycleTimeoutMs,
-          });
+          }, reportHeartbeat);
         }, heartbeatIntervalMs);
       }
 
@@ -182,7 +261,7 @@ export async function runDaemon(
           at: new Date(failedAt).toISOString(),
           elapsedMs: Math.max(0, failedAt - cycleStartedAt),
           errorName: error instanceof Error ? error.name : typeof error,
-        });
+        }, reportHeartbeat);
         throw error;
       } finally {
         if (heartbeatHandle !== undefined) {
@@ -205,7 +284,7 @@ export async function runDaemon(
         claimedWork: hadClaimedWork,
         cycleMs: Math.max(0, completedAt - cycleStartedAt),
         nextPollMs: sleepMs,
-      });
+      }, reportHeartbeat);
 
       await Promise.race([
         sleep(sleepMs),
@@ -229,7 +308,10 @@ const isEntrypoint =
   import.meta.url === pathToFileURL(resolve(process.argv[1])).href;
 
 if (isEntrypoint) {
-  runDaemon().catch((error) => {
+  runDaemon(process.env, {
+    reportHeartbeat: (payload) =>
+      reportDeploymentAutomationHeartbeat(process.env, payload),
+  }).catch((error) => {
     console.error(
       'ATLAS_PRODUCTION_DEPLOY_EXECUTOR_DAEMON_FAILED',
       error instanceof Error ? error.message : String(error),
