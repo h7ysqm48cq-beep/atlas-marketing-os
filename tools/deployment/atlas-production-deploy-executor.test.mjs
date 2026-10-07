@@ -410,6 +410,120 @@ test('executor restart does not replay a reserved dispatch when Railway deployme
   assert.equal(restarted.results[0].deployment, null);
 });
 
+test('executor restart does not replay after Railway succeeds but success receipt logging fails', async () => {
+  let reserved = false;
+  let deployMutations = 0;
+  let claimCalls = 0;
+  let successLogAttempts = 0;
+  const deploymentId = 'dep-success-receipt-crash';
+
+  const fetchImpl = async (url, options = {}) => {
+    const href = String(url);
+    if (href.includes('/git/ref/heads/production/atlas')) {
+      return json({ object: { sha: SHA } });
+    }
+    if (href.endsWith('/production-deployment/dispatch/claim')) {
+      const payload = JSON.parse(options.body);
+      claimCalls += 1;
+      if (payload.service !== 'engineering-runner') {
+        return json({
+          claimed: false,
+          reason: 'not_found',
+          service: payload.service,
+          commitSha: SHA,
+        });
+      }
+      if (reserved) {
+        return json({
+          claimed: false,
+          reason: 'already_reserved',
+          service: payload.service,
+          commitSha: SHA,
+          taskId: 'ATLAS-SYS-success-receipt',
+          executionId: 'ATLAS-EXEC-success-receipt',
+        });
+      }
+      reserved = true;
+      return json({
+        claimed: true,
+        reason: null,
+        service: payload.service,
+        commitSha: SHA,
+        taskId: 'ATLAS-SYS-success-receipt',
+        executionId: 'ATLAS-EXEC-success-receipt',
+        reservationId: 'ATLAS-DISPATCH-' + 'e'.repeat(64),
+      });
+    }
+    if (href === 'https://backboard.railway.com/graphql/v2') {
+      const payload = JSON.parse(options.body);
+      if (payload.query.includes('projectToken')) {
+        return json({
+          data: {
+            projectToken: {
+              projectId: '693a96a8-fb2f-4e6d-af3b-fa2b54da49fc',
+              environmentId: '62379618-8890-40fb-bff8-2db75c57027c',
+            },
+          },
+        });
+      }
+      if (payload.query.includes('serviceInstanceDeployV2')) {
+        deployMutations += 1;
+        return json({ data: { serviceInstanceDeployV2: deploymentId } });
+      }
+      if (payload.query.includes('deployment(id:')) {
+        return json({
+          data: {
+            deployment: {
+              id: deploymentId,
+              status: 'SUCCESS',
+              createdAt: '2026-10-07T00:00:00.000Z',
+              serviceId: SERVICES[0].id,
+              environmentId: '62379618-8890-40fb-bff8-2db75c57027c',
+              meta: { commitHash: SHA },
+            },
+          },
+        });
+      }
+    }
+    throw new Error('unexpected request: ' + href);
+  };
+
+  const receiptFailingLogger = {
+    log(event) {
+      if (event === 'ATLAS_RAILWAY_EXACT_SHA_DEPLOYMENT_SUCCESS') {
+        successLogAttempts += 1;
+        throw new Error('simulated success receipt logging failure');
+      }
+    },
+    error() {},
+  };
+
+  await assert.rejects(
+    () =>
+      execute(ENV, {
+        fetchImpl,
+        sleep: async () => {},
+        logger: receiptFailingLogger,
+        maxAttempts: 1,
+        intervalMs: 0,
+      }),
+    /simulated success receipt logging failure/,
+  );
+  assert.equal(successLogAttempts, 1);
+  assert.equal(deployMutations, 1);
+
+  const restarted = await execute(ENV, {
+    fetchImpl,
+    logger: quietLogger(),
+  });
+
+  assert.equal(deployMutations, 1);
+  assert.equal(claimCalls, 7);
+  assert.equal(restarted.results[0].claim.claimed, false);
+  assert.equal(restarted.results[0].claim.reason, 'already_reserved');
+  assert.equal(restarted.results[0].deployment, null);
+});
+
 test('executor fails closed when Railway returns a failed deployment', async () => {
   const fetchImpl = async (url, options = {}) => {
     const href = String(url);
