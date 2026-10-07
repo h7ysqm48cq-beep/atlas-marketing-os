@@ -909,6 +909,214 @@ async function main() {
   );
 
 
+  const apiSha = "6".repeat(40);
+  const apiCandidate = {
+    action: "deploy_production",
+    targetBranch: "production/atlas",
+    baseSha: apiSha,
+    headSha: apiSha,
+    changedFiles: [],
+  };
+  const apiCalls: Array<{
+    method: string;
+    url: string;
+    body?: string;
+  }> = [];
+  let apiTaskReadCount = 0;
+  const apiAuthorized =
+    await authorizeEligibleWorkerDeployment(
+      async (url, init) => {
+        apiCalls.push({
+          method: init?.method ?? "GET",
+          url: String(url),
+          body:
+            typeof init?.body === "string"
+              ? init.body
+              : undefined,
+        });
+
+        if (
+          String(url).endsWith(
+            "/tasks/api-same-sha-task",
+          )
+        ) {
+          apiTaskReadCount += 1;
+          return response(200, {
+            id: "api-same-sha-task",
+            status:
+              apiTaskReadCount === 1
+                ? "READY_FOR_REVIEW"
+                : "APPROVED",
+            owner: "engineering",
+            allowedPaths: [
+              "apps/api/src/agent-supervisor/persistence/supervisor-persistence.mapper.ts",
+            ],
+            forbiddenActions: [
+              "edit_assigned_files",
+              "commit_assigned_branch",
+              "deploy_production",
+              "change_runtime_config",
+            ],
+            acceptance: [
+              `baseSha=headSha=${apiSha}`,
+              "service=api",
+              "zero git diff",
+              "sourceVerified=true",
+              "candidatePublication absent",
+            ],
+            evidence: {
+              deploymentState: "NOT_DEPLOYED",
+              reviewCandidate: apiCandidate,
+              existingCandidateVerification: {
+                mode: "EXISTING_CANDIDATE",
+                taskId: "api-same-sha-task",
+                executionId: "api-same-sha-execution",
+                baseSha: apiSha,
+                headSha: apiSha,
+                productionBaselineSha: apiSha,
+                targetBranch: "production/atlas",
+                changedFiles: [],
+                sourceVerified: true,
+              },
+            },
+          });
+        }
+
+        if (
+          String(url).endsWith(
+            "/tasks/api-same-sha-task/approve",
+          )
+        ) {
+          return response(201, {
+            id: "api-same-sha-task",
+            status: "APPROVED",
+          });
+        }
+
+        if (
+          String(url).endsWith(
+            "/tasks/api-same-sha-task/executions",
+          )
+        ) {
+          return response(200, [
+            {
+              id: "api-same-sha-execution",
+              status: "COMPLETED",
+              assignment: {
+                executionPurpose: "INDEPENDENT_VERIFICATION",
+                verificationMode: "EXISTING_CANDIDATE",
+              },
+              result: {
+                evidence: {
+                  reviewCandidate: apiCandidate,
+                  existingCandidateVerification: {
+                    mode: "EXISTING_CANDIDATE",
+                    taskId: "api-same-sha-task",
+                    executionId: "api-same-sha-execution",
+                    baseSha: apiSha,
+                    headSha: apiSha,
+                    productionBaselineSha: apiSha,
+                    targetBranch: "production/atlas",
+                    changedFiles: [],
+                    sourceVerified: true,
+                  },
+                },
+              },
+            },
+          ]);
+        }
+
+        if (
+          String(url).endsWith(
+            "/tasks/api-same-sha-task/authorize-production-deployment",
+          )
+        ) {
+          return response(201, {
+            id: "api-same-sha-task",
+            status: "APPROVED",
+            evidence: {
+              deploymentState: "NOT_DEPLOYED",
+              ownerDeploymentAuthorization: {
+                service: "api",
+                candidate: apiCandidate,
+                signature: "signed-api-authorization",
+              },
+            },
+          });
+        }
+
+        throw new Error("unexpected request");
+      },
+      "api",
+      "api-same-sha-task",
+    );
+
+  assert.deepEqual(apiAuthorized, {
+    taskId: "api-same-sha-task",
+    taskStatus: "APPROVED",
+    executionId: "api-same-sha-execution",
+    executionStatus: "COMPLETED",
+  });
+  assert.equal(
+    apiCalls.at(-1)?.body,
+    JSON.stringify({
+      candidate: apiCandidate,
+      service: "api",
+    }),
+  );
+
+  await assert.rejects(
+    () =>
+      authorizeEligibleWorkerDeployment(
+        async (url) => {
+          if (
+            String(url).endsWith(
+              "/tasks/api-wrong-scope",
+            )
+          ) {
+            return response(200, {
+              id: "api-wrong-scope",
+              status: "READY_FOR_REVIEW",
+              owner: "engineering",
+              allowedPaths: [
+                "apps/web/src/app/page.tsx",
+              ],
+              forbiddenActions: [
+                "edit_assigned_files",
+                "commit_assigned_branch",
+                "deploy_production",
+                "change_runtime_config",
+              ],
+              acceptance: [
+                `baseSha=headSha=${apiSha}`,
+                "service=api",
+              ],
+              evidence: {
+                deploymentState: "NOT_DEPLOYED",
+                reviewCandidate: apiCandidate,
+                existingCandidateVerification: {
+                  mode: "EXISTING_CANDIDATE",
+                  taskId: "api-wrong-scope",
+                  executionId: "api-wrong-scope-execution",
+                  baseSha: apiSha,
+                  headSha: apiSha,
+                  productionBaselineSha: apiSha,
+                  targetBranch: "production/atlas",
+                  changedFiles: [],
+                  sourceVerified: true,
+                },
+              },
+            });
+          }
+          throw new Error("unexpected request");
+        },
+        "api",
+        "api-wrong-scope",
+      ),
+    /is not an eligible api same-SHA deployment candidate/,
+  );
+
+
   const browserWorkerSha = "8".repeat(40);
   const browserWorkerCandidate = {
     action: "deploy_production",
