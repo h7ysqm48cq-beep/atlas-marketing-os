@@ -237,7 +237,7 @@ function ownerDeploymentAuthorizationRetirementFixture() {
     authorizationExpiredAt: '2026-10-02T12:10:00.000Z',
     reservationStaleAfter: '2026-10-02T12:30:00.000Z',
     retiredBy: 'owner-user-2',
-    retiredAt: '2026-10-02T12:11:00.000Z',
+    retiredAt: '2026-10-02T12:31:00.000Z',
     reason: 'terminal deployment failed and authorization expired',
   };
 }
@@ -720,6 +720,8 @@ describe('supervisor persistence mapper', () => {
     { reservationStaleAfter: '2026-10-01T18:32:34.477Z' },
     { retiredBy: '   ' },
     { retiredAt: 'not-a-date' },
+    { retiredAt: '2026-10-02T12:09:59.999Z' },
+    { retiredAt: '2026-10-02T12:29:59.999Z' },
     { reason: '   ' },
     {
       reservation: {

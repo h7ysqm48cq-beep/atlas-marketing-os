@@ -561,6 +561,8 @@ function mapOwnerDeploymentAuthorizationRetirement(
     !Number.isFinite(reservationStaleAfterMs) ||
     new Date(reservationStaleAfterMs).toISOString() !== reservationStaleAfter ||
     reservationStaleAfterMs <= Date.parse(reservation.reservedAt) ||
+    retiredAtMs < authorizationExpiredAtMs ||
+    retiredAtMs < reservationStaleAfterMs ||
     !retiredBy.trim() ||
     retiredBy !== retiredBy.trim() ||
     !retiredAt.trim() ||
