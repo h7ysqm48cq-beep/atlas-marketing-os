@@ -128,6 +128,45 @@ describe('AgentSupervisorController', () => {
   });
 
 
+  it('binds historical task retirement to the authenticated Owner identity', async () => {
+    const retire = jest
+      .spyOn(supervisor, 'retireTask')
+      .mockResolvedValue({ status: 'RETIRED' } as never);
+
+    const method =
+      AgentSupervisorController.prototype.retireTask;
+
+    expect(Reflect.getMetadata(PATH_METADATA, method)).toBe(
+      'tasks/:id/retire',
+    );
+    expect(Reflect.getMetadata(METHOD_METADATA, method)).toBe(
+      RequestMethod.POST,
+    );
+
+    await expect(
+      controller.retireTask(
+        'ATLAS-P7-RETIRE-1',
+        {
+          reason: 'superseded history',
+          reconciledAgainstSha: 'c'.repeat(40),
+        },
+        {
+          user: {
+            id: 'authenticated-owner-id',
+          },
+        },
+      ),
+    ).resolves.toEqual({ status: 'RETIRED' });
+
+    expect(retire).toHaveBeenCalledWith(
+      'ATLAS-P7-RETIRE-1',
+      'superseded history',
+      'c'.repeat(40),
+      'authenticated-owner-id',
+    );
+  });
+
+
   it('exposes the persisted-Execution adoption route only under the existing Owner guards', () => {
     const method = AgentSupervisorController.prototype.adoptImplementationExecution;
     expect(Reflect.getMetadata(PATH_METADATA, method)).toBe(
