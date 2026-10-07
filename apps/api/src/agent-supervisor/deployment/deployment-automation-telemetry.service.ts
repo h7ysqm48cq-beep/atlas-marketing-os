@@ -41,6 +41,7 @@ const FULL_SHA = /^[0-9a-f]{40}$/i;
 @Injectable()
 export class DeploymentAutomationTelemetryService {
   private latest: DeploymentAutomationHeartbeatSnapshot | null = null;
+  private readonly observationStartedAt = new Date();
 
   record(
     input: DeploymentAutomationHeartbeatInput,
@@ -98,5 +99,9 @@ export class DeploymentAutomationTelemetryService {
 
   snapshot(): DeploymentAutomationHeartbeatSnapshot | null {
     return this.latest ? structuredClone(this.latest) : null;
+  }
+
+  getObservationStartedAt(): string {
+    return this.observationStartedAt.toISOString();
   }
 }
