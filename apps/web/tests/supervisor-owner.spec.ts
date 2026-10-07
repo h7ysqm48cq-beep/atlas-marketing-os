@@ -662,6 +662,61 @@ async function main() {
     /No approved web production deployment candidate was found for task web-invalid-path-task/,
   );
 
+  // A mixed Web/non-Web scope must fail closed before any Owner action.
+  await assert.rejects(
+    () =>
+      authorizeEligibleWebDeployment(
+        async (url) => {
+          if (String(url).endsWith("/tasks")) {
+            return response(200, [
+              {
+                id: "web-mixed-scope-task",
+                status: "APPROVED",
+                evidence: {
+                  reviewCandidate: {
+                    ...webCandidate,
+                    changedFiles: [
+                      "apps/web/src/components/engineering/SupervisorOwnerPanel.tsx",
+                      "apps/api/src/app.module.ts",
+                    ],
+                  },
+                },
+              },
+            ]);
+          }
+          throw new Error("unexpected request");
+        },
+        "web-mixed-scope-task",
+      ),
+    /No approved web production deployment candidate was found/,
+  );
+
+  // Wildcard scope is not an exact changed-file path.
+  await assert.rejects(
+    () =>
+      authorizeEligibleWebDeployment(
+        async (url) => {
+          if (String(url).endsWith("/tasks")) {
+            return response(200, [
+              {
+                id: "web-wildcard-scope-task",
+                status: "APPROVED",
+                evidence: {
+                  reviewCandidate: {
+                    ...webCandidate,
+                    changedFiles: ["apps/web/*"],
+                  },
+                },
+              },
+            ]);
+          }
+          throw new Error("unexpected request");
+        },
+        "web-wildcard-scope-task",
+      ),
+    /No approved web production deployment candidate was found/,
+  );
+
   const webSameSha = "a".repeat(40);
   const webSameShaCandidate = {
     action: "deploy_production",
