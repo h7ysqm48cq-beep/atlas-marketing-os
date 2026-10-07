@@ -71,6 +71,9 @@ describe('SystemHealthService', () => {
       } as never,
       {
         snapshot: jest.fn().mockReturnValue(freshDeploymentHeartbeat()),
+        getObservationStartedAt: jest
+          .fn()
+          .mockReturnValue(new Date().toISOString()),
       } as never,
     );
 
@@ -168,6 +171,9 @@ describe('SystemHealthService', () => {
       } as never,
       {
         snapshot: jest.fn().mockReturnValue(freshDeploymentHeartbeat()),
+        getObservationStartedAt: jest
+          .fn()
+          .mockReturnValue(new Date().toISOString()),
       } as never,
     );
 
@@ -230,6 +236,9 @@ describe('SystemHealthService', () => {
       } as never,
       {
         snapshot: jest.fn().mockReturnValue(freshDeploymentHeartbeat()),
+        getObservationStartedAt: jest
+          .fn()
+          .mockReturnValue(new Date().toISOString()),
       } as never,
     );
 
@@ -293,6 +302,9 @@ describe('SystemHealthService', () => {
       } as never,
       {
         snapshot: jest.fn().mockReturnValue(freshDeploymentHeartbeat()),
+        getObservationStartedAt: jest
+          .fn()
+          .mockReturnValue(new Date().toISOString()),
       } as never,
     );
 
