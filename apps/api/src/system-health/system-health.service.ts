@@ -9,6 +9,31 @@ const PUBLISHING_STUCK_MINUTES = 15;
 const PUBLISHING_FAILURE_WINDOW_HOURS = 24;
 const SPORTS_SCHEDULER_GRACE_MINUTES = 15;
 
+const DEPLOYMENT_AUTOMATION_PRIMARY_CADENCE_SECONDS = 60;
+
+export function buildDeploymentAutomationHealth() {
+  return {
+    status: 'informational',
+    policy: 'railway_daemon_primary_github_schedule_fallback',
+    primary: {
+      provider: 'railway',
+      mode: 'daemon',
+      service: 'production-deploy-executor',
+      expectedCadenceSeconds: DEPLOYMENT_AUTOMATION_PRIMARY_CADENCE_SECONDS,
+      livenessSource: 'runtime_heartbeat',
+    },
+    fallback: {
+      provider: 'github-actions',
+      mode: 'schedule',
+      workflow: 'atlas-production-deploy-executor.yml',
+      configuredCron: '*/5 * * * *',
+      cadenceGuarantee: 'best_effort',
+    },
+    note:
+      'Production liveness is determined by the Railway daemon heartbeat; GitHub scheduled workflow timing is fallback-only and is not a five-minute SLA.',
+  };
+}
+
 type SportsSchedulerSettingsSnapshot = {
   enabled: boolean;
   timezone: string;
@@ -626,6 +651,8 @@ export class SystemHealthService {
         note:
           "Railway status checked through deployment monitor",
       },
+
+      deploymentAutomation: buildDeploymentAutomationHealth(),
 
       browserWorker,
 
