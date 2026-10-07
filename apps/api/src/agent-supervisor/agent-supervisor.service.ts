@@ -83,6 +83,7 @@ const WORKER_ROLES = new Set<Exclude<SupervisorAgentRole, 'supervisor'>>([
 
 const FULL_GIT_SHA = /^[0-9a-f]{40}$/i;
 const DEPLOYMENT_RESERVATION_RETIREMENT_MIN_AGE_MS = 30 * 60 * 1_000;
+const SUPERVISOR_TASK_RETIREMENT_MIN_AGE_MS = 24 * 60 * 60 * 1_000;
 const SYSTEM_TASK_ID =
   /^ATLAS-SYS-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const PRODUCTION_DEPLOYMENT_SERVICES = new Set<ProductionDeploymentService>([
@@ -267,7 +268,11 @@ export class AgentSupervisorService {
   async failTask(id: string, reason: string): Promise<SupervisorTask> {
     const task = await this.requireTask(id);
     const expectedUpdatedAt = new Date(task.updatedAt);
-    if (task.status === 'APPROVED' || task.status === 'FAILED') {
+    if (
+      task.status === 'APPROVED' ||
+      task.status === 'FAILED' ||
+      task.status === 'RETIRED'
+    ) {
       throw new BadRequestException(
         `invalid_transition:${task.status}->FAILED`,
       );
@@ -278,6 +283,118 @@ export class AgentSupervisorService {
 
     task.status = 'FAILED';
     task.failureReason = reason.trim();
+    task.updatedAt = this.nextMutationTime(expectedUpdatedAt);
+
+    return this.persistTaskWithLocks(
+      task,
+      'release',
+      expectedUpdatedAt,
+    );
+  }
+
+
+  async retireTask(
+    id: string,
+    reason: string,
+    reconciledAgainstSha: string,
+    retiredBy: string,
+  ): Promise<SupervisorTask> {
+    const task = await this.requireTask(id);
+    const expectedUpdatedAt = new Date(task.updatedAt);
+
+    this.requireStatus(task, ['DRAFT', 'BLOCKED', 'READY_FOR_REVIEW']);
+
+    const normalizedReason = reason?.trim() ?? '';
+    if (!normalizedReason) {
+      throw new BadRequestException({
+        code: 'task_retirement_reason_required',
+      });
+    }
+
+    const normalizedRetiredBy = retiredBy?.trim() ?? '';
+    if (!normalizedRetiredBy) {
+      throw new BadRequestException({
+        code: 'task_retirement_owner_required',
+      });
+    }
+
+    const reconciliationSha = this.requireSha(
+      reconciledAgainstSha,
+      'task_retirement_reconciliation_sha_invalid',
+    );
+
+    const ageMs = Date.now() - expectedUpdatedAt.getTime();
+    if (ageMs < SUPERVISOR_TASK_RETIREMENT_MIN_AGE_MS) {
+      throw new BadRequestException({
+        code: 'task_retirement_not_stale',
+        staleAfterHours: 24,
+      });
+    }
+
+    const evidence = task.evidence;
+    const activeMergeAuthorization =
+      Boolean(evidence?.ownerMergeAuthorization) &&
+      !evidence?.ownerMergeAuthorizationConsumption;
+    const activeDeploymentAuthorization =
+      Boolean(evidence?.ownerDeploymentAuthorization) &&
+      !evidence?.ownerDeploymentAuthorizationConsumption;
+    const activeDeploymentReservation =
+      Boolean(evidence?.ownerDeploymentDispatchReservation) &&
+      !evidence?.ownerDeploymentAuthorizationConsumption &&
+      evidence?.deploymentState !== 'DEPLOYMENT_AUTHORIZATION_RETIRED';
+
+    if (
+      activeMergeAuthorization ||
+      activeDeploymentAuthorization ||
+      activeDeploymentReservation
+    ) {
+      throw new BadRequestException({
+        code: 'task_retirement_authority_residue',
+      });
+    }
+
+    if (!this.executionStore) {
+      throw new ServiceUnavailableException(
+        'supervisor_execution_store_not_configured',
+      );
+    }
+
+    const executions = await this.executionStore.listByTask(task.id);
+    const activeExecution = executions.some((execution) =>
+      ['QUEUED', 'DISPATCHED', 'RUNNING'].includes(execution.status),
+    );
+    if (activeExecution) {
+      throw new BadRequestException({
+        code: 'task_retirement_active_execution',
+      });
+    }
+
+    const previousStatus = task.status;
+    const retiredAt = new Date();
+
+    task.evidence = {
+      ...(evidence ?? {
+        rootCause: 'historical_task_reconciliation',
+        changedFiles: [],
+        tests: [],
+        build: 'NOT_RUN',
+        regression: [],
+        deploymentState: 'NOT_DEPLOYED',
+        gitState: 'NO_REPOSITORY_MUTATION',
+        remainingRisk: [],
+      }),
+      taskRetirement: {
+        previousStatus,
+        reason: normalizedReason,
+        reconciledAgainstSha: reconciliationSha,
+        retiredBy: normalizedRetiredBy,
+        retiredAt: retiredAt.toISOString(),
+        basis: 'HUMAN_OWNER_RECONCILIATION',
+      },
+    };
+    task.status = 'RETIRED';
+    task.blockingReason = null;
+    task.failureReason = null;
     task.updatedAt = this.nextMutationTime(expectedUpdatedAt);
 
     return this.persistTaskWithLocks(
