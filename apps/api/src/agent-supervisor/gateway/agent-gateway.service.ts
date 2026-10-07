@@ -499,11 +499,22 @@ export class AgentGatewayService {
       }
 
       const candidate = this.normalizeCandidate(rawCandidate);
-      if (
-        candidate.headSha !== sha ||
-        candidate.baseSha !== sha ||
-        candidate.changedFiles.length !== 0
-      ) {
+      // The deploy executor also supports independently verified, exact-scope
+      // Web changes. Other services remain zero-diff/same-SHA only.
+      const zeroDiff = candidate.baseSha === sha &&
+        candidate.changedFiles.length === 0;
+      const changedWeb = service === 'web' &&
+        candidate.baseSha !== sha &&
+        candidate.changedFiles.length > 0 &&
+        task.owner === 'engineering' &&
+        candidate.changedFiles.every(
+          (path) => path.startsWith('apps/web/') && !path.includes('*'),
+        ) &&
+        candidate.changedFiles.length === task.allowedPaths.length &&
+        [...candidate.changedFiles].sort().every(
+          (path, index) => path === [...task.allowedPaths].sort()[index],
+        );
+      if (candidate.headSha !== sha || (!zeroDiff && !changedWeb)) {
         continue;
       }
       if (
