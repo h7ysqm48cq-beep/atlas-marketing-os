@@ -61,6 +61,26 @@ describe('SystemHealthService', () => {
     const health = await service.getSystemHealth();
 
     expect(health.calendar).toEqual({ status: 'healthy', scheduledPosts: 3 });
+    expect(health.deploymentAutomation).toEqual({
+      status: 'informational',
+      policy: 'railway_daemon_primary_github_schedule_fallback',
+      primary: {
+        provider: 'railway',
+        mode: 'daemon',
+        service: 'production-deploy-executor',
+        expectedCadenceSeconds: 60,
+        livenessSource: 'runtime_heartbeat',
+      },
+      fallback: {
+        provider: 'github-actions',
+        mode: 'schedule',
+        workflow: 'atlas-production-deploy-executor.yml',
+        configuredCron: '*/5 * * * *',
+        cadenceGuarantee: 'best_effort',
+      },
+      note:
+        'Production liveness is determined by the Railway daemon heartbeat; GitHub scheduled workflow timing is fallback-only and is not a five-minute SLA.',
+    });
     expect(health.publishing).toEqual({
       status: 'healthy',
       overdueEligiblePosts: 0,
