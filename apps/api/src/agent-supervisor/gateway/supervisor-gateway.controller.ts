@@ -13,12 +13,19 @@ import {
   type TrustedMergeAuthorizationConsumptionInput,
 } from './agent-gateway.service';
 import { SupervisorCiGuard } from './supervisor-ci.guard';
+import {
+  DeploymentAutomationTelemetryService,
+  type DeploymentAutomationHeartbeatInput,
+} from '../deployment/deployment-automation-telemetry.service';
 
 @Public()
 @UseGuards(SupervisorCiGuard)
 @Controller('engineering/supervisor/gateway')
 export class SupervisorGatewayController {
-  constructor(private readonly gateway: AgentGatewayService) {}
+  constructor(
+    private readonly gateway: AgentGatewayService,
+    private readonly deploymentAutomationTelemetry: DeploymentAutomationTelemetryService,
+  ) {}
 
   @Post('validate-worker')
   validateWorker(@Body() input: ValidateWorkerContextInput) {
@@ -59,5 +66,12 @@ export class SupervisorGatewayController {
   @Post('production-deployment/resolve')
   resolveProductionDeployment(@Body() input: ProductionDeploymentResolveInput) {
     return this.gateway.resolveProductionDeployment(input);
+  }
+
+  @Post('deployment-automation/heartbeat')
+  recordDeploymentAutomationHeartbeat(
+    @Body() input: DeploymentAutomationHeartbeatInput,
+  ) {
+    return this.deploymentAutomationTelemetry.record(input);
   }
 }
