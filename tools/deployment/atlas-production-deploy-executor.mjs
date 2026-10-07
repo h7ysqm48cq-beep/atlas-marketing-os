@@ -51,6 +51,7 @@ const TERMINAL = new Set([
   'SUCCESS',
   'FAILED',
   'CRASHED',
+  'REMOVING',
   'REMOVED',
   'SKIPPED',
 ]);
