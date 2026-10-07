@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 
 import { PrismaService } from '../database/prisma.service';
 import { AssetsService } from '../assets/assets.service';
@@ -10,12 +10,27 @@ import {
   DeploymentAutomationTelemetryService,
   type DeploymentAutomationHeartbeatSnapshot,
 } from '../agent-supervisor/deployment/deployment-automation-telemetry.service';
+import type { SupervisorTask } from '../agent-supervisor/agent-supervisor.types';
+import {
+  SUPERVISOR_TASK_STORE,
+  type SupervisorTaskStore,
+} from '../agent-supervisor/stores/supervisor-task.store';
 
 const PUBLISHING_STUCK_MINUTES = 15;
 const PUBLISHING_FAILURE_WINDOW_HOURS = 24;
 const SPORTS_SCHEDULER_GRACE_MINUTES = 15;
 
 const DEPLOYMENT_AUTOMATION_PRIMARY_CADENCE_SECONDS = 60;
+const SUPERVISOR_GOVERNANCE_STALE_AFTER_MS = 24 * 60 * 60_000;
+
+const SUPERVISOR_ACTIVE_STATUSES = new Set([
+  'DRAFT',
+  'BLOCKED',
+  'WORKING',
+  'IMPLEMENTED',
+  'VERIFYING',
+  'READY_FOR_REVIEW',
+]);
 
 export function buildDeploymentAutomationHealth(
   heartbeat: DeploymentAutomationHeartbeatSnapshot | null,
@@ -77,6 +92,84 @@ export function buildDeploymentAutomationHealth(
     },
     note:
       'Production liveness is determined by the Railway daemon heartbeat; GitHub scheduled workflow timing is fallback-only and is not a five-minute SLA.',
+  };
+}
+
+export function buildSupervisorGovernanceHealth(
+  tasks: SupervisorTask[] | null,
+  now = new Date(),
+) {
+  if (!tasks) {
+    return {
+      status: 'unknown',
+      totalTasks: null,
+      activeTasks: null,
+      staleActiveTasks: null,
+      activeMergeAuthorizations: null,
+      activeDeploymentAuthorizations: null,
+      activeDeploymentReservations: null,
+      oldestStaleTaskAgeSeconds: null,
+      staleAfterHours: SUPERVISOR_GOVERNANCE_STALE_AFTER_MS / 3_600_000,
+    };
+  }
+
+  const activeTasks = tasks.filter((task) =>
+    SUPERVISOR_ACTIVE_STATUSES.has(task.status),
+  );
+  const staleTasks = activeTasks.filter(
+    (task) =>
+      now.getTime() - new Date(task.updatedAt).getTime() >=
+      SUPERVISOR_GOVERNANCE_STALE_AFTER_MS,
+  );
+
+  const activeMergeAuthorizations = tasks.filter(
+    (task) =>
+      Boolean(task.evidence?.ownerMergeAuthorization) &&
+      !task.evidence?.ownerMergeAuthorizationConsumption,
+  ).length;
+  const activeDeploymentAuthorizations = tasks.filter(
+    (task) =>
+      Boolean(task.evidence?.ownerDeploymentAuthorization) &&
+      !task.evidence?.ownerDeploymentAuthorizationConsumption,
+  ).length;
+  const activeDeploymentReservations = tasks.filter(
+    (task) =>
+      Boolean(task.evidence?.ownerDeploymentDispatchReservation) &&
+      !task.evidence?.ownerDeploymentAuthorizationConsumption &&
+      task.evidence?.deploymentState !== 'DEPLOYMENT_AUTHORIZATION_RETIRED',
+  ).length;
+
+  const oldestStaleTaskAgeSeconds =
+    staleTasks.length === 0
+      ? null
+      : Math.floor(
+          Math.max(
+            ...staleTasks.map(
+              (task) => now.getTime() - new Date(task.updatedAt).getTime(),
+            ),
+          ) / 1000,
+        );
+
+  const authorityResidue =
+    activeMergeAuthorizations +
+    activeDeploymentAuthorizations +
+    activeDeploymentReservations;
+
+  return {
+    status:
+      authorityResidue > 0
+        ? 'critical'
+        : staleTasks.length > 0
+          ? 'degraded'
+          : 'healthy',
+    totalTasks: tasks.length,
+    activeTasks: activeTasks.length,
+    staleActiveTasks: staleTasks.length,
+    activeMergeAuthorizations,
+    activeDeploymentAuthorizations,
+    activeDeploymentReservations,
+    oldestStaleTaskAgeSeconds,
+    staleAfterHours: SUPERVISOR_GOVERNANCE_STALE_AFTER_MS / 3_600_000,
   };
 }
 
@@ -235,6 +328,13 @@ type CoreHealthSnapshot = {
       phase?: string | null;
     };
   };
+  supervisorGovernance: {
+    status?: string;
+    staleActiveTasks?: number | null;
+    activeMergeAuthorizations?: number | null;
+    activeDeploymentAuthorizations?: number | null;
+    activeDeploymentReservations?: number | null;
+  };
   database: { status?: string; message?: string | null };
   browserWorker: { status?: string; healthy?: boolean; message?: string | null };
   assets: { status?: string };
@@ -279,6 +379,35 @@ export function buildSystemHealthIssues(snapshot: CoreHealthSnapshot) {
             snapshot.deploymentAutomation.primary?.ageSeconds ?? null,
         }]
       : []),
+
+    ...(snapshot.supervisorGovernance.status === 'unknown'
+      ? [{
+          code: 'supervisor_governance_health_unknown',
+          severity: 'critical',
+        }]
+      : []),
+
+    ...(snapshot.supervisorGovernance.status === 'critical'
+      ? [{
+          code: 'supervisor_governance_authority_residue',
+          severity: 'critical',
+          activeMergeAuthorizations:
+            snapshot.supervisorGovernance.activeMergeAuthorizations ?? null,
+          activeDeploymentAuthorizations:
+            snapshot.supervisorGovernance.activeDeploymentAuthorizations ?? null,
+          activeDeploymentReservations:
+            snapshot.supervisorGovernance.activeDeploymentReservations ?? null,
+        }]
+      : []),
+
+    ...(snapshot.supervisorGovernance.status === 'degraded'
+      ? [{
+          code: 'supervisor_governance_stale_tasks',
+          severity: 'warning',
+          count: snapshot.supervisorGovernance.staleActiveTasks ?? null,
+        }]
+      : []),
+
     ...(snapshot.database.status === 'critical'
       ? [{
           code: 'database_unhealthy',
@@ -389,7 +518,20 @@ export class SystemHealthService {
     private readonly assetsService: AssetsService,
     private readonly browserRuntime: BrowserRuntimeBridgeService,
     private readonly deploymentAutomationTelemetry: DeploymentAutomationTelemetryService,
+    @Inject(SUPERVISOR_TASK_STORE)
+    private readonly supervisorTasks: SupervisorTaskStore,
   ) {}
+
+
+  private async checkSupervisorGovernance() {
+    try {
+      return buildSupervisorGovernanceHealth(
+        await this.supervisorTasks.list(),
+      );
+    } catch {
+      return buildSupervisorGovernanceHealth(null);
+    }
+  }
 
 
   private async checkDatabase() {
@@ -692,6 +834,7 @@ export class SystemHealthService {
       publishing,
       sportsScheduler,
       queues,
+      supervisorGovernance,
     ] = await Promise.all([
       this.checkDatabase(),
       this.checkBrowserWorker(),
@@ -700,6 +843,7 @@ export class SystemHealthService {
       this.checkPublishingPipeline(),
       this.checkSportsScheduler(),
       this.checkQueues(),
+      this.checkSupervisorGovernance(),
     ]);
 
     const deploymentAutomation = buildDeploymentAutomationHealth(
@@ -710,6 +854,7 @@ export class SystemHealthService {
 
     const issues = buildSystemHealthIssues({
       deploymentAutomation,
+      supervisorGovernance,
       database,
       browserWorker,
       assets,
@@ -733,6 +878,8 @@ export class SystemHealthService {
       },
 
       deploymentAutomation,
+
+      supervisorGovernance,
 
       browserWorker,
 
