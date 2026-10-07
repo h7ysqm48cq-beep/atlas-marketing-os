@@ -4,6 +4,12 @@ import { PrismaService } from '../database/prisma.service';
 import { AssetsService } from '../assets/assets.service';
 import { BrowserRuntimeBridgeService } from '../automation/browser-runtime-bridge.service';
 import { ScheduledPostStatus } from '../generated/prisma/enums';
+import {
+  DEPLOYMENT_AUTOMATION_DEGRADED_AFTER_MS,
+  DEPLOYMENT_AUTOMATION_STALE_AFTER_MS,
+  DeploymentAutomationTelemetryService,
+  type DeploymentAutomationHeartbeatSnapshot,
+} from '../agent-supervisor/deployment/deployment-automation-telemetry.service';
 
 const PUBLISHING_STUCK_MINUTES = 15;
 const PUBLISHING_FAILURE_WINDOW_HOURS = 24;
@@ -11,9 +17,26 @@ const SPORTS_SCHEDULER_GRACE_MINUTES = 15;
 
 const DEPLOYMENT_AUTOMATION_PRIMARY_CADENCE_SECONDS = 60;
 
-export function buildDeploymentAutomationHealth() {
+export function buildDeploymentAutomationHealth(
+  heartbeat: DeploymentAutomationHeartbeatSnapshot | null,
+  now = new Date(),
+) {
+  const ageMs = heartbeat
+    ? Math.max(0, now.getTime() - new Date(heartbeat.receivedAt).getTime())
+    : null;
+  const status =
+    !heartbeat
+      ? 'unknown'
+      : heartbeat.phase === 'cycle_failed' ||
+          (ageMs !== null && ageMs >= DEPLOYMENT_AUTOMATION_STALE_AFTER_MS)
+        ? 'critical'
+        : ageMs !== null &&
+            ageMs >= DEPLOYMENT_AUTOMATION_DEGRADED_AFTER_MS
+          ? 'degraded'
+          : 'healthy';
+
   return {
-    status: 'informational',
+    status,
     policy: 'railway_daemon_primary_github_schedule_fallback',
     primary: {
       provider: 'railway',
@@ -21,6 +44,16 @@ export function buildDeploymentAutomationHealth() {
       service: 'production-deploy-executor',
       expectedCadenceSeconds: DEPLOYMENT_AUTOMATION_PRIMARY_CADENCE_SECONDS,
       livenessSource: 'runtime_heartbeat',
+      lastHeartbeatAt: heartbeat?.receivedAt ?? null,
+      ageSeconds: ageMs === null ? null : Math.floor(ageMs / 1000),
+      degradedAfterSeconds:
+        DEPLOYMENT_AUTOMATION_DEGRADED_AFTER_MS / 1000,
+      staleAfterSeconds: DEPLOYMENT_AUTOMATION_STALE_AFTER_MS / 1000,
+      phase: heartbeat?.phase ?? null,
+      cycle: heartbeat?.cycle ?? null,
+      commitSha: heartbeat?.commitSha ?? null,
+      claimedWork: heartbeat?.claimedWork ?? null,
+      nextPollMs: heartbeat?.nextPollMs ?? null,
     },
     fallback: {
       provider: 'github-actions',
@@ -182,6 +215,13 @@ export function buildSportsSchedulerHealth(
 }
 
 type CoreHealthSnapshot = {
+  deploymentAutomation: {
+    status?: string;
+    primary?: {
+      ageSeconds?: number | null;
+      phase?: string | null;
+    };
+  };
   database: { status?: string; message?: string | null };
   browserWorker: { status?: string; healthy?: boolean; message?: string | null };
   assets: { status?: string };
@@ -207,6 +247,32 @@ type CoreHealthSnapshot = {
 
 export function buildSystemHealthIssues(snapshot: CoreHealthSnapshot) {
   return [
+    ...(snapshot.deploymentAutomation.status === 'unknown'
+      ? [{
+          code: 'deployment_automation_liveness_unknown',
+          severity: 'critical',
+        }]
+      : []),
+
+    ...(snapshot.deploymentAutomation.status === 'critical'
+      ? [{
+          code: 'deployment_automation_unhealthy',
+          severity: 'critical',
+          ageSeconds:
+            snapshot.deploymentAutomation.primary?.ageSeconds ?? null,
+          phase:
+            snapshot.deploymentAutomation.primary?.phase ?? null,
+        }]
+      : []),
+
+    ...(snapshot.deploymentAutomation.status === 'degraded'
+      ? [{
+          code: 'deployment_automation_liveness_delayed',
+          severity: 'warning',
+          ageSeconds:
+            snapshot.deploymentAutomation.primary?.ageSeconds ?? null,
+        }]
+      : []),
     ...(snapshot.database.status === 'critical'
       ? [{
           code: 'database_unhealthy',
@@ -316,6 +382,7 @@ export class SystemHealthService {
     private readonly prisma: PrismaService,
     private readonly assetsService: AssetsService,
     private readonly browserRuntime: BrowserRuntimeBridgeService,
+    private readonly deploymentAutomationTelemetry: DeploymentAutomationTelemetryService,
   ) {}
 
 
@@ -629,7 +696,12 @@ export class SystemHealthService {
       this.checkQueues(),
     ]);
 
+    const deploymentAutomation = buildDeploymentAutomationHealth(
+      this.deploymentAutomationTelemetry.snapshot(),
+    );
+
     const issues = buildSystemHealthIssues({
+      deploymentAutomation,
       database,
       browserWorker,
       assets,
@@ -652,7 +724,7 @@ export class SystemHealthService {
           "Railway status checked through deployment monitor",
       },
 
-      deploymentAutomation: buildDeploymentAutomationHealth(),
+      deploymentAutomation,
 
       browserWorker,
 
