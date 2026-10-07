@@ -4,10 +4,23 @@ jest.mock('../automation/browser-runtime-bridge.service', () => ({
 jest.mock('../assets/assets.service', () => ({ AssetsService: class {} }));
 
 import {
+  buildDeploymentAutomationHealth,
   buildSportsSchedulerHealth,
   buildSystemHealthIssues,
   SystemHealthService,
 } from './system-health.service';
+
+function freshDeploymentHeartbeat() {
+  return {
+    service: 'production-deploy-executor' as const,
+    phase: 'cycle_complete' as const,
+    cycle: 1,
+    commitSha: 'fb5e55481844c4670d451d5a429640e07f5482b5',
+    claimedWork: false,
+    nextPollMs: 120_000,
+    receivedAt: new Date().toISOString(),
+  };
+}
 
 describe('SystemHealthService', () => {
   it('reports calendar health from the scheduled-post table', async () => {
@@ -56,31 +69,41 @@ describe('SystemHealthService', () => {
           service: 'test-browser-worker',
         }),
       } as never,
+      {
+        snapshot: jest.fn().mockReturnValue(freshDeploymentHeartbeat()),
+        getObservationStartedAt: jest
+          .fn()
+          .mockReturnValue(new Date().toISOString()),
+      } as never,
     );
 
     const health = await service.getSystemHealth();
 
     expect(health.calendar).toEqual({ status: 'healthy', scheduledPosts: 3 });
-    expect(health.deploymentAutomation).toEqual({
-      status: 'informational',
-      policy: 'railway_daemon_primary_github_schedule_fallback',
-      primary: {
-        provider: 'railway',
-        mode: 'daemon',
-        service: 'production-deploy-executor',
-        expectedCadenceSeconds: 60,
-        livenessSource: 'runtime_heartbeat',
-      },
-      fallback: {
-        provider: 'github-actions',
-        mode: 'schedule',
-        workflow: 'atlas-production-deploy-executor.yml',
-        configuredCron: '*/5 * * * *',
-        cadenceGuarantee: 'best_effort',
-      },
-      note:
-        'Production liveness is determined by the Railway daemon heartbeat; GitHub scheduled workflow timing is fallback-only and is not a five-minute SLA.',
-    });
+    expect(health.deploymentAutomation).toEqual(
+      expect.objectContaining({
+        status: 'healthy',
+        policy: 'railway_daemon_primary_github_schedule_fallback',
+        primary: expect.objectContaining({
+          provider: 'railway',
+          mode: 'daemon',
+          service: 'production-deploy-executor',
+          expectedCadenceSeconds: 60,
+          livenessSource: 'runtime_heartbeat',
+          staleAfterSeconds: 300,
+          phase: 'cycle_complete',
+          cycle: 1,
+          commitSha: 'fb5e55481844c4670d451d5a429640e07f5482b5',
+        }),
+        fallback: {
+          provider: 'github-actions',
+          mode: 'schedule',
+          workflow: 'atlas-production-deploy-executor.yml',
+          configuredCron: '*/5 * * * *',
+          cadenceGuarantee: 'best_effort',
+        },
+      }),
+    );
     expect(health.publishing).toEqual({
       status: 'healthy',
       overdueEligiblePosts: 0,
@@ -146,6 +169,12 @@ describe('SystemHealthService', () => {
           service: 'test-browser-worker',
         }),
       } as never,
+      {
+        snapshot: jest.fn().mockReturnValue(freshDeploymentHeartbeat()),
+        getObservationStartedAt: jest
+          .fn()
+          .mockReturnValue(new Date().toISOString()),
+      } as never,
     );
 
     const health = await service.getSystemHealth();
@@ -204,6 +233,12 @@ describe('SystemHealthService', () => {
           healthy: true,
           service: 'test-browser-worker',
         }),
+      } as never,
+      {
+        snapshot: jest.fn().mockReturnValue(freshDeploymentHeartbeat()),
+        getObservationStartedAt: jest
+          .fn()
+          .mockReturnValue(new Date().toISOString()),
       } as never,
     );
 
@@ -264,6 +299,12 @@ describe('SystemHealthService', () => {
           healthy: true,
           service: 'test-browser-worker',
         }),
+      } as never,
+      {
+        snapshot: jest.fn().mockReturnValue(freshDeploymentHeartbeat()),
+        getObservationStartedAt: jest
+          .fn()
+          .mockReturnValue(new Date().toISOString()),
       } as never,
     );
 
@@ -349,8 +390,78 @@ describe('buildSportsSchedulerHealth', () => {
 });
 
 
+describe('buildDeploymentAutomationHealth', () => {
+  const now = new Date('2026-10-07T16:00:00.000Z');
+  const heartbeat = {
+    service: 'production-deploy-executor' as const,
+    phase: 'cycle_complete' as const,
+    cycle: 7,
+    commitSha: 'fb5e55481844c4670d451d5a429640e07f5482b5',
+    claimedWork: false,
+    nextPollMs: 120_000,
+    receivedAt: '2026-10-07T15:59:00.000Z',
+  };
+
+  it('uses a startup grace before failing closed on a missing daemon heartbeat', () => {
+    const warming = buildDeploymentAutomationHealth(
+      null,
+      now,
+      '2026-10-07T15:58:00.000Z',
+    );
+    const stale = buildDeploymentAutomationHealth(
+      null,
+      now,
+      '2026-10-07T15:55:00.000Z',
+    );
+
+    expect(warming.status).toBe('degraded');
+    expect(warming.primary.lastHeartbeatAt).toBeNull();
+    expect(warming.primary.observationAgeSeconds).toBe(120);
+    expect(stale.status).toBe('critical');
+    expect(stale.primary.observationAgeSeconds).toBe(300);
+  });
+
+  it('reports a recent daemon heartbeat as healthy', () => {
+    const health = buildDeploymentAutomationHealth(heartbeat, now);
+
+    expect(health.status).toBe('healthy');
+    expect(health.primary.ageSeconds).toBe(60);
+    expect(health.primary.staleAfterSeconds).toBe(300);
+  });
+
+  it('degrades after three minutes and becomes critical after five', () => {
+    expect(
+      buildDeploymentAutomationHealth(
+        { ...heartbeat, receivedAt: '2026-10-07T15:56:30.000Z' },
+        now,
+      ).status,
+    ).toBe('degraded');
+
+    expect(
+      buildDeploymentAutomationHealth(
+        { ...heartbeat, receivedAt: '2026-10-07T15:55:00.000Z' },
+        now,
+      ).status,
+    ).toBe('critical');
+  });
+
+  it('reports a failed daemon cycle as critical immediately', () => {
+    expect(
+      buildDeploymentAutomationHealth(
+        { ...heartbeat, phase: 'cycle_failed' },
+        now,
+      ).status,
+    ).toBe('critical');
+  });
+});
+
+
 describe('buildSystemHealthIssues', () => {
   const healthy = {
+    deploymentAutomation: {
+      status: 'healthy',
+      primary: { ageSeconds: 0, phase: 'cycle_complete' },
+    },
     database: { status: 'healthy' },
     browserWorker: { healthy: true },
     assets: { status: 'healthy' },

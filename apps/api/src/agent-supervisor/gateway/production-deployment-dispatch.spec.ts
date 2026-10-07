@@ -642,7 +642,7 @@ describe('production deployment dispatch reservation', () => {
       .mockResolvedValue(result);
     const controller = new SupervisorGatewayController({
       claimProductionDeploymentDispatch,
-    } as unknown as AgentGatewayService) as unknown as {
+    } as unknown as AgentGatewayService, {} as never) as unknown as {
       claimProductionDeploymentDispatch?: (input: unknown) => Promise<unknown>;
     };
     const input = {
