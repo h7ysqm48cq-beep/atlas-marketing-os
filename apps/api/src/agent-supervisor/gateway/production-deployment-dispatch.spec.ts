@@ -317,6 +317,53 @@ describe('production deployment dispatch reservation', () => {
     ).toBeUndefined();
   });
 
+  it('does not replay an already reserved dispatch after gateway reconstruction', async () => {
+    const { task, execution } = await createReadyWorkerDeployment(
+      'production-deploy-executor',
+    );
+    await approve(task.id);
+
+    const dispatcherId =
+      'atlas-production-deploy-executor:production-deploy-executor';
+    const first = await gateway.claimProductionDeploymentDispatch({
+      service: 'production-deploy-executor',
+      github: CANONICAL_GITHUB,
+      dispatcherId,
+    });
+    expect(first.claimed).toBe(true);
+
+    // Recreate the gateway with the same persisted task/execution stores:
+    // gateway instance state must not permit a second reservation.
+    const reconstructedGateway = new AgentGatewayService(
+      supervisor,
+      executionStore,
+    );
+    const second = await reconstructedGateway.claimProductionDeploymentDispatch(
+      {
+        service: 'production-deploy-executor',
+        github: CANONICAL_GITHUB,
+        dispatcherId,
+      },
+    );
+    expect(second).toEqual({
+      claimed: false,
+      reason: 'already_reserved',
+      service: 'production-deploy-executor',
+      commitSha: SHA,
+      taskId: task.id,
+      executionId: execution.id,
+    });
+
+    const persisted = await supervisor.getTask(task.id);
+    const reservation = persisted.evidence?.ownerDeploymentDispatchReservation;
+    expect(reservation?.reservationId).toBe(first.reservationId);
+    expect(reservation?.reservedBy).toBe(dispatcherId);
+    expect(reservation?.service).toBe('production-deploy-executor');
+    expect(
+      persisted.evidence?.ownerDeploymentAuthorizationConsumption,
+    ).toBeUndefined();
+  });
+
   it('does not allow a different dispatcher identity to take an existing reservation', async () => {
     const { task } = await createReadyWorkerDeployment();
     await approve(task.id);
