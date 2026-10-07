@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { runDaemon } from './atlas-production-deploy-executor-daemon.mjs';
+import {
+  reportDeploymentAutomationHeartbeat,
+  runDaemon,
+} from './atlas-production-deploy-executor-daemon.mjs';
 
 function silentLogger() {
   return { log() {}, error() {} };
@@ -426,4 +429,126 @@ test('stale-heartbeat detector fails closed after five minutes without a pulse',
       },
     ],
   ]);
+});
+
+
+test('heartbeat reporter uses the existing CI-authenticated supervisor gateway', async () => {
+  const payload = {
+    service: 'production-deploy-executor',
+    phase: 'cycle_complete',
+    cycle: 9,
+    commitSha: 'a'.repeat(40),
+    claimedWork: false,
+    nextPollMs: 120_000,
+  };
+  let request = null;
+
+  const result = await reportDeploymentAutomationHeartbeat(
+    {
+      ATLAS_SUPERVISOR_API_URL: 'https://api.example.test/',
+      ATLAS_SUPERVISOR_CI_TOKEN: 'ci-token',
+    },
+    payload,
+    async (url, init) => {
+      request = { url, init };
+      return {
+        ok: true,
+        status: 200,
+        text: async () =>
+          JSON.stringify({
+            ...payload,
+            receivedAt: '2026-10-07T16:00:00.000Z',
+          }),
+      };
+    },
+  );
+
+  assert.equal(
+    request.url,
+    'https://api.example.test/engineering/supervisor/gateway/deployment-automation/heartbeat',
+  );
+  assert.equal(
+    request.init.headers['x-atlas-supervisor-ci-token'],
+    'ci-token',
+  );
+  assert.deepEqual(JSON.parse(request.init.body), payload);
+  assert.equal(result.receivedAt, '2026-10-07T16:00:00.000Z');
+});
+
+test('daemon reports cycle-start and cycle-complete liveness without blocking execution', async () => {
+  const controller = new AbortController();
+  const reports = [];
+
+  await runDaemon(
+    {},
+    {
+      executeCycle: async () => ({
+        sha: 'b'.repeat(40),
+        results: [],
+      }),
+      sleep: async () => {
+        controller.abort();
+      },
+      signal: controller.signal,
+      heartbeatIntervalMs: 0,
+      reportHeartbeat: async (payload) => {
+        reports.push(payload);
+      },
+      logger: silentLogger(),
+    },
+  );
+
+  await Promise.resolve();
+  await Promise.resolve();
+
+  assert.deepEqual(
+    reports.map((entry) => entry.phase),
+    ['cycle_start', 'cycle_complete'],
+  );
+  assert.equal(reports[1].commitSha, 'b'.repeat(40));
+  assert.equal(reports[1].claimedWork, false);
+  assert.equal(reports[1].nextPollMs, 60_000);
+});
+
+test('telemetry reporting failure does not stop a healthy daemon cycle', async () => {
+  const controller = new AbortController();
+  const errors = [];
+  let cycles = 0;
+
+  await runDaemon(
+    {},
+    {
+      executeCycle: async () => {
+        cycles += 1;
+        return { results: [] };
+      },
+      sleep: async () => {
+        controller.abort();
+      },
+      signal: controller.signal,
+      heartbeatIntervalMs: 0,
+      reportHeartbeat: async () => {
+        throw new Error('telemetry unavailable');
+      },
+      logger: {
+        log() {},
+        error(event, payload) {
+          errors.push([event, payload]);
+        },
+      },
+    },
+  );
+
+  await Promise.resolve();
+  await Promise.resolve();
+
+  assert.equal(cycles, 1);
+  assert.equal(
+    errors.some(
+      ([event]) =>
+        event ===
+        'ATLAS_PRODUCTION_DEPLOY_EXECUTOR_HEARTBEAT_REPORT_FAILED',
+    ),
+    true,
+  );
 });
