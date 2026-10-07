@@ -20,13 +20,23 @@ const DEPLOYMENT_AUTOMATION_PRIMARY_CADENCE_SECONDS = 60;
 export function buildDeploymentAutomationHealth(
   heartbeat: DeploymentAutomationHeartbeatSnapshot | null,
   now = new Date(),
+  observationStartedAt = now.toISOString(),
 ) {
   const ageMs = heartbeat
     ? Math.max(0, now.getTime() - new Date(heartbeat.receivedAt).getTime())
     : null;
+  const observationAgeMs = heartbeat
+    ? null
+    : Math.max(
+        0,
+        now.getTime() - new Date(observationStartedAt).getTime(),
+      );
   const status =
     !heartbeat
-      ? 'unknown'
+      ? observationAgeMs !== null &&
+          observationAgeMs >= DEPLOYMENT_AUTOMATION_STALE_AFTER_MS
+        ? 'critical'
+        : 'degraded'
       : heartbeat.phase === 'cycle_failed' ||
           (ageMs !== null && ageMs >= DEPLOYMENT_AUTOMATION_STALE_AFTER_MS)
         ? 'critical'
@@ -46,6 +56,9 @@ export function buildDeploymentAutomationHealth(
       livenessSource: 'runtime_heartbeat',
       lastHeartbeatAt: heartbeat?.receivedAt ?? null,
       ageSeconds: ageMs === null ? null : Math.floor(ageMs / 1000),
+      observationStartedAt,
+      observationAgeSeconds:
+        observationAgeMs === null ? null : Math.floor(observationAgeMs / 1000),
       degradedAfterSeconds:
         DEPLOYMENT_AUTOMATION_DEGRADED_AFTER_MS / 1000,
       staleAfterSeconds: DEPLOYMENT_AUTOMATION_STALE_AFTER_MS / 1000,
@@ -247,13 +260,6 @@ type CoreHealthSnapshot = {
 
 export function buildSystemHealthIssues(snapshot: CoreHealthSnapshot) {
   return [
-    ...(snapshot.deploymentAutomation.status === 'unknown'
-      ? [{
-          code: 'deployment_automation_liveness_unknown',
-          severity: 'critical',
-        }]
-      : []),
-
     ...(snapshot.deploymentAutomation.status === 'critical'
       ? [{
           code: 'deployment_automation_unhealthy',
@@ -698,6 +704,8 @@ export class SystemHealthService {
 
     const deploymentAutomation = buildDeploymentAutomationHealth(
       this.deploymentAutomationTelemetry.snapshot(),
+      new Date(),
+      this.deploymentAutomationTelemetry.getObservationStartedAt(),
     );
 
     const issues = buildSystemHealthIssues({
