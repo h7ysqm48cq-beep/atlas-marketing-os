@@ -122,6 +122,25 @@ type HealthSnapshot = {
   api?: unknown;
   database?: unknown;
   railway?: unknown;
+  deploymentAutomation?: {
+    status?: string;
+    policy?: string;
+    primary?: {
+      provider?: string;
+      mode?: string;
+      service?: string;
+      expectedCadenceSeconds?: number;
+      livenessSource?: string;
+    };
+    fallback?: {
+      provider?: string;
+      mode?: string;
+      workflow?: string;
+      configuredCron?: string;
+      cadenceGuarantee?: string;
+    };
+    note?: string;
+  };
   browserWorker?: unknown;
   assets?: unknown;
   calendar?: unknown;
@@ -803,6 +822,10 @@ const healthCards = useMemo(
           {
             title: "Railway",
             value: healthSnapshot.railway,
+          },
+          {
+            title: "Deployment Automation",
+            value: healthSnapshot.deploymentAutomation,
           },
           {
             title: "Browser Worker",
