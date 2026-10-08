@@ -1,11 +1,14 @@
 import {
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import {
   BrowserTraceStatus,
 } from '../generated/prisma/enums';
 import { PrismaService } from '../database/prisma.service';
+import { AuthContextService } from '../auth/auth-context.service';
+import { WorkspaceScopeService } from '../auth/workspace-scope.service';
 
 type StartBrowserTraceInput = {
   browserActionId: string;
@@ -31,29 +34,20 @@ export class BrowserActionTraceService {
   constructor(
     private readonly prisma:
       PrismaService,
+    @Optional()
+    private readonly authContext?:
+      AuthContextService,
+    @Optional()
+    private readonly workspaceScope?:
+      WorkspaceScopeService,
   ) {}
 
   async startStep(
     input: StartBrowserTraceInput,
   ) {
-    const browserAction =
-      await this.prisma
-        .browserActionHistory
-        .findUnique({
-          where: {
-            id:
-              input.browserActionId,
-          },
-          select: {
-            id: true,
-          },
-        });
-
-    if (!browserAction) {
-      throw new NotFoundException(
-        'Browser Agent action was not found.',
-      );
-    }
+    await this.requireActionAccess(
+      input.browserActionId,
+    );
 
     return this.prisma
       .browserActionTrace
@@ -88,23 +82,9 @@ export class BrowserActionTraceService {
     } = {},
   ) {
     const existing =
-      await this.prisma
-        .browserActionTrace
-        .findUnique({
-          where: {
-            id,
-          },
-          select: {
-            id: true,
-            startedAt: true,
-          },
-        });
-
-    if (!existing) {
-      throw new NotFoundException(
-        'Browser execution trace step was not found.',
+      await this.requireTraceTiming(
+        id,
       );
-    }
 
     const completedAt =
       new Date();
@@ -146,23 +126,9 @@ export class BrowserActionTraceService {
     } = {},
   ) {
     const existing =
-      await this.prisma
-        .browserActionTrace
-        .findUnique({
-          where: {
-            id,
-          },
-          select: {
-            id: true,
-            startedAt: true,
-          },
-        });
-
-    if (!existing) {
-      throw new NotFoundException(
-        'Browser execution trace step was not found.',
+      await this.requireTraceTiming(
+        id,
       );
-    }
 
     const completedAt =
       new Date();
@@ -206,6 +172,10 @@ export class BrowserActionTraceService {
     if (!Array.isArray(steps)) {
       return [];
     }
+
+    await this.requireActionAccess(
+      browserActionId,
+    );
 
     const validStatuses =
       new Set([
@@ -394,6 +364,9 @@ export class BrowserActionTraceService {
       screenshotPath?: string | null;
     },
   ) {
+    await this.requireActionAccess(
+      input.browserActionId,
+    );
     const now =
       new Date();
 
@@ -443,6 +416,9 @@ export class BrowserActionTraceService {
       metadata?: unknown;
     },
   ) {
+    await this.requireActionAccess(
+      input.browserActionId,
+    );
     const now =
       new Date();
 
@@ -480,6 +456,10 @@ export class BrowserActionTraceService {
   async listForAction(
     browserActionId: string,
   ) {
+    await this.requireActionAccess(
+      browserActionId,
+    );
+
     return this.prisma
       .browserActionTrace
       .findMany({
@@ -502,12 +482,22 @@ export class BrowserActionTraceService {
   async listForFlow(
     flowId: string,
   ) {
+    const workspaceId =
+      await this.requestWorkspaceId();
+
     return this.prisma
       .browserActionTrace
       .findMany({
         where: {
           browserAction: {
             flowId,
+            ...(workspaceId
+              ? {
+                  channel: {
+                    workspaceId,
+                  },
+                }
+              : {}),
           },
         },
         include: {
@@ -534,5 +524,104 @@ export class BrowserActionTraceService {
           },
         ],
       });
+  }
+
+  private async requestWorkspaceId(): Promise<string | null> {
+    const userId =
+      this.authContext?.getUserId() ??
+      null;
+
+    if (!userId) {
+      return null;
+    }
+
+    if (!this.workspaceScope) {
+      throw new NotFoundException(
+        'Workspace not found.',
+      );
+    }
+
+    return this.workspaceScope
+      .getCurrentWorkspaceId();
+  }
+
+  private async requireActionAccess(
+    browserActionId: string,
+  ): Promise<void> {
+    const workspaceId =
+      await this.requestWorkspaceId();
+    const action = workspaceId
+      ? await this.prisma
+          .browserActionHistory
+          .findFirst({
+            where: {
+              id: browserActionId,
+              channel: {
+                workspaceId,
+              },
+            },
+            select: {
+              id: true,
+            },
+          })
+      : await this.prisma
+          .browserActionHistory
+          .findUnique({
+            where: {
+              id: browserActionId,
+            },
+            select: {
+              id: true,
+            },
+          });
+
+    if (!action) {
+      throw new NotFoundException(
+        'Browser Agent action was not found.',
+      );
+    }
+  }
+
+  private async requireTraceTiming(
+    id: string,
+  ) {
+    const workspaceId =
+      await this.requestWorkspaceId();
+    const trace = workspaceId
+      ? await this.prisma
+          .browserActionTrace
+          .findFirst({
+            where: {
+              id,
+              browserAction: {
+                channel: {
+                  workspaceId,
+                },
+              },
+            },
+            select: {
+              id: true,
+              startedAt: true,
+            },
+          })
+      : await this.prisma
+          .browserActionTrace
+          .findUnique({
+            where: {
+              id,
+            },
+            select: {
+              id: true,
+              startedAt: true,
+            },
+          });
+
+    if (!trace) {
+      throw new NotFoundException(
+        'Browser execution trace step was not found.',
+      );
+    }
+
+    return trace;
   }
 }

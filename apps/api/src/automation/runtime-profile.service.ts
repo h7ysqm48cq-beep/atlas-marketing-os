@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import {
   SocialProxyType,
@@ -18,6 +19,8 @@ import {
 } from 'socks-proxy-agent';
 import { PrismaService } from '../database/prisma.service';
 import { SocialTokenCryptoService } from '../common/social-token-crypto.service';
+import { AuthContextService } from '../auth/auth-context.service';
+import { WorkspaceScopeService } from '../auth/workspace-scope.service';
 
 type UpdateRuntimeProfileInput = {
   browserProfileName?: string;
@@ -39,6 +42,12 @@ export class RuntimeProfileService {
       PrismaService,
     private readonly socialTokenCrypto:
       SocialTokenCryptoService,
+    @Optional()
+    private readonly authContext?:
+      AuthContextService,
+    @Optional()
+    private readonly workspaceScope?:
+      WorkspaceScopeService,
   ) {}
 
   async ensureForChannel(
@@ -80,11 +89,16 @@ export class RuntimeProfileService {
   }
 
   async backfillMissingProfiles() {
+    const workspaceId =
+      await this.requestWorkspaceId();
     const channels =
       await this.prisma
         .socialChannel
         .findMany({
           where: {
+            ...(workspaceId
+              ? { workspaceId }
+              : {}),
             socialChannelRuntimeProfile:
               null,
           },
@@ -641,27 +655,9 @@ export class RuntimeProfileService {
     channelId: string,
   ) {
     const channel =
-      await this.prisma
-        .socialChannel
-        .findUnique({
-          where: {
-            id:
-              channelId,
-          },
-          select: {
-            id: true,
-            name: true,
-            platform: true,
-            externalId: true,
-            username: true,
-          },
-        });
-
-    if (!channel) {
-      throw new NotFoundException(
-        'Social channel was not found.',
+      await this.ensureChannel(
+        channelId,
       );
-    }
 
     if (
       String(
@@ -1482,22 +1478,55 @@ export class RuntimeProfileService {
   }
 
 
+  private async requestWorkspaceId(): Promise<string | null> {
+    const userId =
+      this.authContext?.getUserId() ??
+      null;
+
+    if (!userId) {
+      return null;
+    }
+
+    if (!this.workspaceScope) {
+      throw new NotFoundException(
+        'Workspace not found.',
+      );
+    }
+
+    return this.workspaceScope
+      .getCurrentWorkspaceId();
+  }
+
   private async ensureChannel(
     channelId: string,
   ) {
-    const channel =
-      await this.prisma
-        .socialChannel
-        .findUnique({
-          where: {
-            id: channelId,
-          },
-          select: {
-            id: true,
-            name: true,
-            platform: true,
-          },
-        });
+    const workspaceId =
+      await this.requestWorkspaceId();
+    const selection = {
+      id: true,
+      name: true,
+      platform: true,
+      externalId: true,
+      username: true,
+    } as const;
+    const channel = workspaceId
+      ? await this.prisma
+          .socialChannel
+          .findFirst({
+            where: {
+              id: channelId,
+              workspaceId,
+            },
+            select: selection,
+          })
+      : await this.prisma
+          .socialChannel
+          .findUnique({
+            where: {
+              id: channelId,
+            },
+            select: selection,
+          });
 
     if (!channel) {
       throw new NotFoundException(
