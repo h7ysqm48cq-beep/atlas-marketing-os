@@ -288,6 +288,33 @@ export class AgentGatewayService {
       });
     }
 
+    const existingConsumption =
+      task.evidence?.ownerMergeAuthorizationConsumption;
+    if (existingConsumption) {
+      const consumedCandidate = this.normalizeCandidate(
+        existingConsumption.authorization.candidate,
+      );
+      await this.assertTrustedMergeReplayExecutionBinding(
+        task,
+        execution,
+        requestedCandidate,
+      );
+      if (
+        !this.sameCandidate(consumedCandidate, requestedCandidate) ||
+        existingConsumption.consumedBy !== 'ci-gate' ||
+        !this.sameTrustedMergeAttestation(
+          existingConsumption.attestation,
+          input.attestation,
+        )
+      ) {
+        throw new BadRequestException({
+          code: 'trusted_merge_consumption_mismatch',
+        });
+      }
+
+      return this.allowed(task.id, execution.id);
+    }
+
     await this.supervisor.consumeTrustedMergeAuthorization(
       task.id,
       input.attestation,
@@ -499,11 +526,22 @@ export class AgentGatewayService {
       }
 
       const candidate = this.normalizeCandidate(rawCandidate);
-      if (
-        candidate.headSha !== sha ||
-        candidate.baseSha !== sha ||
-        candidate.changedFiles.length !== 0
-      ) {
+      // The deploy executor also supports independently verified, exact-scope
+      // Web changes. Other services remain zero-diff/same-SHA only.
+      const zeroDiff = candidate.baseSha === sha &&
+        candidate.changedFiles.length === 0;
+      const changedWeb = service === 'web' &&
+        candidate.baseSha !== sha &&
+        candidate.changedFiles.length > 0 &&
+        task.owner === 'engineering' &&
+        candidate.changedFiles.every(
+          (path) => path.startsWith('apps/web/') && !path.includes('*'),
+        ) &&
+        candidate.changedFiles.length === task.allowedPaths.length &&
+        [...candidate.changedFiles].sort().every(
+          (path, index) => path === [...task.allowedPaths].sort()[index],
+        );
+      if (candidate.headSha !== sha || (!zeroDiff && !changedWeb)) {
         continue;
       }
       if (
@@ -1015,6 +1053,43 @@ export class AgentGatewayService {
       JSON.stringify([...new Set(right)].sort());
     const runtimeRefresh = assigned.candidateBaseSha === assigned.candidateHeadSha;
     const assignedTarget = assigned.targetBranch ?? 'production/atlas';
+    const deploymentCandidate =
+      !runtimeRefresh &&
+      assignedTarget === 'production/atlas' &&
+      task.acceptance.some(
+        value => value.trim() === 'reviewCandidate.action=deploy_production',
+      ) &&
+      assigned.acceptance.some(
+        value => value.trim() === 'reviewCandidate.action=deploy_production',
+      ) &&
+      task.acceptance.some(
+        value => value.trim() === 'deploymentService=web',
+      ) &&
+      assigned.acceptance.some(
+        value => value.trim() === 'deploymentService=web',
+      ) &&
+      task.acceptance.some(
+        value => value.trim() === 'targetBranch=production/atlas',
+      ) &&
+      assigned.acceptance.some(
+        value => value.trim() === 'targetBranch=production/atlas',
+      ) &&
+      task.acceptance.some(
+        value => value.trim() ===
+          'productionBaselineSha=' + assigned.candidateHeadSha,
+      ) &&
+      assigned.acceptance.some(
+        value => value.trim() ===
+          'productionBaselineSha=' + assigned.candidateHeadSha,
+      ) &&
+      assigned.candidateHeadSha === assigned.productionBaselineSha &&
+      task.owner === 'engineering' &&
+      task.allowedPaths.length > 0 &&
+      task.allowedPaths.every(path => path.startsWith('apps/web/')) &&
+      task.forbiddenActions.includes('edit_assigned_files') &&
+      task.forbiddenActions.includes('commit_assigned_branch') &&
+      task.forbiddenActions.includes('deploy_production') &&
+      task.forbiddenActions.includes('change_runtime_config');
     const expectedPaths = runtimeRefresh ? [] : task.allowedPaths;
     if (!taskProof || !executionProof ||
         execution.status !== 'COMPLETED' ||
@@ -1045,13 +1120,17 @@ export class AgentGatewayService {
           execution.result!.evidence.changedFiles) ||
         !same(taskProof.changedFiles,
           task.evidence!.changedFiles) ||
-        candidate.action !== (runtimeRefresh ? 'deploy_production' : 'merge') ||
+        candidate.action !== (
+          runtimeRefresh || deploymentCandidate ? 'deploy_production' : 'merge'
+        ) ||
         candidate.targetBranch !== assignedTarget ||
         (runtimeRefresh && assignedTarget !== 'production/atlas') ||
         candidate.baseSha !== taskProof.baseSha ||
         candidate.headSha !== taskProof.headSha ||
         (runtimeRefresh && (taskProof.baseSha !== taskProof.headSha ||
           taskProof.headSha !== taskProof.productionBaselineSha)) ||
+        (deploymentCandidate &&
+          taskProof.headSha !== taskProof.productionBaselineSha) ||
         task.evidence!.candidatePublication ||
         execution.result!.evidence.candidatePublication) fail();
   }
@@ -1146,6 +1225,96 @@ export class AgentGatewayService {
       left.baseSha === right.baseSha &&
       left.headSha === right.headSha &&
       this.sameStringArray(left.changedFiles, right.changedFiles)
+    );
+  }
+
+  private async assertTrustedMergeReplayExecutionBinding(
+    task: SupervisorTask,
+    execution: SupervisorExecution,
+    candidate: SupervisorReviewCandidate,
+  ): Promise<void> {
+    const existingProof =
+      task.evidence?.existingCandidateVerification;
+    if (existingProof) {
+      if (existingProof.executionId !== execution.id) {
+        throw new BadRequestException({
+          code: 'trusted_merge_consumption_mismatch',
+        });
+      }
+      return;
+    }
+
+    const executions = await this.executionStore.listByTask(task.id);
+    const matchesCandidate = (candidateExecution: SupervisorExecution) => {
+      if (
+        candidateExecution.status !== 'COMPLETED' ||
+        !candidateExecution.result?.evidence.reviewCandidate
+      ) {
+        return false;
+      }
+      return this.sameCandidate(
+        this.normalizeCandidate(
+          candidateExecution.result.evidence.reviewCandidate,
+        ),
+        candidate,
+      );
+    };
+    const executionPurpose = (candidateExecution: SupervisorExecution) =>
+      candidateExecution.assignment.executionPurpose ?? 'IMPLEMENTATION';
+
+    const candidatePublication = task.evidence?.candidatePublication;
+    if (candidatePublication) {
+      const verifierMatches = executions.filter(
+        (candidateExecution) =>
+          executionPurpose(candidateExecution) ===
+            'INDEPENDENT_VERIFICATION' &&
+          matchesCandidate(candidateExecution),
+      );
+      if (
+        verifierMatches.length !== 1 ||
+        verifierMatches[0].id !== execution.id
+      ) {
+        throw new BadRequestException({
+          code: 'trusted_merge_consumption_mismatch',
+        });
+      }
+      return;
+    }
+
+    const legacyImplementationMatches = executions.filter(
+      (candidateExecution) =>
+        executionPurpose(candidateExecution) === 'IMPLEMENTATION' &&
+        matchesCandidate(candidateExecution),
+    );
+    if (
+      legacyImplementationMatches.length !== 1 ||
+      legacyImplementationMatches[0].id !== execution.id
+    ) {
+      throw new BadRequestException({
+        code: 'trusted_merge_consumption_mismatch',
+      });
+    }
+  }
+
+  private sameTrustedMergeAttestation(
+    left: SupervisorMergeAttestation,
+    right: SupervisorMergeAttestation,
+  ): boolean {
+    const normalizeSha = (value: string) => value.trim().toLowerCase();
+    const normalizeMergedAt = (value: string) => {
+      const timestamp = Date.parse(value);
+      return Number.isFinite(timestamp)
+        ? new Date(timestamp).toISOString()
+        : null;
+    };
+
+    return (
+      left.pullRequestNumber === right.pullRequestNumber &&
+      normalizeSha(left.mergeCommitSha) === normalizeSha(right.mergeCommitSha) &&
+      normalizeSha(left.mergeParents[0]) === normalizeSha(right.mergeParents[0]) &&
+      normalizeSha(left.mergeParents[1]) === normalizeSha(right.mergeParents[1]) &&
+      normalizeMergedAt(left.mergedAt) !== null &&
+      normalizeMergedAt(left.mergedAt) === normalizeMergedAt(right.mergedAt)
     );
   }
 
