@@ -161,7 +161,9 @@ function isRecoveryKindForStatus(
     (candidate.status === 'DISPATCHED' &&
       candidate.kind === 'LEGACY_DISPATCHED_TIMEOUT') ||
     (candidate.status === 'RUNNING' &&
-      candidate.kind === 'RUNNING_LEASE_EXPIRED')
+      candidate.kind === 'RUNNING_LEASE_EXPIRED') ||
+    (['FAILED', 'CANCELLED'].includes(candidate.status) &&
+      candidate.kind === 'TERMINAL_TASK_ORPHANED')
   );
 }
 
@@ -175,6 +177,8 @@ function recoveryReason(
       return 'supervisor_execution_legacy_dispatched_timeout';
     case 'RUNNING_LEASE_EXPIRED':
       return 'supervisor_execution_lease_expired';
+    case 'TERMINAL_TASK_ORPHANED':
+      return 'supervisor_execution_terminal_orphaned';
   }
 }
 
@@ -509,6 +513,76 @@ export class PrismaSupervisorLifecycleStore
 
         const currentExecution = mapExecutionRecord(executionRow);
         const currentTask = mapTaskRecord(taskRow);
+
+        if (input.candidate.kind === 'TERMINAL_TASK_ORPHANED') {
+          const executionPurpose =
+            currentExecution.assignment.executionPurpose ?? 'IMPLEMENTATION';
+          const taskStatusSupportsTerminalRecovery =
+            (currentTask.status === 'WORKING' &&
+              executionPurpose === 'IMPLEMENTATION') ||
+            (currentTask.status === 'VERIFYING' &&
+              executionPurpose === 'INDEPENDENT_VERIFICATION');
+
+          if (
+            currentExecution.id !== input.candidate.executionId ||
+            currentExecution.taskId !== input.candidate.taskId ||
+            currentExecution.status !== input.candidate.status ||
+            !['FAILED', 'CANCELLED'].includes(currentExecution.status) ||
+            currentExecution.claimEpoch !== input.candidate.claimEpoch ||
+            currentExecution.runnerId !== input.candidate.runnerId ||
+            currentExecution.createdAt.getTime() !==
+              input.candidate.createdAt.getTime() ||
+            !sameDate(
+              currentExecution.leaseExpiresAt,
+              input.candidate.leaseExpiresAt,
+            ) ||
+            !taskStatusSupportsTerminalRecovery ||
+            !isRecoveryKindForStatus(input.candidate)
+          ) {
+            return null;
+          }
+
+          const activeRows = await tx.$queryRaw<Array<{ id: string }>>`
+            SELECT "id"
+            FROM "SupervisorExecution"
+            WHERE "taskId" = ${input.candidate.taskId}
+              AND "status" IN ('QUEUED', 'DISPATCHED', 'RUNNING')
+            ORDER BY "createdAt" ASC, "id" ASC
+            FOR UPDATE
+          `;
+          if (activeRows.length > 0) {
+            return null;
+          }
+
+          const reason =
+            `supervisor_execution_terminal_orphaned:${currentExecution.status.toLowerCase()}`;
+          const blockedTask: SupervisorTask = {
+            ...currentTask,
+            status: 'BLOCKED',
+            blockingReason: reason,
+            updatedAt: new Date(input.now),
+          };
+          const taskUpdate = await tx.supervisorTask.updateMany({
+            where: {
+              id: currentTask.id,
+              status: currentTask.status,
+            },
+            data: taskUpdateData(blockedTask),
+          });
+          if (taskUpdate.count !== 1) {
+            throw persistenceError();
+          }
+
+          await tx.supervisorFileLock.deleteMany({
+            where: { taskId: input.candidate.taskId },
+          });
+
+          return {
+            execution: currentExecution,
+            task: blockedTask,
+          };
+        }
+
         const taskStatusSupportsRecovery =
           currentTask.status === 'WORKING' ||
           (currentTask.status === 'VERIFYING' &&
