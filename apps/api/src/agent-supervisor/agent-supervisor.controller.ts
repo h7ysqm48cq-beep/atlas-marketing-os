@@ -28,6 +28,7 @@ import type {
   SupervisorEvidence,
   SupervisorMergeAttestation,
   SupervisorReviewCandidate,
+  SupervisorVerifierBootstrapCompatibilityEvidence,
 } from './agent-supervisor.types';
 
 type HumanOwnerRequest = {
@@ -90,6 +91,24 @@ export class AgentSupervisorController {
   @Post('tasks/:id/fail')
   failTask(@Param('id') id: string, @Body() body: { reason: string }) {
     return this.supervisor.failTask(id, body.reason ?? '');
+  }
+
+  @Post('tasks/:id/retire')
+  retireTask(
+    @Param('id') id: string,
+    @Body()
+    body: {
+      reason: string;
+      reconciledAgainstSha: string;
+    },
+    @Req() request: { user?: { id?: string } },
+  ) {
+    return this.supervisor.retireTask(
+      id,
+      body.reason ?? '',
+      body.reconciledAgainstSha ?? '',
+      request.user?.id ?? '',
+    );
   }
 
   @Post('tasks/:id/implementation')
@@ -259,6 +278,52 @@ export class AgentSupervisorController {
       );
   }
 
+
+  @Post('tasks/:id/authorize-verifier-bootstrap-recovery')
+  authorizeVerifierBootstrapRecovery(
+    @Param('id') id: string,
+    @Body()
+    body: {
+      candidate: SupervisorReviewCandidate;
+      service: ProductionDeploymentService;
+      compatibility: SupervisorVerifierBootstrapCompatibilityEvidence;
+      failedQualificationExecutionId: string;
+    },
+    @Req() request: HumanOwnerRequest,
+  ) {
+    const signer =
+      this.requireHumanOwnerApproval();
+
+    const proof =
+      signer.verifyAuthentication(
+        this.ownerAuthenticationEvidence(
+          request,
+        ),
+        {
+          action: 'DEPLOY',
+          candidate: body.candidate,
+          service: body.service,
+        },
+      );
+
+    const authorization =
+      signer.issueDeployApproval(
+        proof,
+        body.candidate,
+        body.service,
+      );
+
+    return this.supervisor
+      .authorizeVerifierBootstrapRecovery(
+        id,
+        body.candidate,
+        body.service,
+        body.compatibility,
+        body.failedQualificationExecutionId,
+        authorization,
+      );
+  }
+
   private requireHumanOwnerApproval(): HumanOwnerApprovalService {
     if (!this.humanOwnerApproval) {
       throw new ServiceUnavailableException(
@@ -309,6 +374,19 @@ export class AgentSupervisorController {
     @Req() request: { user?: { id?: string } },
   ) {
     return this.supervisor.revokeProductionDeploymentAuthorization(
+      id,
+      body.reason ?? '',
+      request.user?.id ?? '',
+    );
+  }
+
+  @Post('tasks/:id/retire-reserved-production-deployment-authorization')
+  retireReservedProductionDeploymentAuthorization(
+    @Param('id') id: string,
+    @Body() body: { reason: string },
+    @Req() request: { user?: { id?: string } },
+  ) {
+    return this.supervisor.retireReservedProductionDeploymentAuthorization(
       id,
       body.reason ?? '',
       request.user?.id ?? '',

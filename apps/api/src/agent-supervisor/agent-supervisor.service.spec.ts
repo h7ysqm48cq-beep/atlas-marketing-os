@@ -14,6 +14,7 @@ import type {
   ProductionDeploymentService,
   SupervisorReviewCandidate,
   SupervisorTask,
+  SupervisorVerifierBootstrapCompatibilityEvidence,
 } from './agent-supervisor.types';
 import { MemoryFileOwnershipStore } from './stores/memory-file-ownership.store';
 import { MemorySupervisorTaskStore } from './stores/memory-supervisor-task.store';
@@ -1656,6 +1657,225 @@ describe('AgentSupervisorService', () => {
     });
   });
 
+  it('retires an expired reserved deployment authorization and preserves a structured audit receipt', async () => {
+    jest.useFakeTimers();
+    try {
+      const ownerService = bindOwnerApprovalArtifacts(createOwnerService());
+      const reviewCandidate = runtimeRefreshDeploymentCandidate();
+      const ready = await makeReadyTask(ownerService, reviewCandidate);
+      const approved = await ownerService.approveTask(ready.id, true);
+
+      jest.setSystemTime(new Date('2026-10-02T12:00:00.000Z'));
+      await authorizeDeploymentAsOwner(
+        ownerService,
+        approved.id,
+        reviewCandidate,
+        'api',
+        'owner-user-1',
+      );
+      await ownerService.reserveProductionDeploymentDispatch(
+        approved.id,
+        reviewCandidate,
+        'api',
+        'ATLAS-DISPATCH-' + 'a'.repeat(64),
+        'atlas-production-deploy-executor:api',
+      );
+
+      jest.setSystemTime(new Date('2026-10-02T12:31:00.000Z'));
+      const retired =
+        await ownerService.retireReservedProductionDeploymentAuthorization(
+          approved.id,
+          'terminal deployment failed and authorization expired',
+          'owner-user-2',
+        );
+
+      expect(retired.evidence?.ownerDeploymentAuthorization).toBeUndefined();
+      expect(
+        retired.evidence?.ownerDeploymentDispatchReservation,
+      ).toBeUndefined();
+      expect(retired.evidence?.deploymentState).toBe(
+        'DEPLOYMENT_AUTHORIZATION_RETIRED',
+      );
+      expect(
+        retired.evidence?.ownerDeploymentAuthorizationRetirements,
+      ).toHaveLength(1);
+      expect(
+        retired.evidence?.ownerDeploymentAuthorizationRetirements?.[0],
+      ).toMatchObject({
+        authorization: {
+          candidate: reviewCandidate,
+          service: 'api',
+          authorizedBy: 'owner-user-1',
+        },
+        reservation: {
+          candidate: reviewCandidate,
+          service: 'api',
+          reservationId: 'ATLAS-DISPATCH-' + 'a'.repeat(64),
+          reservedBy: 'atlas-production-deploy-executor:api',
+        },
+        retiredBy: 'owner-user-2',
+        reason: 'terminal deployment failed and authorization expired',
+        authorizationExpiredAt: '2026-10-02T12:10:00.000Z',
+        reservationStaleAfter: '2026-10-02T12:30:00.000Z',
+      });
+      expect(
+        retired.evidence?.ownerDeploymentAuthorizationRetirements?.[0]
+          ?.approvalJti,
+      ).toEqual(expect.any(String));
+      expect(
+        retired.evidence?.ownerDeploymentAuthorizationRetirements?.[0]
+          ?.candidateHash,
+      ).toMatch(/^[0-9a-f]{64}$/i);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('fails closed when a reserved deployment authorization has not expired', async () => {
+    jest.useFakeTimers();
+    try {
+      const ownerService = bindOwnerApprovalArtifacts(createOwnerService());
+      const reviewCandidate = runtimeRefreshDeploymentCandidate();
+      const ready = await makeReadyTask(ownerService, reviewCandidate);
+      const approved = await ownerService.approveTask(ready.id, true);
+
+      jest.setSystemTime(new Date('2026-10-02T12:00:00.000Z'));
+      await authorizeDeploymentAsOwner(
+        ownerService,
+        approved.id,
+        reviewCandidate,
+        'api',
+      );
+      await ownerService.reserveProductionDeploymentDispatch(
+        approved.id,
+        reviewCandidate,
+        'api',
+        'ATLAS-DISPATCH-' + 'b'.repeat(64),
+        'atlas-production-deploy-executor:api',
+      );
+
+      jest.setSystemTime(new Date('2026-10-02T12:09:59.000Z'));
+      await expect(
+        ownerService.retireReservedProductionDeploymentAuthorization(
+          approved.id,
+          'too early',
+          'owner-user-1',
+        ),
+      ).rejects.toMatchObject({
+        response: {
+          code: 'owner_deployment_authorization_not_expired',
+        },
+      });
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('fails closed after authorization expiry while the canonical reservation is not yet stale', async () => {
+    jest.useFakeTimers();
+    try {
+      const ownerService = bindOwnerApprovalArtifacts(createOwnerService());
+      const reviewCandidate = runtimeRefreshDeploymentCandidate();
+      const ready = await makeReadyTask(ownerService, reviewCandidate);
+      const approved = await ownerService.approveTask(ready.id, true);
+
+      jest.setSystemTime(new Date('2026-10-02T12:00:00.000Z'));
+      await authorizeDeploymentAsOwner(
+        ownerService,
+        approved.id,
+        reviewCandidate,
+        'api',
+      );
+      await ownerService.reserveProductionDeploymentDispatch(
+        approved.id,
+        reviewCandidate,
+        'api',
+        'ATLAS-DISPATCH-' + 'c'.repeat(64),
+        'atlas-production-deploy-executor:api',
+      );
+
+      jest.setSystemTime(new Date('2026-10-02T12:20:00.000Z'));
+      await expect(
+        ownerService.retireReservedProductionDeploymentAuthorization(
+          approved.id,
+          'authorization expired but dispatch window remains active',
+          'owner-user-1',
+        ),
+      ).rejects.toMatchObject({
+        response: {
+          code: 'owner_deployment_dispatch_reservation_not_stale',
+        },
+      });
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('rejects retirement for reservations not created by the canonical production deploy executor', async () => {
+    jest.useFakeTimers();
+    try {
+      const ownerService = bindOwnerApprovalArtifacts(createOwnerService());
+      const reviewCandidate = runtimeRefreshDeploymentCandidate();
+      const ready = await makeReadyTask(ownerService, reviewCandidate);
+      const approved = await ownerService.approveTask(ready.id, true);
+
+      jest.setSystemTime(new Date('2026-10-02T12:00:00.000Z'));
+      await authorizeDeploymentAsOwner(
+        ownerService,
+        approved.id,
+        reviewCandidate,
+        'api',
+      );
+      await ownerService.reserveProductionDeploymentDispatch(
+        approved.id,
+        reviewCandidate,
+        'api',
+        'ATLAS-DISPATCH-' + 'd'.repeat(64),
+        'github-actions:legacy:api',
+      );
+
+      jest.setSystemTime(new Date('2026-10-02T12:31:00.000Z'));
+      await expect(
+        ownerService.retireReservedProductionDeploymentAuthorization(
+          approved.id,
+          'legacy reservation',
+          'owner-user-1',
+        ),
+      ).rejects.toMatchObject({
+        response: {
+          code: 'owner_deployment_dispatch_reservation_not_retirable',
+        },
+      });
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('requires a dispatch reservation before retirement', async () => {
+    const ownerService = bindOwnerApprovalArtifacts(createOwnerService());
+    const reviewCandidate = runtimeRefreshDeploymentCandidate();
+    const ready = await makeReadyTask(ownerService, reviewCandidate);
+    const approved = await ownerService.approveTask(ready.id, true);
+    await authorizeDeploymentAsOwner(
+      ownerService,
+      approved.id,
+      reviewCandidate,
+      'api',
+    );
+
+    await expect(
+      ownerService.retireReservedProductionDeploymentAuthorization(
+        approved.id,
+        'no reservation exists',
+        'owner-user-1',
+      ),
+    ).rejects.toMatchObject({
+      response: {
+        code: 'owner_deployment_dispatch_reservation_required',
+      },
+    });
+  });
+
   it('revokes owner deployment authorization when a reviewed task returns to working', async () => {
     const ownerService = bindOwnerApprovalArtifacts(createOwnerService());
     const reviewCandidate = deploymentCandidate();
@@ -2230,6 +2450,217 @@ describe(
   },
 );
 
+describe('P7 historical Supervisor task retirement', () => {
+  const reconciliationSha = 'c'.repeat(40);
+
+  function fixture(overrides: Record<string, unknown> = {}) {
+    const task = {
+      id: 'ATLAS-P7-RETIRE-1',
+      objective: 'Historical reconciliation fixture',
+      owner: 'engineering',
+      status: 'BLOCKED',
+      allowedPaths: ['apps/api/src/a.ts'],
+      forbiddenActions: ['merge', 'deploy_production'],
+      dependsOn: [],
+      acceptance: ['historical task can retire safely'],
+      evidence: null,
+      blockingReason: 'superseded historical work',
+      failureReason: null,
+      createdAt: new Date('2026-10-01T00:00:00.000Z'),
+      updatedAt: new Date('2026-10-01T00:00:00.000Z'),
+      ...overrides,
+    } as SupervisorTask;
+
+    const taskStore = {
+      get: jest.fn().mockResolvedValue(task),
+      saveIfUnchanged: jest.fn().mockImplementation(
+        async (value: SupervisorTask) => value,
+      ),
+    };
+    const fileOwnershipStore = {
+      findOwner: jest.fn().mockResolvedValue(null),
+      release: jest.fn().mockResolvedValue(undefined),
+    };
+    const executionStore = {
+      listByTask: jest.fn().mockResolvedValue([]),
+    };
+
+    const service = new AgentSupervisorService(
+      taskStore as never,
+      fileOwnershipStore as never,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      executionStore as never,
+    );
+
+    return {
+      service,
+      task,
+      taskStore,
+      fileOwnershipStore,
+      executionStore,
+    };
+  }
+
+  it('retires a stale eligible task with a server-owned audit receipt and releases locks', async () => {
+    const { service, fileOwnershipStore } = fixture();
+
+    const retired = await service.retireTask(
+      'ATLAS-P7-RETIRE-1',
+      '  superseded by canonical production history  ',
+      reconciliationSha,
+      'owner-user-1',
+    );
+
+    expect(retired.status).toBe('RETIRED');
+    expect(retired.blockingReason).toBeNull();
+    expect(retired.failureReason).toBeNull();
+    expect(retired.evidence).toEqual(
+      expect.objectContaining({
+        rootCause: 'historical_task_reconciliation',
+        deploymentState: 'NOT_DEPLOYED',
+        gitState: 'NO_REPOSITORY_MUTATION',
+        taskRetirement: expect.objectContaining({
+          previousStatus: 'BLOCKED',
+          reason: 'superseded by canonical production history',
+          reconciledAgainstSha: reconciliationSha,
+          retiredBy: 'owner-user-1',
+          basis: 'HUMAN_OWNER_RECONCILIATION',
+          retiredAt: expect.any(String),
+        }),
+      }),
+    );
+    expect(fileOwnershipStore.release).toHaveBeenCalledWith(
+      'ATLAS-P7-RETIRE-1',
+    );
+  });
+
+  it('rejects retirement before the 24 hour stale boundary', async () => {
+    const { service } = fixture({
+      updatedAt: new Date(),
+    });
+
+    await expect(
+      service.retireTask(
+        'ATLAS-P7-RETIRE-1',
+        'too new',
+        reconciliationSha,
+        'owner-user-1',
+      ),
+    ).rejects.toMatchObject({
+      response: {
+        code: 'task_retirement_not_stale',
+      },
+    });
+  });
+
+  it('rejects retirement when merge, deploy, or reservation authority remains active', async () => {
+    for (const evidence of [
+      { ownerMergeAuthorization: {} },
+      { ownerDeploymentAuthorization: {} },
+      {
+        deploymentState: 'NOT_DEPLOYED',
+        ownerDeploymentDispatchReservation: {},
+      },
+    ]) {
+      const { service } = fixture({
+        evidence: {
+          rootCause: 'existing',
+          changedFiles: [],
+          tests: [],
+          build: 'NOT_RUN',
+          regression: [],
+          deploymentState: 'NOT_DEPLOYED',
+          gitState: 'CLEAN',
+          remainingRisk: [],
+          ...evidence,
+        },
+      });
+
+      await expect(
+        service.retireTask(
+          'ATLAS-P7-RETIRE-1',
+          'superseded',
+          reconciliationSha,
+          'owner-user-1',
+        ),
+      ).rejects.toMatchObject({
+        response: {
+          code: 'task_retirement_authority_residue',
+        },
+      });
+    }
+  });
+
+  it('rejects retirement while an execution is still active', async () => {
+    const { service, executionStore } = fixture();
+    executionStore.listByTask.mockResolvedValue([
+      { status: 'RUNNING' },
+    ]);
+
+    await expect(
+      service.retireTask(
+        'ATLAS-P7-RETIRE-1',
+        'superseded',
+        reconciliationSha,
+        'owner-user-1',
+      ),
+    ).rejects.toMatchObject({
+      response: {
+        code: 'task_retirement_active_execution',
+      },
+    });
+  });
+
+  it('preserves existing evidence while adding the retirement receipt', async () => {
+    const existingEvidence = {
+      rootCause: 'existing verified result',
+      changedFiles: ['apps/api/src/a.ts'],
+      tests: ['PASS'],
+      build: 'PASS',
+      regression: [],
+      deploymentState: 'NOT_DEPLOYED',
+      gitState: 'CLEAN',
+      remainingRisk: ['historical only'],
+    };
+    const { service } = fixture({
+      status: 'READY_FOR_REVIEW',
+      evidence: existingEvidence,
+    });
+
+    const retired = await service.retireTask(
+      'ATLAS-P7-RETIRE-1',
+      'candidate superseded',
+      reconciliationSha,
+      'owner-user-1',
+    );
+
+    expect(retired.evidence).toEqual(
+      expect.objectContaining(existingEvidence),
+    );
+    expect(retired.evidence?.taskRetirement?.previousStatus)
+      .toBe('READY_FOR_REVIEW');
+  });
+
+  it('treats RETIRED as terminal and rejects resurrection through failTask', async () => {
+    const { service } = fixture({
+      status: 'RETIRED',
+    });
+
+    await expect(
+      service.failTask(
+        'ATLAS-P7-RETIRE-1',
+        'should not resurrect',
+      ),
+    ).rejects.toThrow(
+      'invalid_transition:RETIRED->FAILED',
+    );
+  });
+});
+
+
 // S7_HUMAN_OWNER_ABORT_RED_SERVICE
 describe('S7 Human Owner abort RED service contract', () => {
   function fixture(recoveryResult: unknown = {
@@ -2545,5 +2976,490 @@ describe('existing-candidate verification lifecycle', () => {
     expect(admitted.status).toBe('VERIFYING');
     expect(admitted.evidence).toBeNull();
     expect(await service.ownsAllowedPaths(task.id)).toBe(true);
+  });
+});
+
+
+describe('engineering-verifier bootstrap recovery authority', () => {
+  const SHA = '6'.repeat(40);
+  const VERIFIER_PATH =
+    'apps/engineering-runner/check-verifier-production-deployment.cjs';
+
+  function compatibility(
+    overrides: Partial<SupervisorVerifierBootstrapCompatibilityEvidence> = {},
+  ): SupervisorVerifierBootstrapCompatibilityEvidence {
+    return {
+      repositoryOwner: 'h7ysqm48cq-beep',
+      repositoryName: 'atlas-marketing-os',
+      branch: 'production/atlas',
+      commitSha: SHA,
+      buildVerified: true,
+      runtimeVerified: true,
+      scopeCount: 1184,
+      method: 'verified_image_receipt',
+      verifiedAt: '2026-10-09T14:30:00.000Z',
+      ...overrides,
+    };
+  }
+
+  function bootstrapCandidate(
+    overrides: Partial<SupervisorReviewCandidate> = {},
+  ): SupervisorReviewCandidate {
+    return {
+      action: 'deploy_production',
+      targetBranch: 'production/atlas',
+      baseSha: SHA,
+      headSha: SHA,
+      changedFiles: [],
+      ...overrides,
+    };
+  }
+
+  function bootstrapService() {
+    const executions = new MemorySupervisorExecutionStore();
+    const service = new AgentSupervisorService(
+      new MemorySupervisorTaskStore(),
+      new MemoryFileOwnershipStore(),
+      undefined,
+      ownerConfig(),
+      testAuthority(),
+      undefined,
+      executions,
+    );
+    return { service, executions };
+  }
+
+  async function failedQualificationFixture(
+    service: AgentSupervisorService,
+    executions: MemorySupervisorExecutionStore,
+    sha = SHA,
+  ) {
+    const task = await service.createTask({
+      objective: 'Recover engineering-verifier bootstrap deadlock',
+      owner: 'engineering',
+      allowedPaths: [VERIFIER_PATH],
+      forbiddenActions: [
+        'edit_assigned_files',
+        'commit_assigned_branch',
+        'change_runtime_config',
+        'deploy_production',
+      ],
+      dependsOn: [],
+      acceptance: [
+        `baseSha=headSha=${sha}`,
+        'service=engineering-verifier',
+        'zero git diff',
+        'sourceVerified=true',
+        'candidatePublication absent',
+      ],
+    });
+    await service.startTask(task.id);
+    await service.blockTask(
+      task.id,
+      'supervisor_execution_queued_timeout',
+    );
+
+    const executionId =
+      'ATLAS-EXEC-BOOTSTRAP-' +
+      task.id.slice(-12).replace(/[^a-zA-Z0-9]/g, '0');
+
+    await executions.create({
+      id: executionId,
+      taskId: task.id,
+      workerRole: 'verifier',
+      status: 'FAILED',
+      assignment: {
+        executionId,
+        taskId: task.id,
+        workerRole: 'verifier',
+        executionPurpose: 'INDEPENDENT_VERIFICATION',
+        objective: 'Verify exact engineering-verifier runtime refresh',
+        allowedPaths: [VERIFIER_PATH],
+        forbiddenActions: [
+          'edit_assigned_files',
+          'commit_assigned_branch',
+          'change_runtime_config',
+          'deploy_production',
+        ],
+        dependencies: [],
+        acceptance: [
+          `baseSha=headSha=${sha}`,
+          'service=engineering-verifier',
+        ],
+        requiredEvidence: [
+          'rootCause',
+          'changedFiles',
+          'tests',
+          'build',
+          'regression',
+          'deploymentState',
+          'gitState',
+          'remainingRisk',
+        ],
+        verificationMode: 'EXISTING_CANDIDATE',
+        candidateBaseSha: sha,
+        candidateHeadSha: sha,
+        productionBaselineSha: sha,
+        targetBranch: 'production/atlas',
+        manifestHash: 'f'.repeat(64),
+        claimEpoch: 1,
+      },
+      result: null,
+      error: 'supervisor_execution_queued_timeout',
+      createdAt: new Date('2026-10-09T14:20:00.000Z'),
+      startedAt: null,
+      completedAt: new Date('2026-10-09T14:22:00.000Z'),
+      runnerId: null,
+      claimEpoch: 1,
+      lastHeartbeatAt: null,
+      leaseExpiresAt: null,
+    });
+
+    return { task, executionId };
+  }
+
+  async function ownerAuthorization(
+    service: AgentSupervisorService,
+    taskId: string,
+    candidate = bootstrapCandidate(),
+    deploymentService: ProductionDeploymentService = 'engineering-verifier',
+    compat = compatibility(),
+    failedExecutionId?: string,
+  ) {
+    const approval = testOwnerApprovalService(service);
+    const proof = approval.verifyAuthentication(
+      {
+        userId: 'owner-user-1',
+        ownerAction: '1',
+        ownerToken: OWNER_TOKEN,
+      },
+      {
+        action: 'DEPLOY',
+        candidate,
+        service: deploymentService,
+      },
+    );
+    const authorization = approval.issueDeployApproval(
+      proof,
+      candidate,
+      deploymentService,
+    );
+
+    return service.authorizeVerifierBootstrapRecovery(
+      taskId,
+      candidate,
+      deploymentService,
+      compat,
+      failedExecutionId ?? '',
+      authorization,
+    );
+  }
+
+  it('allows exact canonical engineering-verifier recovery without manufacturing verifier evidence', async () => {
+    const { service, executions } = bootstrapService();
+    const { task, executionId } =
+      await failedQualificationFixture(service, executions);
+
+    const authorized = await ownerAuthorization(
+      service,
+      task.id,
+      bootstrapCandidate(),
+      'engineering-verifier',
+      compatibility(),
+      executionId,
+    );
+
+    expect(authorized.status).toBe('APPROVED');
+    expect(authorized.evidence).toMatchObject({
+      rootCause: 'engineering_verifier_bootstrap_deadlock',
+      changedFiles: [],
+      deploymentState: 'NOT_DEPLOYED',
+      gitState: 'NO_REPOSITORY_MUTATION',
+      reviewCandidate: bootstrapCandidate(),
+      verifierBootstrapRecovery: {
+        service: 'engineering-verifier',
+        failedQualificationTaskId: task.id,
+        failedQualificationExecutionId: executionId,
+        failureReason: 'supervisor_execution_queued_timeout',
+        postRecoveryFormalQualificationRequired: true,
+      },
+      ownerDeploymentAuthorization: {
+        service: 'engineering-verifier',
+        candidate: bootstrapCandidate(),
+        authorizedBy: 'owner-user-1',
+      },
+    });
+    expect(
+      authorized.evidence?.existingCandidateVerification,
+    ).toBeUndefined();
+  });
+
+  it('rejects bootstrap recovery for a non-verifier service', async () => {
+    const { service, executions } = bootstrapService();
+    const { task, executionId } =
+      await failedQualificationFixture(service, executions);
+
+    await expect(
+      ownerAuthorization(
+        service,
+        task.id,
+        bootstrapCandidate(),
+        'api',
+        compatibility(),
+        executionId,
+      ),
+    ).rejects.toMatchObject({
+      response: {
+        code: 'verifier_bootstrap_recovery_service_invalid',
+      },
+    });
+  });
+
+  it('rejects non-same-SHA or non-zero-diff bootstrap candidates', async () => {
+    for (const candidate of [
+      bootstrapCandidate({ headSha: '7'.repeat(40) }),
+      bootstrapCandidate({ changedFiles: [VERIFIER_PATH] }),
+    ]) {
+      const { service, executions } = bootstrapService();
+      const { task, executionId } =
+        await failedQualificationFixture(service, executions);
+
+      const approval = testOwnerApprovalService(service);
+      const validCandidate = bootstrapCandidate();
+      const proof = approval.verifyAuthentication(
+        {
+          userId: 'owner-user-1',
+          ownerAction: '1',
+          ownerToken: OWNER_TOKEN,
+        },
+        {
+          action: 'DEPLOY',
+          candidate: validCandidate,
+          service: 'engineering-verifier',
+        },
+      );
+      const authorization = approval.issueDeployApproval(
+        proof,
+        validCandidate,
+        'engineering-verifier',
+      );
+
+      await expect(
+        service.authorizeVerifierBootstrapRecovery(
+          task.id,
+          candidate,
+          'engineering-verifier',
+          compatibility({ commitSha: candidate.headSha }),
+          executionId,
+          authorization,
+        ),
+      ).rejects.toMatchObject({
+        response: {
+          code: 'verifier_bootstrap_recovery_same_sha_required',
+        },
+      });
+    }
+  });
+
+
+  it('rejects bootstrap recovery without a valid Human Owner signed approval', async () => {
+    const { service, executions } = bootstrapService();
+    const { task, executionId } =
+      await failedQualificationFixture(service, executions);
+    const candidate = bootstrapCandidate();
+
+    await expect(
+      service.authorizeVerifierBootstrapRecovery(
+        task.id,
+        candidate,
+        'engineering-verifier',
+        compatibility(),
+        executionId,
+        {
+          candidate,
+          service: 'engineering-verifier',
+          authorizedBy: 'owner-user-1',
+          authorizedAt: '2026-10-09T14:30:00.000Z',
+          signature: 'invalid-signature',
+        },
+      ),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('rejects missing or stale bootstrap compatibility evidence', async () => {
+    for (const compat of [
+      compatibility({ runtimeVerified: false as true }),
+      compatibility({ commitSha: '7'.repeat(40) }),
+      compatibility({ scopeCount: 0 }),
+    ]) {
+      const { service, executions } = bootstrapService();
+      const { task, executionId } =
+        await failedQualificationFixture(service, executions);
+
+      await expect(
+        ownerAuthorization(
+          service,
+          task.id,
+          bootstrapCandidate(),
+          'engineering-verifier',
+          compat,
+          executionId,
+        ),
+      ).rejects.toMatchObject({
+        response: {
+          code: 'verifier_bootstrap_recovery_compatibility_invalid',
+        },
+      });
+    }
+  });
+
+  it('rejects recovery without queued-timeout verifier lineage', async () => {
+    const { service, executions } = bootstrapService();
+    const { task, executionId } =
+      await failedQualificationFixture(service, executions);
+    const rows = await executions.listByTask(task.id);
+    const failed = rows[0]!;
+    failed.error = 'different_failure';
+    await executions.save(failed);
+
+    await expect(
+      ownerAuthorization(
+        service,
+        task.id,
+        bootstrapCandidate(),
+        'engineering-verifier',
+        compatibility(),
+        executionId,
+      ),
+    ).rejects.toMatchObject({
+      response: {
+        code: 'verifier_bootstrap_recovery_deadlock_proof_required',
+      },
+    });
+  });
+
+  it('rejects stale canonical lineage even with otherwise valid compatibility evidence', async () => {
+    const { service, executions } = bootstrapService();
+    const { task, executionId } =
+      await failedQualificationFixture(
+        service,
+        executions,
+        '5'.repeat(40),
+      );
+
+    await expect(
+      ownerAuthorization(
+        service,
+        task.id,
+        bootstrapCandidate(),
+        'engineering-verifier',
+        compatibility(),
+        executionId,
+      ),
+    ).rejects.toMatchObject({
+      response: {
+        code: 'verifier_bootstrap_recovery_deadlock_proof_required',
+      },
+    });
+  });
+
+  it('rejects replay and preserves one-time normal deployment consumption', async () => {
+    const { service, executions } = bootstrapService();
+    const { task, executionId } =
+      await failedQualificationFixture(service, executions);
+    const candidate = bootstrapCandidate();
+
+    const authorized = await ownerAuthorization(
+      service,
+      task.id,
+      candidate,
+      'engineering-verifier',
+      compatibility(),
+      executionId,
+    );
+
+    await expect(
+      ownerAuthorization(
+        service,
+        task.id,
+        candidate,
+        'engineering-verifier',
+        compatibility(),
+        executionId,
+      ),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    const consumed =
+      await service.consumeProductionDeploymentAuthorization(
+        authorized.id,
+        candidate,
+        'engineering-verifier',
+        'deploy-gate:bootstrap-test',
+      );
+
+    expect(
+      consumed.evidence?.ownerDeploymentAuthorization,
+    ).toBeUndefined();
+    expect(
+      consumed.evidence
+        ?.ownerDeploymentAuthorizationConsumption
+        ?.authorization.service,
+    ).toBe('engineering-verifier');
+
+    await expect(
+      service.consumeProductionDeploymentAuthorization(
+        authorized.id,
+        candidate,
+        'engineering-verifier',
+        'deploy-gate:bootstrap-test-2',
+      ),
+    ).rejects.toMatchObject({
+      response: {
+        code: 'owner_deployment_authorization_already_consumed',
+      },
+    });
+  });
+
+  it('keeps post-recovery formal qualification mandatory and normal deployment authorization unchanged', async () => {
+    const { service, executions } = bootstrapService();
+    const { task, executionId } =
+      await failedQualificationFixture(service, executions);
+
+    const recovered = await ownerAuthorization(
+      service,
+      task.id,
+      bootstrapCandidate(),
+      'engineering-verifier',
+      compatibility(),
+      executionId,
+    );
+
+    expect(
+      recovered.evidence?.verifierBootstrapRecovery
+        ?.postRecoveryFormalQualificationRequired,
+    ).toBe(true);
+    expect(
+      recovered.evidence?.existingCandidateVerification,
+    ).toBeUndefined();
+
+    const normalService =
+      bindOwnerApprovalArtifacts(createOwnerService());
+    const reviewCandidate =
+      runtimeRefreshDeploymentCandidate();
+    const ready = await makeReadyTask(
+      normalService,
+      reviewCandidate,
+    );
+    const normalAuthorized =
+      await authorizeProductionDeployment(
+        normalService,
+        ready.id,
+        reviewCandidate,
+      );
+
+    expect(
+      (normalAuthorized as SupervisorTask)
+        .evidence?.ownerDeploymentAuthorization?.service,
+    ).toBe('api');
   });
 });

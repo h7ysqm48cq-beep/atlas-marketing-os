@@ -42,6 +42,11 @@ states:
     terminal: true
     description: Current attempt is stopped after implementation or verification failure.
 
+  RETIRED:
+    owner: user
+    terminal: true
+    description: Historical task was explicitly retired by the Human Owner after fail-closed reconciliation; audit history is preserved and the task cannot resume.
+
 transitions:
   - from: DRAFT
     to: WORKING
@@ -137,6 +142,39 @@ transitions:
     requires:
       - user_acceptance
 
+  - from: DRAFT
+    to: RETIRED
+    actor: user
+    requires:
+      - task_stale_at_least_24h
+      - no_active_merge_or_deploy_authority
+      - no_active_deployment_reservation
+      - no_active_execution
+      - retirement_reason_recorded
+      - reconciliation_sha_recorded
+
+  - from: BLOCKED
+    to: RETIRED
+    actor: user
+    requires:
+      - task_stale_at_least_24h
+      - no_active_merge_or_deploy_authority
+      - no_active_deployment_reservation
+      - no_active_execution
+      - retirement_reason_recorded
+      - reconciliation_sha_recorded
+
+  - from: READY_FOR_REVIEW
+    to: RETIRED
+    actor: user
+    requires:
+      - task_stale_at_least_24h
+      - no_active_merge_or_deploy_authority
+      - no_active_deployment_reservation
+      - no_active_execution
+      - retirement_reason_recorded
+      - reconciliation_sha_recorded
+
   - from: READY_FOR_REVIEW
     to: WORKING
     actor: supervisor
@@ -156,5 +194,7 @@ invariants:
   - worker_cannot_set_APPROVED
   - APPROVED_does_not_imply_merge_permission
   - APPROVED_does_not_imply_deploy_permission
+  - RETIRED_is_terminal_and_cannot_resume
+  - RETIRED_preserves_historical_audit_evidence
   - missing_verification_is_NOT_RUN_not_PASS
   - protected_git_actions_require_explicit_user_authorization
