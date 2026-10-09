@@ -18,7 +18,7 @@ describe('SupervisorGatewayController', () => {
     const checkProductionDeployment = jest.fn().mockResolvedValue(decision);
     const controller = new SupervisorGatewayController({
       checkProductionDeployment,
-    } as unknown as AgentGatewayService) as unknown as {
+    } as unknown as AgentGatewayService, {} as never) as unknown as {
       checkProductionDeployment?: (input: unknown) => Promise<unknown>;
     };
     const deploymentInput = {
@@ -53,7 +53,7 @@ describe('SupervisorGatewayController', () => {
     const resolveProductionDeployment = jest.fn().mockResolvedValue(decision);
     const controller = new SupervisorGatewayController({
       resolveProductionDeployment,
-    } as unknown as AgentGatewayService) as unknown as {
+    } as unknown as AgentGatewayService, {} as never) as unknown as {
       resolveProductionDeployment?: (input: unknown) => Promise<unknown>;
     };
     const input = {
@@ -88,7 +88,7 @@ describe('SupervisorGatewayController', () => {
     const qualifyProductionDeployment = jest.fn().mockResolvedValue(result);
     const controller = new SupervisorGatewayController({
       qualifyProductionDeployment,
-    } as unknown as AgentGatewayService) as unknown as {
+    } as unknown as AgentGatewayService, {} as never) as unknown as {
       qualifyProductionDeployment?: (input: unknown) => Promise<unknown>;
     };
     const input = {
@@ -123,7 +123,7 @@ describe('SupervisorGatewayController', () => {
       .mockResolvedValue(decision);
     const controller = new SupervisorGatewayController({
       consumeTrustedMergeAuthorization,
-    } as unknown as AgentGatewayService) as unknown as {
+    } as unknown as AgentGatewayService, {} as never) as unknown as {
       consumeTrustedMergeAuthorization?: (input: unknown) => Promise<unknown>;
     };
     const input = {
@@ -152,6 +152,36 @@ describe('SupervisorGatewayController', () => {
     expect(consumeTrustedMergeAuthorization).toHaveBeenCalledWith(input);
   });
 
+  it('records deploy-daemon heartbeat telemetry behind the CI gateway', () => {
+    const record = jest.fn().mockReturnValue({
+      service: 'production-deploy-executor',
+      phase: 'cycle_complete',
+      cycle: 2,
+      receivedAt: '2026-10-07T15:30:00.000Z',
+    });
+    const controller = new SupervisorGatewayController(
+      {} as AgentGatewayService,
+      { record } as never,
+    );
+    const input = {
+      service: 'production-deploy-executor',
+      phase: 'cycle_complete' as const,
+      cycle: 2,
+      commitSha: 'a'.repeat(40),
+      claimedWork: false,
+      nextPollMs: 120_000,
+    };
+
+    expect(controller.recordDeploymentAutomationHeartbeat(input)).toEqual(
+      expect.objectContaining({
+        service: 'production-deploy-executor',
+        phase: 'cycle_complete',
+        cycle: 2,
+      }),
+    );
+    expect(record).toHaveBeenCalledWith(input);
+  });
+
   it('exposes validation only and delegates to the gateway service', async () => {
     const workerDecision = {
       allowed: true,
@@ -169,7 +199,7 @@ describe('SupervisorGatewayController', () => {
       validateWorkerContext: jest.fn().mockResolvedValue(workerDecision),
       checkReviewCandidate: jest.fn().mockResolvedValue(reviewDecision),
     } as unknown as AgentGatewayService;
-    const controller = new SupervisorGatewayController(gateway);
+    const controller = new SupervisorGatewayController(gateway, {} as never);
 
     const workerInput: ValidateWorkerContextInput = {
       taskId: 'ATLAS-1',
