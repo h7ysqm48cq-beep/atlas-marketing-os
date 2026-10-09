@@ -384,29 +384,36 @@ describe('repository-owned production deployment gate', () => {
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 
-  it('restores the normal repository Railway API production deployment gate without migrations', () => {
+  it('uses only the temporary exact-parent API bootstrap checker for Railway pre-deploy recovery', () => {
     const config = JSON.parse(readFileSync(RAILWAY_CONFIG_PATH, 'utf8')) as {
-      deploy?: { preDeployCommand?: string[] };
+      deploy?: { preDeployCommand?: string[]; startCommand?: string };
     };
     const commands = config.deploy?.preDeployCommand ?? [];
     expect(commands).toEqual([
-      'node apps/api/scripts/check-production-deployment-gate.cjs',
+      'node apps/api/scripts/check-api-bootstrap-deployment.cjs',
     ]);
     expect(commands.join('\n')).not.toMatch(/db:migrate|prisma migrate/i);
     expect(commands).toHaveLength(1);
-    expect(commands.join('\n')).not.toMatch(/check-api-bootstrap-deployment/i);
+    expect(commands.join('\n')).not.toMatch(/check-production-deployment-gate/i);
   });
 
-  it('gates Railway API runtime start before launching Nest without changing Railway config', () => {
+  it('uses the same temporary exact-parent bootstrap checker before API runtime start', () => {
+    const config = JSON.parse(readFileSync(RAILWAY_CONFIG_PATH, 'utf8')) as {
+      deploy?: { startCommand?: string };
+    };
+    expect(config.deploy?.startCommand).toBe(
+      'node apps/api/scripts/check-api-bootstrap-deployment.cjs && node apps/api/dist/src/main.js',
+    );
+    expect(config.deploy?.startCommand).not.toMatch(
+      /check-production-runtime-gate|db:migrate|prisma migrate/i,
+    );
+
     const pkg = JSON.parse(readFileSync(API_PACKAGE_PATH, 'utf8')) as {
       scripts?: Record<string, string>;
     };
-    const startProd = pkg.scripts?.['start:prod'];
-
-    expect(startProd).toBe(
+    expect(pkg.scripts?.['start:prod']).toBe(
       'node scripts/check-production-runtime-gate.cjs && node dist/src/main.js',
     );
-    expect(startProd).not.toMatch(/db:migrate|prisma migrate/i);
   });
 
   it('keeps Browser Worker Railway preDeploy service-bound and migration-free', () => {
@@ -459,7 +466,7 @@ describe('repository-owned production deployment gate', () => {
 });
 
 describe('temporary exact-parent API bootstrap recovery', () => {
-  const parent = 'aa46291585a73ba5bed86b18b29cd47fb8c2cfd2';
+  const parent = '17ce970f69551231cffc9c431c578775cc7e38e9';
   const sha = 'b'.repeat(40);
   const files = [
     'railway.json',
@@ -474,7 +481,7 @@ describe('temporary exact-parent API bootstrap recovery', () => {
     RAILWAY_SERVICE_ID: 'c23120f6-5d60-44d6-8021-9d6c52387718',
     RAILWAY_ENVIRONMENT_ID: '62379618-8890-40fb-bff8-2db75c57027c',
   };
-  const now = Date.parse('2026-09-25T22:30:00Z');
+  const now = Date.parse('2026-10-09T07:00:00Z');
   const bootstrap = require(BOOTSTRAP_SCRIPT_PATH) as {
     main: (env: NodeJS.ProcessEnv, fetchImpl: typeof fetch, now: number) => Promise<void>;
   };
@@ -484,7 +491,19 @@ describe('temporary exact-parent API bootstrap recovery', () => {
     firstParent?: string;
     parents?: number;
     files?: string[];
+    renamedFrom?: unknown;
+    duplicateFirstPath?: boolean;
+    omitSecondParentSha?: boolean;
+    prNumber?: number;
+    prState?: string;
+    prMergedAt?: string | null;
+    prMergeSha?: string;
+    prBaseRef?: string;
+    prBaseSha?: string;
+    prHeadRef?: string;
+    prHeadSha?: string;
   } = {}) {
+    const secondParent = 'c'.repeat(40);
     return jest.fn()
       .mockResolvedValueOnce(response(200, {
         name: 'production/atlas', commit: { sha: options.tip ?? sha },
@@ -493,10 +512,36 @@ describe('temporary exact-parent API bootstrap recovery', () => {
         sha,
         parents: [
           { sha: options.firstParent ?? parent },
-          ...(options.parents === 1 ? [] : [{ sha: 'c'.repeat(40) }]),
+          ...(options.parents === 1
+            ? []
+            : [options.omitSecondParentSha ? {} : { sha: secondParent }]),
         ],
-        files: (options.files ?? files).map(filename => ({ filename })),
-      })) as unknown as typeof fetch;
+        files: (options.files ?? files).map((filename, index) => ({
+          filename: options.duplicateFirstPath && index === 2
+            ? (options.files ?? files)[0]
+            : filename,
+          status: 'modified',
+          ...(options.renamedFrom !== undefined && index === 0
+            ? { previous_filename: options.renamedFrom }
+            : {}),
+        })),
+      }))
+      .mockResolvedValueOnce(response(200, [{
+        number: options.prNumber ?? 422,
+        state: options.prState ?? 'closed',
+        merged_at: options.prMergedAt === undefined
+          ? '2026-10-09T07:30:00Z'
+          : options.prMergedAt,
+        merge_commit_sha: options.prMergeSha ?? sha,
+        base: {
+          ref: options.prBaseRef ?? 'production/atlas',
+          sha: options.prBaseSha ?? parent,
+        },
+        head: {
+          ref: options.prHeadRef ?? 'atlas/api-emergency-bootstrap-recovery-20261009',
+          sha: options.prHeadSha ?? secondParent,
+        },
+      }])) as unknown as typeof fetch;
   }
 
   it('logs a scoped exception, never a Supervisor authorization', async () => {
@@ -504,10 +549,16 @@ describe('temporary exact-parent API bootstrap recovery', () => {
     try {
       const fetchImpl = githubFetch();
       await bootstrap.main(env, fetchImpl, now);
-      expect(fetchImpl).toHaveBeenCalledTimes(2);
+      expect(fetchImpl).toHaveBeenCalledTimes(3);
       expect(log).toHaveBeenCalledWith(
         'ATLAS_API_BOOTSTRAP_EXCEPTION_NOT_SUPERVISOR_APPROVAL',
-        expect.objectContaining({ commitSha: sha, parent, service: 'api' }),
+        expect.objectContaining({
+          commitSha: sha,
+          parent,
+          service: 'api',
+          pullRequestNumber: 422,
+          recoveryHeadBranch: 'atlas/api-emergency-bootstrap-recovery-20261009',
+        }),
       );
     } finally {
       log.mockRestore();
@@ -529,7 +580,7 @@ describe('temporary exact-parent API bootstrap recovery', () => {
 
   it('rejects expired recovery before GitHub access', async () => {
     const fetchImpl = jest.fn() as unknown as typeof fetch;
-    await expect(bootstrap.main(env, fetchImpl, Date.parse('2026-09-26T12:00:00Z')))
+    await expect(bootstrap.main(env, fetchImpl, Date.parse('2026-10-09T09:30:00Z')))
       .rejects.toThrow(/expired/);
     expect(fetchImpl).not.toHaveBeenCalled();
   });
@@ -540,6 +591,21 @@ describe('temporary exact-parent API bootstrap recovery', () => {
     ['non-merge commit', { parents: 1 }, /parent/],
     ['extra file', { files: [...files, 'apps/api/src/main.ts'] }, /scope/],
     ['missing file', { files: files.slice(1) }, /scope/],
+    ['renamed file', { renamedFrom: 'apps/browser-worker/railway.json' }, /scope/],
+    ['non-string previous_filename', { renamedFrom: 123 }, /scope/],
+    ['duplicate changed path', { duplicateFirstPath: true }, /scope/],
+    ['missing second-parent SHA', { omitSecondParentSha: true }, /parent/],
+    ['wrong PR number', { prNumber: 999 }, /pr_identity/],
+    ['open PR', { prState: 'open' }, /pr_identity/],
+    ['unmerged PR', { prMergedAt: null }, /pr_identity/],
+    ['empty merged timestamp', { prMergedAt: '' }, /pr_identity/],
+    ['invalid merged timestamp', { prMergedAt: 'not-a-date' }, /pr_identity/],
+    ['wrong merge SHA', { prMergeSha: 'd'.repeat(40) }, /pr_identity/],
+    ['wrong PR base branch', { prBaseRef: 'main' }, /pr_identity/],
+    ['wrong PR base SHA', { prBaseSha: 'd'.repeat(40) }, /pr_identity/],
+    ['wrong recovery head branch', { prHeadRef: 'other' }, /pr_identity/],
+    ['missing recovery head SHA', { prHeadSha: '' }, /pr_identity/],
+    ['wrong recovery head SHA', { prHeadSha: 'd'.repeat(40) }, /pr_identity/],
   ])('rejects %s', async (_name, options, error) => {
     await expect(bootstrap.main(env, githubFetch(options), now))
       .rejects.toThrow(error);
