@@ -2230,6 +2230,216 @@ describe(
   },
 );
 
+describe('P7 historical Supervisor task retirement', () => {
+  const reconciliationSha = 'c'.repeat(40);
+
+  function fixture(overrides: Record<string, unknown> = {}) {
+    const task = {
+      id: 'ATLAS-P7-RETIRE-1',
+      objective: 'Historical reconciliation fixture',
+      owner: 'engineering',
+      status: 'BLOCKED',
+      allowedPaths: ['apps/api/src/a.ts'],
+      forbiddenActions: ['merge', 'deploy_production'],
+      dependsOn: [],
+      acceptance: ['historical task can retire safely'],
+      evidence: null,
+      blockingReason: 'superseded historical work',
+      failureReason: null,
+      createdAt: new Date('2026-10-01T00:00:00.000Z'),
+      updatedAt: new Date('2026-10-01T00:00:00.000Z'),
+      ...overrides,
+    } as SupervisorTask;
+
+    const taskStore = {
+      get: jest.fn().mockResolvedValue(task),
+      saveIfUnchanged: jest.fn().mockImplementation(
+        async (value: SupervisorTask) => value,
+      ),
+    };
+    const fileOwnershipStore = {
+      findOwner: jest.fn().mockResolvedValue(null),
+      release: jest.fn().mockResolvedValue(undefined),
+    };
+    const executionStore = {
+      listByTask: jest.fn().mockResolvedValue([]),
+    };
+
+    const service = new AgentSupervisorService(
+      taskStore as never,
+      fileOwnershipStore as never,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      executionStore as never,
+    );
+
+    return {
+      service,
+      task,
+      taskStore,
+      fileOwnershipStore,
+      executionStore,
+    };
+  }
+
+  it('retires a stale eligible task with a server-owned audit receipt and releases locks', async () => {
+    const { service, fileOwnershipStore } = fixture();
+
+    const retired = await service.retireTask(
+      'ATLAS-P7-RETIRE-1',
+      '  superseded by canonical production history  ',
+      reconciliationSha,
+      'owner-user-1',
+    );
+
+    expect(retired.status).toBe('RETIRED');
+    expect(retired.blockingReason).toBeNull();
+    expect(retired.failureReason).toBeNull();
+    expect(retired.evidence).toEqual(
+      expect.objectContaining({
+        rootCause: 'historical_task_reconciliation',
+        deploymentState: 'NOT_DEPLOYED',
+        gitState: 'NO_REPOSITORY_MUTATION',
+        taskRetirement: expect.objectContaining({
+          previousStatus: 'BLOCKED',
+          reason: 'superseded by canonical production history',
+          reconciledAgainstSha: reconciliationSha,
+          retiredBy: 'owner-user-1',
+          basis: 'HUMAN_OWNER_RECONCILIATION',
+          retiredAt: expect.any(String),
+        }),
+      }),
+    );
+    expect(fileOwnershipStore.release).toHaveBeenCalledWith(
+      'ATLAS-P7-RETIRE-1',
+    );
+  });
+
+  it('rejects retirement before the 24 hour stale boundary', async () => {
+    const { service } = fixture({
+      updatedAt: new Date(),
+    });
+
+    await expect(
+      service.retireTask(
+        'ATLAS-P7-RETIRE-1',
+        'too new',
+        reconciliationSha,
+        'owner-user-1',
+      ),
+    ).rejects.toMatchObject({
+      response: {
+        code: 'task_retirement_not_stale',
+      },
+    });
+  });
+
+  it('rejects retirement when merge, deploy, or reservation authority remains active', async () => {
+    for (const evidence of [
+      { ownerMergeAuthorization: {} },
+      { ownerDeploymentAuthorization: {} },
+      {
+        deploymentState: 'NOT_DEPLOYED',
+        ownerDeploymentDispatchReservation: {},
+      },
+    ]) {
+      const { service } = fixture({
+        evidence: {
+          rootCause: 'existing',
+          changedFiles: [],
+          tests: [],
+          build: 'NOT_RUN',
+          regression: [],
+          deploymentState: 'NOT_DEPLOYED',
+          gitState: 'CLEAN',
+          remainingRisk: [],
+          ...evidence,
+        },
+      });
+
+      await expect(
+        service.retireTask(
+          'ATLAS-P7-RETIRE-1',
+          'superseded',
+          reconciliationSha,
+          'owner-user-1',
+        ),
+      ).rejects.toMatchObject({
+        response: {
+          code: 'task_retirement_authority_residue',
+        },
+      });
+    }
+  });
+
+  it('rejects retirement while an execution is still active', async () => {
+    const { service, executionStore } = fixture();
+    executionStore.listByTask.mockResolvedValue([
+      { status: 'RUNNING' },
+    ]);
+
+    await expect(
+      service.retireTask(
+        'ATLAS-P7-RETIRE-1',
+        'superseded',
+        reconciliationSha,
+        'owner-user-1',
+      ),
+    ).rejects.toMatchObject({
+      response: {
+        code: 'task_retirement_active_execution',
+      },
+    });
+  });
+
+  it('preserves existing evidence while adding the retirement receipt', async () => {
+    const existingEvidence = {
+      rootCause: 'existing verified result',
+      changedFiles: ['apps/api/src/a.ts'],
+      tests: ['PASS'],
+      build: 'PASS',
+      regression: [],
+      deploymentState: 'NOT_DEPLOYED',
+      gitState: 'CLEAN',
+      remainingRisk: ['historical only'],
+    };
+    const { service } = fixture({
+      status: 'READY_FOR_REVIEW',
+      evidence: existingEvidence,
+    });
+
+    const retired = await service.retireTask(
+      'ATLAS-P7-RETIRE-1',
+      'candidate superseded',
+      reconciliationSha,
+      'owner-user-1',
+    );
+
+    expect(retired.evidence).toEqual(
+      expect.objectContaining(existingEvidence),
+    );
+    expect(retired.evidence?.taskRetirement?.previousStatus)
+      .toBe('READY_FOR_REVIEW');
+  });
+
+  it('treats RETIRED as terminal and rejects resurrection through failTask', async () => {
+    const { service } = fixture({
+      status: 'RETIRED',
+    });
+
+    await expect(
+      service.failTask(
+        'ATLAS-P7-RETIRE-1',
+        'should not resurrect',
+      ),
+    ).rejects.toThrow(
+      'invalid_transition:RETIRED->FAILED',
+    );
+  });
+});
+
 // S7_HUMAN_OWNER_ABORT_RED_SERVICE
 describe('S7 Human Owner abort RED service contract', () => {
   function fixture(recoveryResult: unknown = {
