@@ -9,6 +9,7 @@ import {
   SupervisorSystemGuard,
   SupervisorSystemPurposeRequired,
   type SupervisorSystemAdmissionRequest,
+  type SupervisorSystemVerificationAdmissionRequest,
 } from './supervisor-system.guard';
 import {
   SupervisorSystemAdmissionService,
@@ -29,5 +30,16 @@ export class SupervisorSystemController {
     @Body() input: SupervisorSystemAdmissionRequest,
   ) {
     return this.admissions.admit(input);
+  }
+
+  @Post('verification-admissions')
+  @SupervisorSystemPurposeRequired(
+    'VERIFICATION_COORDINATION',
+  )
+  admitVerification(
+    @Body()
+    input: SupervisorSystemVerificationAdmissionRequest,
+  ) {
+    return this.admissions.admitVerification(input);
   }
 }
