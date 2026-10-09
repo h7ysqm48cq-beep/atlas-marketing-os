@@ -28,6 +28,7 @@ import type {
   SupervisorEvidence,
   SupervisorMergeAttestation,
   SupervisorReviewCandidate,
+  SupervisorVerifierBootstrapCompatibilityEvidence,
 } from './agent-supervisor.types';
 
 type HumanOwnerRequest = {
@@ -273,6 +274,52 @@ export class AgentSupervisorController {
         id,
         body.candidate,
         body.service,
+        authorization,
+      );
+  }
+
+
+  @Post('tasks/:id/authorize-verifier-bootstrap-recovery')
+  authorizeVerifierBootstrapRecovery(
+    @Param('id') id: string,
+    @Body()
+    body: {
+      candidate: SupervisorReviewCandidate;
+      service: ProductionDeploymentService;
+      compatibility: SupervisorVerifierBootstrapCompatibilityEvidence;
+      failedQualificationExecutionId: string;
+    },
+    @Req() request: HumanOwnerRequest,
+  ) {
+    const signer =
+      this.requireHumanOwnerApproval();
+
+    const proof =
+      signer.verifyAuthentication(
+        this.ownerAuthenticationEvidence(
+          request,
+        ),
+        {
+          action: 'DEPLOY',
+          candidate: body.candidate,
+          service: body.service,
+        },
+      );
+
+    const authorization =
+      signer.issueDeployApproval(
+        proof,
+        body.candidate,
+        body.service,
+      );
+
+    return this.supervisor
+      .authorizeVerifierBootstrapRecovery(
+        id,
+        body.candidate,
+        body.service,
+        body.compatibility,
+        body.failedQualificationExecutionId,
         authorization,
       );
   }
