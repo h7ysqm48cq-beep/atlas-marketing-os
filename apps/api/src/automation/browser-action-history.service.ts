@@ -1,12 +1,15 @@
 import {
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import {
   BrowserActionStatus,
   BrowserActionType,
 } from '../generated/prisma/enums';
 import { PrismaService } from '../database/prisma.service';
+import { AuthContextService } from '../auth/auth-context.service';
+import { WorkspaceScopeService } from '../auth/workspace-scope.service';
 
 type StartBrowserActionInput = {
   channelId: string;
@@ -23,11 +26,21 @@ export class BrowserActionHistoryService {
   constructor(
     private readonly prisma:
       PrismaService,
+    @Optional()
+    private readonly authContext?:
+      AuthContextService,
+    @Optional()
+    private readonly workspaceScope?:
+      WorkspaceScopeService,
   ) {}
 
   async start(
     input: StartBrowserActionInput,
   ) {
+    await this.assertChannelAccess(
+      input.channelId,
+    );
+
     return this.prisma
       .browserActionHistory
       .create({
@@ -70,16 +83,9 @@ export class BrowserActionHistoryService {
     } = {},
   ) {
     const existing =
-      await this.prisma
-        .browserActionHistory
-        .findUniqueOrThrow({
-          where: {
-            id,
-          },
-          select: {
-            startedAt: true,
-          },
-        });
+      await this.requireActionTiming(
+        id,
+      );
 
     const completedAt =
       new Date();
@@ -120,16 +126,9 @@ export class BrowserActionHistoryService {
     responsePayload?: unknown,
   ) {
     const existing =
-      await this.prisma
-        .browserActionHistory
-        .findUniqueOrThrow({
-          where: {
-            id,
-          },
-          select: {
-            startedAt: true,
-          },
-        });
+      await this.requireActionTiming(
+        id,
+      );
 
     const completedAt =
       new Date();
@@ -168,6 +167,10 @@ export class BrowserActionHistoryService {
   async findOpenFlowId(
     channelId: string,
   ): Promise<string | null> {
+    await this.assertChannelAccess(
+      channelId,
+    );
+
     const prepare =
       await this.prisma
         .browserActionHistory
@@ -203,6 +206,7 @@ export class BrowserActionHistoryService {
         .findFirst({
           where: {
             flowId,
+            channelId,
             action: {
               in: [
                 BrowserActionType.PUBLISH,
@@ -224,13 +228,18 @@ export class BrowserActionHistoryService {
   async getRequired(
     id: string,
   ) {
-    const action =
-      await this.prisma
-        .browserActionHistory
-        .findUnique({
-          where: {
-            id,
-          },
+    const workspaceId =
+      await this.requestWorkspaceId();
+    const action = workspaceId
+      ? await this.prisma
+          .browserActionHistory
+          .findFirst({
+            where: {
+              id,
+              channel: {
+                workspaceId,
+              },
+            },
           include: {
             channel: {
               select: {
@@ -253,7 +262,36 @@ export class BrowserActionHistoryService {
               ],
             },
           },
-        });
+        })
+      : await this.prisma
+          .browserActionHistory
+          .findUnique({
+            where: {
+              id,
+            },
+            include: {
+              channel: {
+                select: {
+                  id: true,
+                  name: true,
+                  platform: true,
+                  username: true,
+                },
+              },
+              traces: {
+                orderBy: [
+                  {
+                    stepOrder:
+                      'asc',
+                  },
+                  {
+                    createdAt:
+                      'asc',
+                  },
+                ],
+              },
+            },
+          });
 
     if (!action) {
       throw new NotFoundException(
@@ -271,6 +309,8 @@ export class BrowserActionHistoryService {
       limit?: number;
     } = {},
   ) {
+    const workspaceId =
+      await this.requestWorkspaceId();
     const limit =
       Math.min(
         Math.max(
@@ -283,12 +323,24 @@ export class BrowserActionHistoryService {
     return this.prisma
       .browserActionHistory
       .findMany({
-        where: input.channelId
+        where: workspaceId
           ? {
-              channelId:
-                input.channelId,
+              channel: {
+                workspaceId,
+              },
+              ...(input.channelId
+                ? {
+                    channelId:
+                      input.channelId,
+                  }
+                : {}),
             }
-          : undefined,
+          : input.channelId
+            ? {
+                channelId:
+                  input.channelId,
+              }
+            : undefined,
         include: {
           channel: {
             select: {
@@ -316,5 +368,93 @@ export class BrowserActionHistoryService {
         },
         take: limit,
       });
+  }
+
+  private async requestWorkspaceId(): Promise<string | null> {
+    const userId =
+      this.authContext?.getUserId() ??
+      null;
+
+    if (!userId) {
+      return null;
+    }
+
+    if (!this.workspaceScope) {
+      throw new NotFoundException(
+        'Workspace not found.',
+      );
+    }
+
+    return this.workspaceScope
+      .getCurrentWorkspaceId();
+  }
+
+  private async assertChannelAccess(
+    channelId: string,
+  ): Promise<void> {
+    const workspaceId =
+      await this.requestWorkspaceId();
+
+    if (!workspaceId) {
+      return;
+    }
+
+    const channel =
+      await this.prisma
+        .socialChannel
+        .findFirst({
+          where: {
+            id: channelId,
+            workspaceId,
+          },
+          select: {
+            id: true,
+          },
+        });
+
+    if (!channel) {
+      throw new NotFoundException(
+        'Social channel not found.',
+      );
+    }
+  }
+
+  private async requireActionTiming(
+    id: string,
+  ) {
+    const workspaceId =
+      await this.requestWorkspaceId();
+    const existing = workspaceId
+      ? await this.prisma
+          .browserActionHistory
+          .findFirst({
+            where: {
+              id,
+              channel: {
+                workspaceId,
+              },
+            },
+            select: {
+              startedAt: true,
+            },
+          })
+      : await this.prisma
+          .browserActionHistory
+          .findUnique({
+            where: {
+              id,
+            },
+            select: {
+              startedAt: true,
+            },
+          });
+
+    if (!existing) {
+      throw new NotFoundException(
+        'Browser Agent action was not found.',
+      );
+    }
+
+    return existing;
   }
 }
