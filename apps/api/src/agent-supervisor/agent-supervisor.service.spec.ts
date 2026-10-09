@@ -592,6 +592,79 @@ describe('AgentSupervisorService', () => {
     });
   });
 
+  it('releases stale ownership held by a FAILED task before starting a clean replacement', async () => {
+    const taskStore = new MemorySupervisorTaskStore();
+    const ownership = new MemoryFileOwnershipStore();
+    const local = new AgentSupervisorService(taskStore, ownership);
+    const path = 'apps/api/src/stale-lock.ts';
+
+    const stale = await local.createTask({
+      objective: 'stale owner',
+      owner: 'engineering',
+      allowedPaths: [path],
+      forbiddenActions: ['merge', 'deploy_production'],
+      dependsOn: [],
+      acceptance: ['stale fixture'],
+    });
+    await local.startTask(stale.id);
+    const persisted = await taskStore.get(stale.id);
+    expect(persisted).not.toBeNull();
+    await taskStore.saveIfUnchanged(
+      { ...persisted!, status: 'FAILED', failureReason: 'half-admitted', updatedAt: new Date(persisted!.updatedAt.getTime() + 1) },
+      persisted!.updatedAt,
+    );
+    expect(await ownership.findOwner(path)).toBe(stale.id);
+
+    const replacement = await local.createTask({
+      objective: 'replacement',
+      owner: 'engineering',
+      allowedPaths: [path],
+      forbiddenActions: ['merge', 'deploy_production'],
+      dependsOn: [],
+      acceptance: ['replacement can start'],
+    });
+    const started = await local.startTask(replacement.id);
+
+    expect(started.status).toBe('WORKING');
+    expect(await ownership.findOwner(path)).toBe(replacement.id);
+  });
+
+  it('does not release ownership held by a nonterminal or unknown task', async () => {
+    const taskStore = new MemorySupervisorTaskStore();
+    const ownership = new MemoryFileOwnershipStore();
+    const local = new AgentSupervisorService(taskStore, ownership);
+    const activePath = 'apps/api/src/active-lock.ts';
+    const unknownPath = 'apps/api/src/unknown-lock.ts';
+
+    const active = await local.createTask({
+      objective: 'active owner',
+      owner: 'engineering',
+      allowedPaths: [activePath],
+      forbiddenActions: ['merge', 'deploy_production'],
+      dependsOn: [],
+      acceptance: ['active fixture'],
+    });
+    await local.startTask(active.id);
+    await ownership.acquire('ATLAS-UNKNOWN-OWNER', [unknownPath]);
+
+    for (const path of [activePath, unknownPath]) {
+      const replacement = await local.createTask({
+        objective: 'must remain blocked',
+        owner: 'engineering',
+        allowedPaths: [path],
+        forbiddenActions: ['merge', 'deploy_production'],
+        dependsOn: [],
+        acceptance: ['must conflict'],
+      });
+      await expect(local.startTask(replacement.id)).rejects.toMatchObject({
+        response: { code: 'file_ownership_conflict' },
+      });
+    }
+
+    expect(await ownership.findOwner(activePath)).toBe(active.id);
+    expect(await ownership.findOwner(unknownPath)).toBe('ATLAS-UNKNOWN-OWNER');
+  });
+
   it('creates bounded tasks in DRAFT state with restart-safe ids', async () => {
     const task = await service.createTask({
       objective: 'Fix calendar image save',
