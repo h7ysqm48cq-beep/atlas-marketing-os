@@ -1847,12 +1847,28 @@ export class AgentSupervisorService {
   }
 
   private async assertFilesAvailable(task: SupervisorTask) {
-    const ownership = await Promise.all(
+    const readOwnership = () => Promise.all(
       task.allowedPaths.map(async (path) => ({
         path,
         owner: await this.fileOwnershipStore.findOwner(path),
       })),
     );
+
+    let ownership = await readOwnership();
+    const staleOwners = new Set(
+      ownership
+        .map((entry) => entry.owner)
+        .filter((owner): owner is string => Boolean(owner && owner !== task.id)),
+    );
+
+    for (const ownerId of staleOwners) {
+      const ownerTask = await this.taskStore.get(ownerId);
+      if (ownerTask && ['FAILED', 'RETIRED'].includes(ownerTask.status)) {
+        await this.fileOwnershipStore.release(ownerId);
+      }
+    }
+
+    ownership = await readOwnership();
     const conflicts = ownership.filter(
       (entry): entry is { path: string; owner: string } =>
         Boolean(entry.owner && entry.owner !== task.id),
