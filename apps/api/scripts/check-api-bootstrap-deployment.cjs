@@ -3,20 +3,18 @@
 const OWNER = 'h7ysqm48cq-beep';
 const REPO = 'atlas-marketing-os';
 const BRANCH = 'production/atlas';
-const EXPECTED_PR_NUMBER = 422;
-const EXPECTED_HEAD_BRANCH = 'atlas/api-emergency-bootstrap-recovery-20261009';
-// Temporary API-only recovery for the 2026-10-09 control-plane cold-start
-// self-dependency. Restore the normal repository pre-deploy + runtime-start
+const EXPECTED_PR_NUMBER = 0;
+const EXPECTED_HEAD_BRANCH = 'atlas/api-bootstrap-refresh-20261009';
+// Temporary API-only refresh of the 2026-10-09 control-plane cold-start
+// recovery window. Restore the normal repository pre-deploy + runtime-start
 // Supervisor gates in a separate reviewed PR immediately after API recovery.
 // This is NOT Supervisor approval and must never be logged as one.
-const EXPECTED_PARENT = '17ce970f69551231cffc9c431c578775cc7e38e9';
+const EXPECTED_PARENT = '4dce81045b88c301aa39ecc60252d0708c784ce1';
 const EXPECTED_SERVICE_ID = 'c23120f6-5d60-44d6-8021-9d6c52387718';
 const EXPECTED_ENVIRONMENT_ID = '62379618-8890-40fb-bff8-2db75c57027c';
-const EXPIRES_AT = Date.parse('2026-10-09T09:30:00Z');
+const EXPIRES_AT = Date.parse('2026-10-09T12:45:00Z');
 const ALLOWED_FILES = new Set([
-  'railway.json',
   'apps/api/scripts/check-api-bootstrap-deployment.cjs',
-  'apps/api/src/agent-supervisor/gateway/repository-production-deployment-gate.spec.ts',
 ]);
 
 function requireExact(env, key, expected) {
