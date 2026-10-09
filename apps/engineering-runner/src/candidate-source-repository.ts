@@ -307,11 +307,16 @@ export class CandidateSourceRepository {
     }
 
     for (const candidatePath of [...new Set(candidatePaths)].sort()) {
-      const [candidateEntry, productionEntry] = await Promise.all([
+      const [baseEntry, candidateEntry, productionEntry] = await Promise.all([
+        this.treeEntry(candidateBaseSha, candidatePath),
         this.treeEntry(candidateHeadSha, candidatePath),
         this.treeEntry(expectedProductionSha, candidatePath),
       ]);
-      if (!candidateEntry || candidateEntry !== productionEntry) {
+      const exactTreeParity =
+        Boolean(candidateEntry) && candidateEntry === productionEntry;
+      const exactDeletionParity =
+        Boolean(baseEntry) && !candidateEntry && !productionEntry;
+      if (!exactTreeParity && !exactDeletionParity) {
         throw new Error("existing_candidate_main_sync_blob_mismatch");
       }
     }
