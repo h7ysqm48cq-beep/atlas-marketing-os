@@ -11,6 +11,7 @@ import type {
   SupervisorOwnerDeploymentAuthorization,
   SupervisorOwnerDeploymentAuthorizationConsumption,
   SupervisorOwnerDeploymentAuthorizationRevocation,
+  SupervisorOwnerDeploymentAuthorizationRetirement,
   SupervisorOwnerDeploymentDispatchReservation,
   SupervisorOwnerMergeAuthorization,
   SupervisorOwnerMergeAuthorizationConsumption,
@@ -18,6 +19,7 @@ import type {
   SupervisorReviewCandidate,
   SupervisorTask,
   SupervisorTaskStatus,
+  SupervisorVerifierBootstrapRecoveryEvidence,
 } from '../agent-supervisor.types';
 import type {
   RequiredEvidenceField,
@@ -522,6 +524,79 @@ function mapOwnerDeploymentAuthorizationRevocations(
   );
 }
 
+function mapOwnerDeploymentAuthorizationRetirement(
+  value: unknown,
+): SupervisorOwnerDeploymentAuthorizationRetirement {
+  const object = requireObject(value);
+  const authorization = mapOwnerDeploymentAuthorization(object.authorization);
+  const reservation = mapOwnerDeploymentDispatchReservation(object.reservation);
+  const approvalJti = requireString(object.approvalJti);
+  const candidateHash = requireString(object.candidateHash);
+  const authorizationExpiredAt = requireString(object.authorizationExpiredAt);
+  const reservationStaleAfter = requireString(object.reservationStaleAfter);
+  const retiredBy = requireString(object.retiredBy);
+  const retiredAt = requireString(object.retiredAt);
+  const reason = requireString(object.reason);
+  const sameCandidate =
+    authorization.candidate.action === reservation.candidate.action &&
+    authorization.candidate.targetBranch === reservation.candidate.targetBranch &&
+    authorization.candidate.baseSha === reservation.candidate.baseSha &&
+    authorization.candidate.headSha === reservation.candidate.headSha &&
+    authorization.candidate.changedFiles.length === reservation.candidate.changedFiles.length &&
+    authorization.candidate.changedFiles.every(
+      (path, index) => path === reservation.candidate.changedFiles[index],
+    );
+  const authorizationExpiredAtMs = Date.parse(authorizationExpiredAt);
+  const reservationStaleAfterMs = Date.parse(reservationStaleAfter);
+  const retiredAtMs = Date.parse(retiredAt);
+
+  if (
+    authorization.service !== reservation.service ||
+    !sameCandidate ||
+    !approvalJti.trim() ||
+    !/^[0-9a-f]{64}$/i.test(candidateHash) ||
+    !authorizationExpiredAt.trim() ||
+    !Number.isFinite(authorizationExpiredAtMs) ||
+    new Date(authorizationExpiredAtMs).toISOString() !== authorizationExpiredAt ||
+    !reservationStaleAfter.trim() ||
+    !Number.isFinite(reservationStaleAfterMs) ||
+    new Date(reservationStaleAfterMs).toISOString() !== reservationStaleAfter ||
+    reservationStaleAfterMs <= Date.parse(reservation.reservedAt) ||
+    retiredAtMs < authorizationExpiredAtMs ||
+    retiredAtMs < reservationStaleAfterMs ||
+    !retiredBy.trim() ||
+    retiredBy !== retiredBy.trim() ||
+    !retiredAt.trim() ||
+    !Number.isFinite(retiredAtMs) ||
+    new Date(retiredAtMs).toISOString() !== retiredAt ||
+    !reason.trim() ||
+    reason !== reason.trim()
+  ) {
+    throw persistenceError();
+  }
+
+  return {
+    authorization,
+    reservation,
+    approvalJti,
+    candidateHash,
+    authorizationExpiredAt,
+    reservationStaleAfter,
+    retiredBy,
+    retiredAt,
+    reason,
+  };
+}
+
+function mapOwnerDeploymentAuthorizationRetirements(
+  value: unknown,
+): SupervisorOwnerDeploymentAuthorizationRetirement[] {
+  if (!Array.isArray(value)) {
+    throw persistenceError();
+  }
+  return value.map(mapOwnerDeploymentAuthorizationRetirement);
+}
+
 function mapExistingCandidateVerification(value: unknown): SupervisorExistingCandidateVerification {
   const object = requireObject(value);
   const baseSha = requireString(object.baseSha);
@@ -546,6 +621,101 @@ function mapExistingCandidateVerification(value: unknown): SupervisorExistingCan
     targetBranch: targetBranch as SupervisorMergeTargetBranch,
     changedFiles: requireStringArray(object.changedFiles),
     gitFingerprint, sourceVerified: true,
+  };
+}
+
+function mapVerifierBootstrapCompatibilityEvidence(value: unknown) {
+  const object = requireObject(value);
+  const commitSha = requireString(object.commitSha);
+  const scopeCount = object.scopeCount;
+  const verifiedAt = requireString(object.verifiedAt);
+  const verifiedAtMs = Date.parse(verifiedAt);
+
+  if (
+    object.repositoryOwner !== 'h7ysqm48cq-beep' ||
+    object.repositoryName !== 'atlas-marketing-os' ||
+    object.branch !== 'production/atlas' ||
+    !FULL_GIT_SHA.test(commitSha) ||
+    object.buildVerified !== true ||
+    object.runtimeVerified !== true ||
+    typeof scopeCount !== 'number' ||
+    !Number.isInteger(scopeCount) ||
+    scopeCount < 1 ||
+    object.method !== 'verified_image_receipt' ||
+    !verifiedAt.trim() ||
+    verifiedAt !== verifiedAt.trim() ||
+    !Number.isFinite(verifiedAtMs) ||
+    new Date(verifiedAtMs).toISOString() !== verifiedAt
+  ) {
+    throw persistenceError();
+  }
+
+  return {
+    repositoryOwner: 'h7ysqm48cq-beep' as const,
+    repositoryName: 'atlas-marketing-os' as const,
+    branch: 'production/atlas' as const,
+    commitSha,
+    buildVerified: true as const,
+    runtimeVerified: true as const,
+    scopeCount,
+    method: 'verified_image_receipt' as const,
+    verifiedAt,
+  };
+}
+
+function mapVerifierBootstrapRecoveryEvidence(
+  value: unknown,
+): SupervisorVerifierBootstrapRecoveryEvidence {
+  const object = requireObject(value);
+  const candidate = mapReviewCandidate(object.candidate);
+  const failedQualificationTaskId = requireString(
+    object.failedQualificationTaskId,
+  );
+  const failedQualificationExecutionId = requireString(
+    object.failedQualificationExecutionId,
+  );
+  const compatibility = mapVerifierBootstrapCompatibilityEvidence(
+    object.compatibility,
+  );
+  const authorizedBy = requireString(object.authorizedBy);
+  const authorizedAt = requireString(object.authorizedAt);
+  const authorizedAtMs = Date.parse(authorizedAt);
+
+  if (
+    object.service !== 'engineering-verifier' ||
+    candidate.action !== 'deploy_production' ||
+    candidate.targetBranch !== 'production/atlas' ||
+    !FULL_GIT_SHA.test(candidate.baseSha) ||
+    !FULL_GIT_SHA.test(candidate.headSha) ||
+    candidate.baseSha.toLowerCase() !== candidate.headSha.toLowerCase() ||
+    candidate.changedFiles.length !== 0 ||
+    compatibility.commitSha.toLowerCase() !== candidate.headSha.toLowerCase() ||
+    !/^ATLAS-SYS-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      failedQualificationTaskId,
+    ) ||
+    !/^ATLAS-EXEC-[A-Za-z0-9-]+$/.test(failedQualificationExecutionId) ||
+    object.failureReason !== 'supervisor_execution_queued_timeout' ||
+    !authorizedBy.trim() ||
+    authorizedBy !== authorizedBy.trim() ||
+    !authorizedAt.trim() ||
+    authorizedAt !== authorizedAt.trim() ||
+    !Number.isFinite(authorizedAtMs) ||
+    new Date(authorizedAtMs).toISOString() !== authorizedAt ||
+    object.postRecoveryFormalQualificationRequired !== true
+  ) {
+    throw persistenceError();
+  }
+
+  return {
+    service: 'engineering-verifier',
+    candidate,
+    failedQualificationTaskId,
+    failedQualificationExecutionId,
+    failureReason: 'supervisor_execution_queued_timeout',
+    compatibility,
+    authorizedBy,
+    authorizedAt,
+    postRecoveryFormalQualificationRequired: true,
   };
 }
 
@@ -595,11 +765,23 @@ function mapEvidence(value: unknown): SupervisorEvidence {
       : mapOwnerDeploymentAuthorizationRevocations(
           object.ownerDeploymentAuthorizationRevocations,
         );
+  const ownerDeploymentAuthorizationRetirements =
+    object.ownerDeploymentAuthorizationRetirements === undefined
+      ? undefined
+      : mapOwnerDeploymentAuthorizationRetirements(
+          object.ownerDeploymentAuthorizationRetirements,
+        );
   const ownerDeploymentDispatchReservation =
     object.ownerDeploymentDispatchReservation === undefined
       ? undefined
       : mapOwnerDeploymentDispatchReservation(
           object.ownerDeploymentDispatchReservation,
+        );
+  const verifierBootstrapRecovery =
+    object.verifierBootstrapRecovery === undefined
+      ? undefined
+      : mapVerifierBootstrapRecoveryEvidence(
+          object.verifierBootstrapRecovery,
         );
 
   return {
@@ -628,8 +810,14 @@ function mapEvidence(value: unknown): SupervisorEvidence {
     ...(ownerDeploymentAuthorizationRevocations
       ? { ownerDeploymentAuthorizationRevocations }
       : {}),
+    ...(ownerDeploymentAuthorizationRetirements
+      ? { ownerDeploymentAuthorizationRetirements }
+      : {}),
     ...(ownerDeploymentDispatchReservation
       ? { ownerDeploymentDispatchReservation }
+      : {}),
+    ...(verifierBootstrapRecovery
+      ? { verifierBootstrapRecovery }
       : {}),
   };
 }

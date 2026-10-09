@@ -224,6 +224,24 @@ function ownerDeploymentDispatchReservationFixture() {
   };
 }
 
+function ownerDeploymentAuthorizationRetirementFixture() {
+  return {
+    authorization: ownerDeploymentAuthorizationFixture(),
+    reservation: {
+      ...ownerDeploymentDispatchReservationFixture(),
+      service: 'api',
+      candidate: deploymentCandidateFixture(),
+    },
+    approvalJti: 'deploy-retirement-jti',
+    candidateHash: 'e'.repeat(64),
+    authorizationExpiredAt: '2026-10-02T12:10:00.000Z',
+    reservationStaleAfter: '2026-10-02T12:30:00.000Z',
+    retiredBy: 'owner-user-2',
+    retiredAt: '2026-10-02T12:31:00.000Z',
+    reason: 'terminal deployment failed and authorization expired',
+  };
+}
+
 function evidenceFixture() {
   return {
     rootCause: 'Known cause',
@@ -676,6 +694,60 @@ describe('supervisor persistence mapper', () => {
     );
   });
 
+  it('round-trips and clones persisted deployment authorization retirement history', () => {
+    const retirement = ownerDeploymentAuthorizationRetirementFixture();
+    const evidence = {
+      ...evidenceFixture(),
+      reviewCandidate: deploymentCandidateFixture(),
+      ownerDeploymentAuthorizationRetirements: [retirement],
+    };
+
+    const task = mapTaskRecord(taskRecord({ evidence }));
+    const mapped =
+      task.evidence?.ownerDeploymentAuthorizationRetirements?.[0];
+
+    expect(mapped).toEqual(retirement);
+    expect(mapped).not.toBe(retirement);
+    expect(mapped?.authorization).not.toBe(retirement.authorization);
+    expect(mapped?.reservation).not.toBe(retirement.reservation);
+  });
+
+  it.each([
+    { candidateHash: 'bad' },
+    { approvalJti: '   ' },
+    { authorizationExpiredAt: 'not-a-date' },
+    { reservationStaleAfter: 'not-a-date' },
+    { reservationStaleAfter: '2026-10-01T18:32:34.477Z' },
+    { retiredBy: '   ' },
+    { retiredAt: 'not-a-date' },
+    { retiredAt: '2026-10-02T12:09:59.999Z' },
+    { retiredAt: '2026-10-02T12:29:59.999Z' },
+    { reason: '   ' },
+    {
+      reservation: {
+        ...ownerDeploymentAuthorizationRetirementFixture().reservation,
+        service: 'web',
+      },
+    },
+  ])(
+    'rejects malformed persisted deployment authorization retirement',
+    (override) => {
+      const evidence = {
+        ...evidenceFixture(),
+        reviewCandidate: deploymentCandidateFixture(),
+        ownerDeploymentAuthorizationRetirements: [
+          {
+            ...ownerDeploymentAuthorizationRetirementFixture(),
+            ...override,
+          },
+        ],
+      };
+      expectPersistenceError(() =>
+        mapTaskRecord(taskRecord({ evidence })),
+      );
+    },
+  );
+
   // ASTRA_V2_DEPLOYMENT_REVOCATION_MAPPER_RED
   it('maps and clones persisted deployment authorization revocation history', () => {
     const revocation =
@@ -1033,5 +1105,77 @@ describe('immutable existing-candidate persistence round-trip', () => {
       ...p, sourceVerified: false,
     };
     expectPersistenceError(() => mapExecutionRecord(result));
+  });
+});
+
+
+describe('verifier bootstrap recovery persistence', () => {
+  function recoveryFixture() {
+    const candidate = {
+      action: 'deploy_production',
+      targetBranch: 'production/atlas',
+      baseSha: 'a'.repeat(40),
+      headSha: 'a'.repeat(40),
+      changedFiles: [],
+    };
+    return {
+      service: 'engineering-verifier',
+      candidate,
+      failedQualificationTaskId:
+        'ATLAS-SYS-7f86a61c-5f8e-4c84-b9ef-d31e391dfae7',
+      failedQualificationExecutionId:
+        'ATLAS-EXEC-20261009-79c71275-6ed4-46db-b0f1-818d2e3c85b2',
+      failureReason: 'supervisor_execution_queued_timeout',
+      compatibility: {
+        repositoryOwner: 'h7ysqm48cq-beep',
+        repositoryName: 'atlas-marketing-os',
+        branch: 'production/atlas',
+        commitSha: 'a'.repeat(40),
+        buildVerified: true,
+        runtimeVerified: true,
+        scopeCount: 1184,
+        method: 'verified_image_receipt',
+        verifiedAt: '2026-10-09T20:14:28.492Z',
+      },
+      authorizedBy: 'owner-user-1',
+      authorizedAt: '2026-10-09T21:50:55.690Z',
+      postRecoveryFormalQualificationRequired: true,
+    };
+  }
+
+  it('round-trips verifier bootstrap recovery evidence without dropping the deadlock proof', () => {
+    const recovery = recoveryFixture();
+    const evidence = {
+      ...evidenceFixture(),
+      reviewCandidate: recovery.candidate,
+      verifierBootstrapRecovery: recovery,
+    };
+
+    const task = mapTaskRecord(taskRecord({ evidence }));
+    const mapped = task.evidence?.verifierBootstrapRecovery;
+
+    expect(mapped).toEqual(recovery);
+    expect(mapped).not.toBe(recovery);
+    expect(mapped?.compatibility).not.toBe(recovery.compatibility);
+  });
+
+  it.each([
+    ['zero scope', { compatibility: { ...recoveryFixture().compatibility, scopeCount: 0 } }],
+    ['unverified runtime', { compatibility: { ...recoveryFixture().compatibility, runtimeVerified: false } }],
+    ['wrong method', { compatibility: { ...recoveryFixture().compatibility, method: 'manual' } }],
+    ['wrong failure reason', { failureReason: 'other_failure' }],
+    ['post-recovery qualification disabled', { postRecoveryFormalQualificationRequired: false }],
+  ])('rejects malformed verifier bootstrap recovery evidence: %s', (_label, override) => {
+    const recovery = {
+      ...recoveryFixture(),
+      ...override,
+    };
+    const evidence = {
+      ...evidenceFixture(),
+      reviewCandidate: recovery.candidate,
+      verifierBootstrapRecovery: recovery,
+    };
+
+    expectPersistenceError(() => mapTaskRecord(taskRecord({ evidence })));
   });
 });
