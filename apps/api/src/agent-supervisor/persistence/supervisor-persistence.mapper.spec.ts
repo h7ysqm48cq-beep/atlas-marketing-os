@@ -1107,3 +1107,75 @@ describe('immutable existing-candidate persistence round-trip', () => {
     expectPersistenceError(() => mapExecutionRecord(result));
   });
 });
+
+
+describe('verifier bootstrap recovery persistence', () => {
+  function recoveryFixture() {
+    const candidate = {
+      action: 'deploy_production',
+      targetBranch: 'production/atlas',
+      baseSha: 'a'.repeat(40),
+      headSha: 'a'.repeat(40),
+      changedFiles: [],
+    };
+    return {
+      service: 'engineering-verifier',
+      candidate,
+      failedQualificationTaskId:
+        'ATLAS-SYS-7f86a61c-5f8e-4c84-b9ef-d31e391dfae7',
+      failedQualificationExecutionId:
+        'ATLAS-EXEC-20261009-79c71275-6ed4-46db-b0f1-818d2e3c85b2',
+      failureReason: 'supervisor_execution_queued_timeout',
+      compatibility: {
+        repositoryOwner: 'h7ysqm48cq-beep',
+        repositoryName: 'atlas-marketing-os',
+        branch: 'production/atlas',
+        commitSha: 'a'.repeat(40),
+        buildVerified: true,
+        runtimeVerified: true,
+        scopeCount: 1184,
+        method: 'verified_image_receipt',
+        verifiedAt: '2026-10-09T20:14:28.492Z',
+      },
+      authorizedBy: 'owner-user-1',
+      authorizedAt: '2026-10-09T21:50:55.690Z',
+      postRecoveryFormalQualificationRequired: true,
+    };
+  }
+
+  it('round-trips verifier bootstrap recovery evidence without dropping the deadlock proof', () => {
+    const recovery = recoveryFixture();
+    const evidence = {
+      ...evidenceFixture(),
+      reviewCandidate: recovery.candidate,
+      verifierBootstrapRecovery: recovery,
+    };
+
+    const task = mapTaskRecord(taskRecord({ evidence }));
+    const mapped = task.evidence?.verifierBootstrapRecovery;
+
+    expect(mapped).toEqual(recovery);
+    expect(mapped).not.toBe(recovery);
+    expect(mapped?.compatibility).not.toBe(recovery.compatibility);
+  });
+
+  it.each([
+    ['zero scope', { compatibility: { ...recoveryFixture().compatibility, scopeCount: 0 } }],
+    ['unverified runtime', { compatibility: { ...recoveryFixture().compatibility, runtimeVerified: false } }],
+    ['wrong method', { compatibility: { ...recoveryFixture().compatibility, method: 'manual' } }],
+    ['wrong failure reason', { failureReason: 'other_failure' }],
+    ['post-recovery qualification disabled', { postRecoveryFormalQualificationRequired: false }],
+  ])('rejects malformed verifier bootstrap recovery evidence: %s', (_label, override) => {
+    const recovery = {
+      ...recoveryFixture(),
+      ...override,
+    };
+    const evidence = {
+      ...evidenceFixture(),
+      reviewCandidate: recovery.candidate,
+      verifierBootstrapRecovery: recovery,
+    };
+
+    expectPersistenceError(() => mapTaskRecord(taskRecord({ evidence })));
+  });
+});
