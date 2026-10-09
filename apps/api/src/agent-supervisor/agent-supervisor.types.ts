@@ -112,6 +112,30 @@ export interface SupervisorOwnerDeploymentAuthorization {
   signature: string;
 }
 
+export interface SupervisorVerifierBootstrapCompatibilityEvidence {
+  repositoryOwner: 'h7ysqm48cq-beep';
+  repositoryName: 'atlas-marketing-os';
+  branch: 'production/atlas';
+  commitSha: string;
+  buildVerified: true;
+  runtimeVerified: true;
+  scopeCount: number;
+  method: 'verified_image_receipt';
+  verifiedAt: string;
+}
+
+export interface SupervisorVerifierBootstrapRecoveryEvidence {
+  service: 'engineering-verifier';
+  candidate: SupervisorReviewCandidate;
+  failedQualificationTaskId: string;
+  failedQualificationExecutionId: string;
+  failureReason: 'supervisor_execution_queued_timeout';
+  compatibility: SupervisorVerifierBootstrapCompatibilityEvidence;
+  authorizedBy: string;
+  authorizedAt: string;
+  postRecoveryFormalQualificationRequired: true;
+}
+
 export interface SupervisorOwnerDeploymentAuthorizationConsumption {
   authorization: SupervisorOwnerDeploymentAuthorization;
   approvalJti: string;
@@ -194,6 +218,7 @@ export interface SupervisorEvidence {
   ownerDeploymentAuthorizationRevocations?: SupervisorOwnerDeploymentAuthorizationRevocation[];
   ownerDeploymentAuthorizationRetirements?: SupervisorOwnerDeploymentAuthorizationRetirement[];
   ownerDeploymentDispatchReservation?: SupervisorOwnerDeploymentDispatchReservation;
+  verifierBootstrapRecovery?: SupervisorVerifierBootstrapRecoveryEvidence;
   taskRetirement?: SupervisorTaskRetirement;
 }
 
