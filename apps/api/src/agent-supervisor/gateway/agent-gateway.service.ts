@@ -288,6 +288,33 @@ export class AgentGatewayService {
       });
     }
 
+    const existingConsumption =
+      task.evidence?.ownerMergeAuthorizationConsumption;
+    if (existingConsumption) {
+      const consumedCandidate = this.normalizeCandidate(
+        existingConsumption.authorization.candidate,
+      );
+      await this.assertTrustedMergeReplayExecutionBinding(
+        task,
+        execution,
+        requestedCandidate,
+      );
+      if (
+        !this.sameCandidate(consumedCandidate, requestedCandidate) ||
+        existingConsumption.consumedBy !== 'ci-gate' ||
+        !this.sameTrustedMergeAttestation(
+          existingConsumption.attestation,
+          input.attestation,
+        )
+      ) {
+        throw new BadRequestException({
+          code: 'trusted_merge_consumption_mismatch',
+        });
+      }
+
+      return this.allowed(task.id, execution.id);
+    }
+
     await this.supervisor.consumeTrustedMergeAuthorization(
       task.id,
       input.attestation,
@@ -1198,6 +1225,96 @@ export class AgentGatewayService {
       left.baseSha === right.baseSha &&
       left.headSha === right.headSha &&
       this.sameStringArray(left.changedFiles, right.changedFiles)
+    );
+  }
+
+  private async assertTrustedMergeReplayExecutionBinding(
+    task: SupervisorTask,
+    execution: SupervisorExecution,
+    candidate: SupervisorReviewCandidate,
+  ): Promise<void> {
+    const existingProof =
+      task.evidence?.existingCandidateVerification;
+    if (existingProof) {
+      if (existingProof.executionId !== execution.id) {
+        throw new BadRequestException({
+          code: 'trusted_merge_consumption_mismatch',
+        });
+      }
+      return;
+    }
+
+    const executions = await this.executionStore.listByTask(task.id);
+    const matchesCandidate = (candidateExecution: SupervisorExecution) => {
+      if (
+        candidateExecution.status !== 'COMPLETED' ||
+        !candidateExecution.result?.evidence.reviewCandidate
+      ) {
+        return false;
+      }
+      return this.sameCandidate(
+        this.normalizeCandidate(
+          candidateExecution.result.evidence.reviewCandidate,
+        ),
+        candidate,
+      );
+    };
+    const executionPurpose = (candidateExecution: SupervisorExecution) =>
+      candidateExecution.assignment.executionPurpose ?? 'IMPLEMENTATION';
+
+    const candidatePublication = task.evidence?.candidatePublication;
+    if (candidatePublication) {
+      const verifierMatches = executions.filter(
+        (candidateExecution) =>
+          executionPurpose(candidateExecution) ===
+            'INDEPENDENT_VERIFICATION' &&
+          matchesCandidate(candidateExecution),
+      );
+      if (
+        verifierMatches.length !== 1 ||
+        verifierMatches[0].id !== execution.id
+      ) {
+        throw new BadRequestException({
+          code: 'trusted_merge_consumption_mismatch',
+        });
+      }
+      return;
+    }
+
+    const legacyImplementationMatches = executions.filter(
+      (candidateExecution) =>
+        executionPurpose(candidateExecution) === 'IMPLEMENTATION' &&
+        matchesCandidate(candidateExecution),
+    );
+    if (
+      legacyImplementationMatches.length !== 1 ||
+      legacyImplementationMatches[0].id !== execution.id
+    ) {
+      throw new BadRequestException({
+        code: 'trusted_merge_consumption_mismatch',
+      });
+    }
+  }
+
+  private sameTrustedMergeAttestation(
+    left: SupervisorMergeAttestation,
+    right: SupervisorMergeAttestation,
+  ): boolean {
+    const normalizeSha = (value: string) => value.trim().toLowerCase();
+    const normalizeMergedAt = (value: string) => {
+      const timestamp = Date.parse(value);
+      return Number.isFinite(timestamp)
+        ? new Date(timestamp).toISOString()
+        : null;
+    };
+
+    return (
+      left.pullRequestNumber === right.pullRequestNumber &&
+      normalizeSha(left.mergeCommitSha) === normalizeSha(right.mergeCommitSha) &&
+      normalizeSha(left.mergeParents[0]) === normalizeSha(right.mergeParents[0]) &&
+      normalizeSha(left.mergeParents[1]) === normalizeSha(right.mergeParents[1]) &&
+      normalizeMergedAt(left.mergedAt) !== null &&
+      normalizeMergedAt(left.mergedAt) === normalizeMergedAt(right.mergedAt)
     );
   }
 
