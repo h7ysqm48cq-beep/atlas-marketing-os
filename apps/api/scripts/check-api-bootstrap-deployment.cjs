@@ -3,7 +3,7 @@
 const OWNER = 'h7ysqm48cq-beep';
 const REPO = 'atlas-marketing-os';
 const BRANCH = 'production/atlas';
-const EXPECTED_PR_NUMBER = 0;
+const EXPECTED_PR_NUMBER = 423;
 const EXPECTED_HEAD_BRANCH = 'atlas/api-bootstrap-refresh-20261009';
 // Temporary API-only refresh of the 2026-10-09 control-plane cold-start
 // recovery window. Restore the normal repository pre-deploy + runtime-start
