@@ -96,6 +96,7 @@ const OWNER_WORKER_DEPLOYMENT_SERVICES = [
   "browser-worker",
   "engineering-runner",
   "engineering-verifier",
+  "production-deploy-executor",
   "web",
 ] as const;
 
@@ -110,6 +111,8 @@ const OWNER_WORKER_DEPLOYMENT_PATHS: Partial<
     "apps/engineering-runner/check-runner-production-deployment.cjs",
   "engineering-verifier":
     "apps/engineering-runner/check-verifier-production-deployment.cjs",
+  "production-deploy-executor":
+    "tools/deployment/atlas-production-deploy-executor.mjs",
 };
 
 export type SupervisorAdmissionResult = {
@@ -1814,6 +1817,8 @@ export function SupervisorOwnerPanel() {
     useState("");
   const [verifierDeploymentTaskId, setVerifierDeploymentTaskId] =
     useState("");
+  const [executorDeploymentTaskId, setExecutorDeploymentTaskId] =
+    useState("");
   const [deploymentAuthorizationService, setDeploymentAuthorizationService] =
     useState<string | null>(null);
   const [reviewTaskId, setReviewTaskId] =
@@ -2404,6 +2409,27 @@ export function SupervisorOwnerPanel() {
           </span>
         </label>
 
+        <label style={labelStyle}>
+          Production Deploy Executor deployment task ID — exact
+          <input
+            value={executorDeploymentTaskId}
+            onChange={(event: ChangeEvent<HTMLInputElement>) =>
+              setExecutorDeploymentTaskId(event.target.value)
+            }
+            spellCheck={false}
+            autoComplete="off"
+            style={fieldStyle}
+            placeholder="ATLAS-..."
+            disabled={busy}
+          />
+          <span style={{ opacity: 0.68, fontSize: 13 }}>
+            Only an exact READY_FOR_REVIEW or APPROVED, source-verified,
+            zero-diff same-SHA production-deploy-executor candidate with
+            tools/deployment/atlas-production-deploy-executor.mjs ownership
+            and no prior authorization, reservation, or consumption is eligible.
+          </span>
+        </label>
+
         <div
           style={{
             marginTop: 22,
@@ -2588,6 +2614,32 @@ export function SupervisorOwnerPanel() {
             {busy
               ? "Checking Verifier candidate…"
               : "Authorize engineering-verifier candidate"}
+          </button>
+
+          <button
+            type="button"
+            onClick={() =>
+              authorizeWorkerDeployment(
+                "production-deploy-executor",
+                executorDeploymentTaskId,
+              )
+            }
+            disabled={busy || !executorDeploymentTaskId.trim()}
+            style={{
+              border: "1px solid rgba(249, 115, 22, 0.55)",
+              borderRadius: 10,
+              padding: "10px 14px",
+              font: "inherit",
+              fontWeight: 700,
+              cursor:
+                busy || !executorDeploymentTaskId.trim()
+                  ? "not-allowed"
+                  : "pointer",
+            }}
+          >
+            {busy
+              ? "Checking Executor candidate…"
+              : "Authorize production-deploy-executor candidate"}
           </button>
 
           <span style={{ opacity: 0.68, fontSize: 13 }}>
