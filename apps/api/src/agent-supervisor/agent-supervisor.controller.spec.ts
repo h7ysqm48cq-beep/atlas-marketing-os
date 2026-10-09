@@ -166,6 +166,7 @@ describe('AgentSupervisorController', () => {
     );
   });
 
+
   it('exposes the persisted-Execution adoption route only under the existing Owner guards', () => {
     const method = AgentSupervisorController.prototype.adoptImplementationExecution;
     expect(Reflect.getMetadata(PATH_METADATA, method)).toBe(
@@ -617,6 +618,52 @@ describe('AgentSupervisorController', () => {
     expect(revokeProductionDeploymentAuthorization).toHaveBeenCalledWith(
       'ATLAS-DEPLOY-1',
       'superseded candidate',
+      'authenticated-owner-id',
+    );
+  });
+
+  it('retires reserved deployment authorization using authenticated owner identity only', async () => {
+    const decision = {
+      status: 'APPROVED',
+      evidence: {
+        ownerDeploymentAuthorizationRetirements: [{}],
+      },
+    };
+    const retireReservedProductionDeploymentAuthorization = jest
+      .fn()
+      .mockResolvedValue(decision);
+    const ownerController = new AgentSupervisorController(
+      {
+        retireReservedProductionDeploymentAuthorization,
+      } as unknown as AgentSupervisorService,
+      {} as WorkerDispatcherService,
+      createControllerOwnerSigner({
+        retireReservedProductionDeploymentAuthorization,
+      } as unknown as AgentSupervisorService),
+    ) as unknown as {
+      retireReservedProductionDeploymentAuthorization?: (
+        id: string,
+        body: { reason: string; retiredBy?: string },
+        request: { user?: { id?: string } },
+      ) => Promise<unknown>;
+    };
+
+    await expect(
+      ownerController.retireReservedProductionDeploymentAuthorization!(
+        'ATLAS-DEPLOY-RETIRE-1',
+        {
+          reason: 'expired reserved authorization',
+          retiredBy: 'caller-controlled-owner',
+        },
+        { user: { id: 'authenticated-owner-id' } },
+      ),
+    ).resolves.toBe(decision);
+
+    expect(
+      retireReservedProductionDeploymentAuthorization,
+    ).toHaveBeenCalledWith(
+      'ATLAS-DEPLOY-RETIRE-1',
+      'expired reserved authorization',
       'authenticated-owner-id',
     );
   });
