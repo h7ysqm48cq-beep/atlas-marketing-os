@@ -48,6 +48,7 @@ import { VerifierCapabilityService } from './authority/verifier-capability.servi
 import { SupervisorSystemAdmissionService } from './system/supervisor-system-admission.service';
 import { SupervisorSystemController } from './system/supervisor-system.controller';
 import { SupervisorSystemGuard } from './system/supervisor-system.guard';
+import { DeploymentAutomationTelemetryService } from './deployment/deployment-automation-telemetry.service';
 
 @Module({
   controllers: [
@@ -76,6 +77,7 @@ import { SupervisorSystemGuard } from './system/supervisor-system.guard';
     VerifierCapabilityService,
     SupervisorSystemAdmissionService,
     SupervisorSystemGuard,
+    DeploymentAutomationTelemetryService,
     {
       provide: SUPERVISOR_AUTHORITY_KEYRING,
       useFactory: (config: ConfigService) =>
@@ -145,6 +147,7 @@ import { SupervisorSystemGuard } from './system/supervisor-system.guard';
     SUPERVISOR_EXECUTION_RECONCILIATION_STORE,
     SUPERVISOR_EXECUTION_RECOVERY_STORE,
     SupervisorExecutionReconcilerService,
+    DeploymentAutomationTelemetryService,
   ],
 })
 export class AgentSupervisorModule {}
