@@ -901,6 +901,260 @@ describe('AgentGatewayService', () => {
     }
   });
 
+  it('treats an exact trusted merge attestation replay as idempotent without mutating the persisted receipt', async () => {
+    const { task, execution } = await createReadyExecution();
+    await supervisor.approveTask(task.id, true);
+
+    const approved = await supervisor.getTask(task.id);
+    const authorization = approved.evidence?.ownerMergeAuthorization;
+    expect(authorization).toBeDefined();
+    if (!authorization) return;
+
+    const attestation = {
+      pullRequestNumber: 420,
+      mergeCommitSha: 'd'.repeat(40),
+      mergeParents: [BASE_SHA, HEAD_SHA] as [string, string],
+      mergedAt: new Date(
+        Date.parse(authorization.authorizedAt) + 60_000,
+      ).toISOString(),
+    };
+    const input = {
+      taskId: task.id,
+      executionId: execution.id,
+      action: 'merge' as const,
+      targetBranch: 'production/atlas',
+      baseSha: BASE_SHA,
+      headSha: HEAD_SHA,
+      changedFiles: [CHANGED_FILE],
+      attestation,
+    };
+
+    await expect(
+      gateway.consumeTrustedMergeAuthorization(input),
+    ).resolves.toEqual({
+      allowed: true,
+      reason: null,
+      taskId: task.id,
+      executionId: execution.id,
+    });
+
+    const firstConsumption = structuredClone(
+      (await supervisor.getTask(task.id)).evidence
+        ?.ownerMergeAuthorizationConsumption,
+    );
+    expect(firstConsumption).toBeDefined();
+
+    await expect(
+      gateway.consumeTrustedMergeAuthorization({
+        ...input,
+        attestation: {
+          ...attestation,
+          mergedAt: attestation.mergedAt.replace('.000Z', 'Z'),
+        },
+      }),
+    ).resolves.toEqual({
+      allowed: true,
+      reason: null,
+      taskId: task.id,
+      executionId: execution.id,
+    });
+
+    expect(
+      (await supervisor.getTask(task.id)).evidence
+        ?.ownerMergeAuthorizationConsumption,
+    ).toEqual(firstConsumption);
+  });
+
+  it('rejects replay through a different completed execution with the same task, candidate, and attestation', async () => {
+    const { task, execution } = await createReadyExecution();
+    await supervisor.approveTask(task.id, true);
+
+    const approved = await supervisor.getTask(task.id);
+    const authorization = approved.evidence?.ownerMergeAuthorization;
+    expect(authorization).toBeDefined();
+    if (!authorization) return;
+
+    const attestation = {
+      pullRequestNumber: 420,
+      mergeCommitSha: 'd'.repeat(40),
+      mergeParents: [BASE_SHA, HEAD_SHA] as [string, string],
+      mergedAt: new Date(
+        Date.parse(authorization.authorizedAt) + 60_000,
+      ).toISOString(),
+    };
+    const input = {
+      taskId: task.id,
+      executionId: execution.id,
+      action: 'merge' as const,
+      targetBranch: 'production/atlas',
+      baseSha: BASE_SHA,
+      headSha: HEAD_SHA,
+      changedFiles: [CHANGED_FILE],
+      attestation,
+    };
+
+    await gateway.consumeTrustedMergeAuthorization(input);
+
+    const alternateExecution = structuredClone(execution);
+    alternateExecution.id = execution.id + '-alternate';
+    alternateExecution.assignment.executionId = alternateExecution.id;
+    await executionStore.save(alternateExecution);
+
+    await expect(
+      gateway.consumeTrustedMergeAuthorization({
+        ...input,
+        executionId: alternateExecution.id,
+      }),
+    ).rejects.toMatchObject({
+      response: { code: 'trusted_merge_consumption_mismatch' },
+    });
+
+    alternateExecution.assignment.executionPurpose =
+      'INDEPENDENT_VERIFICATION';
+    await executionStore.save(alternateExecution);
+
+    await expect(
+      gateway.consumeTrustedMergeAuthorization({
+        ...input,
+        executionId: alternateExecution.id,
+      }),
+    ).rejects.toMatchObject({
+      response: { code: 'trusted_merge_consumption_mismatch' },
+    });
+  });
+
+  it('binds published-candidate replay to the unique completed independent verifier', async () => {
+    const { task, execution } = await createRunningCandidateExecution();
+    const implementation = await dispatcher.complete(execution.id, {
+      summary: 'Published governed candidate',
+      evidence: candidateEvidence(task.id, execution.id),
+    });
+    await gateway.submitImplementationFromExecution(task.id, implementation.id);
+    await supervisor.beginVerification(task.id);
+
+    const verifier = structuredClone(implementation);
+    verifier.id = implementation.id + '-verifier';
+    verifier.workerRole = 'verifier';
+    verifier.assignment = {
+      ...verifier.assignment,
+      executionId: verifier.id,
+      workerRole: 'verifier',
+      executionPurpose: 'INDEPENDENT_VERIFICATION',
+    };
+    verifier.result = {
+      summary: 'Independently verified governed candidate',
+      evidence: {
+        ...verifier.result!.evidence,
+        candidatePublication: undefined,
+      },
+    };
+    await executionStore.save(verifier);
+
+    await supervisor.markReadyForReview(task.id);
+    const ready = await supervisor.getTask(task.id);
+    const reviewCandidate = ready.evidence?.reviewCandidate;
+    expect(reviewCandidate).toBeDefined();
+    if (!reviewCandidate) return;
+    await r2aAuthorizeMergeAsOwner(
+      supervisor,
+      task.id,
+      reviewCandidate,
+      'owner-user-1',
+    );
+    await supervisor.approveTask(task.id, true);
+
+    const approved = await supervisor.getTask(task.id);
+    const authorization = approved.evidence?.ownerMergeAuthorization;
+    expect(authorization).toBeDefined();
+    if (!authorization) return;
+    const attestation = {
+      pullRequestNumber: 420,
+      mergeCommitSha: 'd'.repeat(40),
+      mergeParents: [BASE_SHA, HEAD_SHA] as [string, string],
+      mergedAt: new Date(
+        Date.parse(authorization.authorizedAt) + 60_000,
+      ).toISOString(),
+    };
+    const input = {
+      taskId: task.id,
+      executionId: verifier.id,
+      action: 'merge' as const,
+      targetBranch: 'production/atlas',
+      baseSha: BASE_SHA,
+      headSha: HEAD_SHA,
+      changedFiles: [CHANGED_FILE],
+      attestation,
+    };
+
+    await expect(
+      gateway.consumeTrustedMergeAuthorization(input),
+    ).resolves.toMatchObject({ allowed: true, executionId: verifier.id });
+    await expect(
+      gateway.consumeTrustedMergeAuthorization(input),
+    ).resolves.toMatchObject({ allowed: true, executionId: verifier.id });
+
+    await expect(
+      gateway.consumeTrustedMergeAuthorization({
+        ...input,
+        executionId: implementation.id,
+      }),
+    ).rejects.toMatchObject({
+      response: { code: 'trusted_merge_consumption_mismatch' },
+    });
+  });
+
+  it.each([
+    ['pull request number', { pullRequestNumber: 421 }],
+    ['merge commit', { mergeCommitSha: 'e'.repeat(40) }],
+    ['first merge parent', { mergeParents: ['f'.repeat(40), HEAD_SHA] }],
+    ['second merge parent', { mergeParents: [BASE_SHA, 'f'.repeat(40)] }],
+    ['merged timestamp', { mergedAt: '2026-09-14T00:03:00.000Z' }],
+  ] as const)(
+    'rejects trusted merge replay when %s differs from the consumed attestation',
+    async (_label, override) => {
+      const { task, execution } = await createReadyExecution();
+      await supervisor.approveTask(task.id, true);
+
+      const approved = await supervisor.getTask(task.id);
+      const authorization = approved.evidence?.ownerMergeAuthorization;
+      expect(authorization).toBeDefined();
+      if (!authorization) return;
+
+      const attestation = {
+        pullRequestNumber: 420,
+        mergeCommitSha: 'd'.repeat(40),
+        mergeParents: [BASE_SHA, HEAD_SHA] as [string, string],
+        mergedAt: new Date(
+          Date.parse(authorization.authorizedAt) + 60_000,
+        ).toISOString(),
+      };
+      const input = {
+        taskId: task.id,
+        executionId: execution.id,
+        action: 'merge' as const,
+        targetBranch: 'production/atlas',
+        baseSha: BASE_SHA,
+        headSha: HEAD_SHA,
+        changedFiles: [CHANGED_FILE],
+        attestation,
+      };
+
+      await gateway.consumeTrustedMergeAuthorization(input);
+
+      await expect(
+        gateway.consumeTrustedMergeAuthorization({
+          ...input,
+          attestation: {
+            ...attestation,
+            ...override,
+          } as typeof attestation,
+        }),
+      ).rejects.toMatchObject({
+        response: { code: 'trusted_merge_consumption_mismatch' },
+      });
+    },
+  );
+
   it.each([
     ['before iat', -1],
     ['at exp', 10 * 60_000],
