@@ -30,6 +30,7 @@ import type {
   SupervisorReviewCandidate,
   SupervisorTask,
   SupervisorTaskStatus,
+  SupervisorVerifierBootstrapCompatibilityEvidence,
 } from './agent-supervisor.types';
 import {
   FILE_OWNERSHIP_STORE,
@@ -849,6 +850,181 @@ export class AgentSupervisorService {
         verifiedAuthorization,
     };
     task.updatedAt = this.nextMutationTime(expectedUpdatedAt);
+    return this.saveTaskMutationIfUnchanged(
+      task,
+      expectedUpdatedAt,
+    );
+  }
+
+
+  async authorizeVerifierBootstrapRecovery(
+    id: string,
+    candidate: SupervisorReviewCandidate,
+    service: ProductionDeploymentService,
+    compatibility: SupervisorVerifierBootstrapCompatibilityEvidence,
+    failedQualificationExecutionId: string,
+    authorization: SupervisorOwnerDeploymentAuthorization,
+  ): Promise<SupervisorTask> {
+    const task = await this.requireTask(id);
+    const expectedUpdatedAt = new Date(task.updatedAt);
+
+    this.requireStatus(task, ['BLOCKED']);
+
+    if (service !== 'engineering-verifier') {
+      throw new BadRequestException({
+        code: 'verifier_bootstrap_recovery_service_invalid',
+      });
+    }
+    if (
+      task.owner !== 'engineering' ||
+      task.blockingReason !== 'supervisor_execution_queued_timeout'
+    ) {
+      throw new BadRequestException({
+        code: 'verifier_bootstrap_recovery_deadlock_proof_required',
+      });
+    }
+    if (
+      task.evidence?.ownerDeploymentAuthorization ||
+      task.evidence?.ownerDeploymentAuthorizationConsumption ||
+      task.evidence?.ownerDeploymentDispatchReservation ||
+      task.evidence?.verifierBootstrapRecovery
+    ) {
+      throw new BadRequestException({
+        code: 'verifier_bootstrap_recovery_authority_residue',
+      });
+    }
+
+    if (
+      candidate?.action !== 'deploy_production' ||
+      candidate?.targetBranch !== 'production/atlas'
+    ) {
+      throw new BadRequestException({
+        code: 'verifier_bootstrap_recovery_canonical_target_required',
+      });
+    }
+    if (
+      typeof candidate.baseSha !== 'string' ||
+      typeof candidate.headSha !== 'string' ||
+      candidate.baseSha.toLowerCase() !== candidate.headSha.toLowerCase() ||
+      !Array.isArray(candidate.changedFiles) ||
+      candidate.changedFiles.length !== 0
+    ) {
+      throw new BadRequestException({
+        code: 'verifier_bootstrap_recovery_same_sha_required',
+      });
+    }
+
+    const requestedCandidate =
+      normalizeSupervisorReviewCandidate(candidate);
+    this.requireCanonicalProductionDeployment(requestedCandidate);
+
+    const canonicalSha = requestedCandidate.headSha;
+    if (
+      compatibility?.repositoryOwner !== 'h7ysqm48cq-beep' ||
+      compatibility.repositoryName !== 'atlas-marketing-os' ||
+      compatibility.branch !== 'production/atlas' ||
+      compatibility.commitSha?.toLowerCase() !== canonicalSha ||
+      compatibility.buildVerified !== true ||
+      compatibility.runtimeVerified !== true ||
+      compatibility.method !== 'verified_image_receipt' ||
+      !Number.isInteger(compatibility.scopeCount) ||
+      compatibility.scopeCount < 1 ||
+      !compatibility.verifiedAt ||
+      Number.isNaN(Date.parse(compatibility.verifiedAt))
+    ) {
+      throw new BadRequestException({
+        code: 'verifier_bootstrap_recovery_compatibility_invalid',
+      });
+    }
+
+    if (!this.executionStore) {
+      throw new ServiceUnavailableException(
+        'supervisor_execution_store_not_configured',
+      );
+    }
+
+    const executionId = failedQualificationExecutionId?.trim() ?? '';
+    const executions = await this.executionStore.listByTask(task.id);
+    const failed = executions.filter(
+      (execution) => execution.id === executionId,
+    );
+    if (failed.length !== 1) {
+      throw new BadRequestException({
+        code: 'verifier_bootstrap_recovery_failed_execution_required',
+      });
+    }
+
+    const execution = failed[0];
+    const assignment = execution.assignment;
+    if (
+      execution.status !== 'FAILED' ||
+      execution.workerRole !== 'verifier' ||
+      execution.error !== 'supervisor_execution_queued_timeout' ||
+      execution.result !== null ||
+      execution.startedAt !== null ||
+      execution.runnerId !== null ||
+      execution.lastHeartbeatAt !== null ||
+      (assignment.executionPurpose ?? 'IMPLEMENTATION') !==
+        'INDEPENDENT_VERIFICATION' ||
+      assignment.verificationMode !== 'EXISTING_CANDIDATE' ||
+      assignment.candidateBaseSha?.toLowerCase() !== canonicalSha ||
+      assignment.candidateHeadSha?.toLowerCase() !== canonicalSha ||
+      assignment.productionBaselineSha?.toLowerCase() !== canonicalSha ||
+      (assignment.targetBranch ?? 'production/atlas') !==
+        'production/atlas'
+    ) {
+      throw new BadRequestException({
+        code: 'verifier_bootstrap_recovery_deadlock_proof_required',
+      });
+    }
+
+    const verifiedAuthorization = structuredClone(authorization);
+    this.verifyOwnerDeploymentAuthorization(
+      verifiedAuthorization,
+      requestedCandidate,
+      service,
+    );
+
+    task.evidence = {
+      rootCause: 'engineering_verifier_bootstrap_deadlock',
+      changedFiles: [],
+      tests: [
+        'bootstrap_compatibility_build=PASS',
+        'bootstrap_compatibility_runtime=PASS',
+        'failed_verifier_qualification_lineage=CONFIRMED',
+      ],
+      build: 'BOOTSTRAP_COMPATIBILITY_VERIFIED',
+      regression: [],
+      deploymentState: 'NOT_DEPLOYED',
+      gitState: 'NO_REPOSITORY_MUTATION',
+      remainingRisk: [
+        'post_recovery_formal_qualification_required',
+      ],
+      reviewCandidate: this.cloneCandidate(requestedCandidate),
+      ownerDeploymentAuthorization: verifiedAuthorization,
+      verifierBootstrapRecovery: {
+        service: 'engineering-verifier',
+        candidate: this.cloneCandidate(requestedCandidate),
+        failedQualificationTaskId: task.id,
+        failedQualificationExecutionId: execution.id,
+        failureReason: 'supervisor_execution_queued_timeout',
+        compatibility: {
+          ...structuredClone(compatibility),
+          commitSha: canonicalSha,
+          verifiedAt: new Date(
+            compatibility.verifiedAt,
+          ).toISOString(),
+        },
+        authorizedBy: verifiedAuthorization.authorizedBy,
+        authorizedAt: verifiedAuthorization.authorizedAt,
+        postRecoveryFormalQualificationRequired: true,
+      },
+    };
+    task.status = 'APPROVED';
+    task.blockingReason = null;
+    task.failureReason = null;
+    task.updatedAt = this.nextMutationTime(expectedUpdatedAt);
+
     return this.saveTaskMutationIfUnchanged(
       task,
       expectedUpdatedAt,
