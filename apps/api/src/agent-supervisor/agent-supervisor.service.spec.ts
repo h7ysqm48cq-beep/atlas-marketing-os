@@ -14,6 +14,7 @@ import type {
   ProductionDeploymentService,
   SupervisorReviewCandidate,
   SupervisorTask,
+  SupervisorVerifierBootstrapCompatibilityEvidence,
 } from './agent-supervisor.types';
 import { MemoryFileOwnershipStore } from './stores/memory-file-ownership.store';
 import { MemorySupervisorTaskStore } from './stores/memory-supervisor-task.store';
@@ -2975,5 +2976,445 @@ describe('existing-candidate verification lifecycle', () => {
     expect(admitted.status).toBe('VERIFYING');
     expect(admitted.evidence).toBeNull();
     expect(await service.ownsAllowedPaths(task.id)).toBe(true);
+  });
+});
+
+
+describe('engineering-verifier bootstrap recovery authority', () => {
+  const SHA = '6'.repeat(40);
+  const VERIFIER_PATH =
+    'apps/engineering-runner/check-verifier-production-deployment.cjs';
+
+  function compatibility(
+    overrides: Partial<SupervisorVerifierBootstrapCompatibilityEvidence> = {},
+  ): SupervisorVerifierBootstrapCompatibilityEvidence {
+    return {
+      repositoryOwner: 'h7ysqm48cq-beep',
+      repositoryName: 'atlas-marketing-os',
+      branch: 'production/atlas',
+      commitSha: SHA,
+      buildVerified: true,
+      runtimeVerified: true,
+      scopeCount: 1184,
+      method: 'verified_image_receipt',
+      verifiedAt: '2026-10-09T14:30:00.000Z',
+      ...overrides,
+    };
+  }
+
+  function bootstrapCandidate(
+    overrides: Partial<SupervisorReviewCandidate> = {},
+  ): SupervisorReviewCandidate {
+    return {
+      action: 'deploy_production',
+      targetBranch: 'production/atlas',
+      baseSha: SHA,
+      headSha: SHA,
+      changedFiles: [],
+      ...overrides,
+    };
+  }
+
+  function bootstrapService() {
+    const executions = new MemorySupervisorExecutionStore();
+    const service = new AgentSupervisorService(
+      new MemorySupervisorTaskStore(),
+      new MemoryFileOwnershipStore(),
+      undefined,
+      ownerConfig(),
+      testAuthority(),
+      undefined,
+      executions,
+    );
+    return { service, executions };
+  }
+
+  async function failedQualificationFixture(
+    service: AgentSupervisorService,
+    executions: MemorySupervisorExecutionStore,
+    sha = SHA,
+  ) {
+    const task = await service.createTask({
+      objective: 'Recover engineering-verifier bootstrap deadlock',
+      owner: 'engineering',
+      allowedPaths: [VERIFIER_PATH],
+      forbiddenActions: [
+        'edit_assigned_files',
+        'commit_assigned_branch',
+        'change_runtime_config',
+        'deploy_production',
+      ],
+      dependsOn: [],
+      acceptance: [
+        `baseSha=headSha=${sha}`,
+        'service=engineering-verifier',
+        'zero git diff',
+        'sourceVerified=true',
+        'candidatePublication absent',
+      ],
+    });
+    await service.startTask(task.id);
+    await service.blockTask(
+      task.id,
+      'supervisor_execution_queued_timeout',
+    );
+
+    const executionId =
+      'ATLAS-EXEC-BOOTSTRAP-' +
+      task.id.slice(-12).replace(/[^a-zA-Z0-9]/g, '0');
+
+    await executions.create({
+      id: executionId,
+      taskId: task.id,
+      workerRole: 'verifier',
+      status: 'FAILED',
+      assignment: {
+        executionId,
+        taskId: task.id,
+        workerRole: 'verifier',
+        executionPurpose: 'INDEPENDENT_VERIFICATION',
+        objective: 'Verify exact engineering-verifier runtime refresh',
+        allowedPaths: [VERIFIER_PATH],
+        forbiddenActions: [
+          'edit_assigned_files',
+          'commit_assigned_branch',
+          'change_runtime_config',
+          'deploy_production',
+        ],
+        dependencies: [],
+        acceptance: [
+          `baseSha=headSha=${sha}`,
+          'service=engineering-verifier',
+        ],
+        requiredEvidence: [
+          'rootCause',
+          'changedFiles',
+          'tests',
+          'build',
+          'regression',
+          'deploymentState',
+          'gitState',
+          'remainingRisk',
+        ],
+        verificationMode: 'EXISTING_CANDIDATE',
+        candidateBaseSha: sha,
+        candidateHeadSha: sha,
+        productionBaselineSha: sha,
+        targetBranch: 'production/atlas',
+        manifestHash: 'f'.repeat(64),
+        claimEpoch: 1,
+      },
+      result: null,
+      error: 'supervisor_execution_queued_timeout',
+      createdAt: new Date('2026-10-09T14:20:00.000Z'),
+      startedAt: null,
+      completedAt: new Date('2026-10-09T14:22:00.000Z'),
+      runnerId: null,
+      claimEpoch: 1,
+      lastHeartbeatAt: null,
+      leaseExpiresAt: null,
+    });
+
+    return { task, executionId };
+  }
+
+  async function ownerAuthorization(
+    service: AgentSupervisorService,
+    taskId: string,
+    candidate = bootstrapCandidate(),
+    deploymentService: ProductionDeploymentService = 'engineering-verifier',
+    compat = compatibility(),
+    failedExecutionId?: string,
+  ) {
+    const approval = testOwnerApprovalService(service);
+    const proof = approval.verifyAuthentication(
+      {
+        userId: 'owner-user-1',
+        ownerAction: '1',
+        ownerToken: OWNER_TOKEN,
+      },
+      {
+        action: 'DEPLOY',
+        candidate,
+        service: deploymentService,
+      },
+    );
+    const authorization = approval.issueDeployApproval(
+      proof,
+      candidate,
+      deploymentService,
+    );
+
+    return service.authorizeVerifierBootstrapRecovery(
+      taskId,
+      candidate,
+      deploymentService,
+      compat,
+      failedExecutionId ?? '',
+      authorization,
+    );
+  }
+
+  it('allows exact canonical engineering-verifier recovery without manufacturing verifier evidence', async () => {
+    const { service, executions } = bootstrapService();
+    const { task, executionId } =
+      await failedQualificationFixture(service, executions);
+
+    const authorized = await ownerAuthorization(
+      service,
+      task.id,
+      bootstrapCandidate(),
+      'engineering-verifier',
+      compatibility(),
+      executionId,
+    );
+
+    expect(authorized.status).toBe('APPROVED');
+    expect(authorized.evidence).toMatchObject({
+      rootCause: 'engineering_verifier_bootstrap_deadlock',
+      changedFiles: [],
+      deploymentState: 'NOT_DEPLOYED',
+      gitState: 'NO_REPOSITORY_MUTATION',
+      reviewCandidate: bootstrapCandidate(),
+      verifierBootstrapRecovery: {
+        service: 'engineering-verifier',
+        failedQualificationTaskId: task.id,
+        failedQualificationExecutionId: executionId,
+        failureReason: 'supervisor_execution_queued_timeout',
+        postRecoveryFormalQualificationRequired: true,
+      },
+      ownerDeploymentAuthorization: {
+        service: 'engineering-verifier',
+        candidate: bootstrapCandidate(),
+        authorizedBy: 'owner-user-1',
+      },
+    });
+    expect(
+      authorized.evidence?.existingCandidateVerification,
+    ).toBeUndefined();
+  });
+
+  it('rejects bootstrap recovery for a non-verifier service', async () => {
+    const { service, executions } = bootstrapService();
+    const { task, executionId } =
+      await failedQualificationFixture(service, executions);
+
+    await expect(
+      ownerAuthorization(
+        service,
+        task.id,
+        bootstrapCandidate(),
+        'api',
+        compatibility(),
+        executionId,
+      ),
+    ).rejects.toMatchObject({
+      response: {
+        code: 'verifier_bootstrap_recovery_service_invalid',
+      },
+    });
+  });
+
+  it('rejects non-same-SHA or non-zero-diff bootstrap candidates', async () => {
+    for (const candidate of [
+      bootstrapCandidate({ headSha: '7'.repeat(40) }),
+      bootstrapCandidate({ changedFiles: [VERIFIER_PATH] }),
+    ]) {
+      const { service, executions } = bootstrapService();
+      const { task, executionId } =
+        await failedQualificationFixture(service, executions);
+
+      await expect(
+        ownerAuthorization(
+          service,
+          task.id,
+          candidate,
+          'engineering-verifier',
+          compatibility({ commitSha: candidate.headSha }),
+          executionId,
+        ),
+      ).rejects.toMatchObject({
+        response: {
+          code: 'verifier_bootstrap_recovery_same_sha_required',
+        },
+      });
+    }
+  });
+
+  it('rejects missing or stale bootstrap compatibility evidence', async () => {
+    for (const compat of [
+      compatibility({ runtimeVerified: false as true }),
+      compatibility({ commitSha: '7'.repeat(40) }),
+      compatibility({ scopeCount: 0 }),
+    ]) {
+      const { service, executions } = bootstrapService();
+      const { task, executionId } =
+        await failedQualificationFixture(service, executions);
+
+      await expect(
+        ownerAuthorization(
+          service,
+          task.id,
+          bootstrapCandidate(),
+          'engineering-verifier',
+          compat,
+          executionId,
+        ),
+      ).rejects.toMatchObject({
+        response: {
+          code: 'verifier_bootstrap_recovery_compatibility_invalid',
+        },
+      });
+    }
+  });
+
+  it('rejects recovery without queued-timeout verifier lineage', async () => {
+    const { service, executions } = bootstrapService();
+    const { task, executionId } =
+      await failedQualificationFixture(service, executions);
+    const rows = await executions.listByTask(task.id);
+    const failed = rows[0]!;
+    failed.error = 'different_failure';
+    await executions.save(failed);
+
+    await expect(
+      ownerAuthorization(
+        service,
+        task.id,
+        bootstrapCandidate(),
+        'engineering-verifier',
+        compatibility(),
+        executionId,
+      ),
+    ).rejects.toMatchObject({
+      response: {
+        code: 'verifier_bootstrap_recovery_deadlock_proof_required',
+      },
+    });
+  });
+
+  it('rejects stale canonical lineage even with otherwise valid compatibility evidence', async () => {
+    const { service, executions } = bootstrapService();
+    const { task, executionId } =
+      await failedQualificationFixture(
+        service,
+        executions,
+        '5'.repeat(40),
+      );
+
+    await expect(
+      ownerAuthorization(
+        service,
+        task.id,
+        bootstrapCandidate(),
+        'engineering-verifier',
+        compatibility(),
+        executionId,
+      ),
+    ).rejects.toMatchObject({
+      response: {
+        code: 'verifier_bootstrap_recovery_deadlock_proof_required',
+      },
+    });
+  });
+
+  it('rejects replay and preserves one-time normal deployment consumption', async () => {
+    const { service, executions } = bootstrapService();
+    const { task, executionId } =
+      await failedQualificationFixture(service, executions);
+    const candidate = bootstrapCandidate();
+
+    const authorized = await ownerAuthorization(
+      service,
+      task.id,
+      candidate,
+      'engineering-verifier',
+      compatibility(),
+      executionId,
+    );
+
+    await expect(
+      ownerAuthorization(
+        service,
+        task.id,
+        candidate,
+        'engineering-verifier',
+        compatibility(),
+        executionId,
+      ),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    const consumed =
+      await service.consumeProductionDeploymentAuthorization(
+        authorized.id,
+        candidate,
+        'engineering-verifier',
+        'deploy-gate:bootstrap-test',
+      );
+
+    expect(
+      consumed.evidence?.ownerDeploymentAuthorization,
+    ).toBeUndefined();
+    expect(
+      consumed.evidence
+        ?.ownerDeploymentAuthorizationConsumption
+        ?.authorization.service,
+    ).toBe('engineering-verifier');
+
+    await expect(
+      service.consumeProductionDeploymentAuthorization(
+        authorized.id,
+        candidate,
+        'engineering-verifier',
+        'deploy-gate:bootstrap-test-2',
+      ),
+    ).rejects.toMatchObject({
+      response: {
+        code: 'owner_deployment_authorization_already_consumed',
+      },
+    });
+  });
+
+  it('keeps post-recovery formal qualification mandatory and normal deployment authorization unchanged', async () => {
+    const { service, executions } = bootstrapService();
+    const { task, executionId } =
+      await failedQualificationFixture(service, executions);
+
+    const recovered = await ownerAuthorization(
+      service,
+      task.id,
+      bootstrapCandidate(),
+      'engineering-verifier',
+      compatibility(),
+      executionId,
+    );
+
+    expect(
+      recovered.evidence?.verifierBootstrapRecovery
+        ?.postRecoveryFormalQualificationRequired,
+    ).toBe(true);
+    expect(
+      recovered.evidence?.existingCandidateVerification,
+    ).toBeUndefined();
+
+    const normalService =
+      bindOwnerApprovalArtifacts(createOwnerService());
+    const reviewCandidate =
+      runtimeRefreshDeploymentCandidate();
+    const ready = await makeReadyTask(
+      normalService,
+      reviewCandidate,
+    );
+    const normalAuthorized =
+      await authorizeProductionDeployment(
+        normalService,
+        ready.id,
+        reviewCandidate,
+      );
+
+    expect(
+      (normalAuthorized as SupervisorTask)
+        .evidence?.ownerDeploymentAuthorization?.service,
+    ).toBe('api');
   });
 });
