@@ -134,6 +134,94 @@ describeIntegration('Supervisor Prisma persistence integration', () => {
     expect(loaded?.createdAt).toBeInstanceOf(Date);
   });
 
+  it('persists an executor dispatch reservation across independent Prisma clients and rejects a stale writer', async () => {
+    const candidate = {
+      action: 'deploy_production' as const,
+      targetBranch: 'production/atlas' as const,
+      baseSha: 'a'.repeat(40),
+      headSha: 'a'.repeat(40),
+      changedFiles: [] as string[],
+    };
+    const reservation = {
+      candidate,
+      service: 'production-deploy-executor' as const,
+      reservationId: 'ATLAS-DISPATCH-' + 'd'.repeat(64),
+      reservedBy: 'atlas-production-deploy-executor:production-deploy-executor',
+      reservedAt: '2026-10-07T06:00:00.000Z',
+    };
+    const created = await taskStore.create(
+      task({
+        status: 'APPROVED',
+        evidence: {
+          rootCause: 'independent deployment qualification',
+          changedFiles: [],
+          tests: ['integration reservation persistence'],
+          build: 'NOT_RUN',
+          regression: [],
+          deploymentState: 'NOT_DEPLOYED',
+          gitState: 'CLEAN',
+          remainingRisk: [],
+          reviewCandidate: candidate,
+        },
+      }),
+    );
+
+    const secondAdapter = new PrismaPg({
+      connectionString: databaseUrl!,
+      max: 1,
+    });
+    const secondPrisma = new PrismaClient({ adapter: secondAdapter });
+    const secondStore = new PrismaSupervisorTaskStore(
+      secondPrisma as unknown as PrismaService,
+    );
+
+    try {
+      const staleSnapshot = await secondStore.get(created.id);
+      expect(staleSnapshot).not.toBeNull();
+      if (!staleSnapshot?.evidence) {
+        throw new Error('expected persisted task evidence');
+      }
+
+      const reservedTask: SupervisorTask = {
+        ...created,
+        updatedAt: new Date(created.updatedAt.getTime() + 1),
+        evidence: {
+          ...created.evidence!,
+          ownerDeploymentDispatchReservation: reservation,
+        },
+      };
+      await expect(
+        taskStore.saveIfUnchanged(reservedTask, created.updatedAt),
+      ).resolves.toMatchObject({
+        evidence: {
+          ownerDeploymentDispatchReservation: reservation,
+        },
+      });
+
+      const reloaded = await secondStore.get(created.id);
+      expect(reloaded?.evidence?.ownerDeploymentDispatchReservation).toEqual(
+        reservation,
+      );
+
+      await expect(
+        secondStore.saveIfUnchanged(
+          {
+            ...staleSnapshot,
+            updatedAt: new Date(staleSnapshot.updatedAt.getTime() + 2),
+          },
+          staleSnapshot.updatedAt,
+        ),
+      ).resolves.toBeNull();
+
+      const intact = await taskStore.get(created.id);
+      expect(intact?.evidence?.ownerDeploymentDispatchReservation).toEqual(
+        reservation,
+      );
+    } finally {
+      await secondPrisma.$disconnect();
+    }
+  });
+
   it('enforces one active execution per task at the database boundary', async () => {
     const persistedTask = await taskStore.create(task());
     await executionStore.create(execution(persistedTask.id, 'DISPATCHED'));

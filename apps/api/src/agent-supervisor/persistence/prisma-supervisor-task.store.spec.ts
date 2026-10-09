@@ -249,6 +249,103 @@ describe('PrismaSupervisorTaskStore', () => {
     );
   });
 
+  it('preserves a reserved production dispatch across new Prisma store instances and rejects stale CAS writers', async () => {
+    const candidate = {
+      action: 'deploy_production' as const,
+      targetBranch: 'production/atlas' as const,
+      baseSha: 'a'.repeat(40),
+      headSha: 'a'.repeat(40),
+      changedFiles: [] as string[],
+    };
+    const reservation = {
+      candidate,
+      service: 'production-deploy-executor' as const,
+      reservationId: 'ATLAS-DISPATCH-' + 'd'.repeat(64),
+      reservedBy: 'atlas-production-deploy-executor:production-deploy-executor',
+      reservedAt: '2026-10-07T05:28:00.000Z',
+    };
+    const initial = task({
+      status: 'APPROVED',
+      evidence: {
+        rootCause: 'independent qualification',
+        changedFiles: [],
+        tests: ['verified'],
+        build: 'NOT_RUN',
+        regression: [],
+        deploymentState: 'NOT_DEPLOYED',
+        gitState: 'CLEAN',
+        remainingRisk: [],
+        reviewCandidate: candidate,
+      },
+    });
+    let saved = structuredClone(record(initial));
+    const prisma = mockPrisma();
+    prisma.supervisorTask.findUnique.mockImplementation(() =>
+      Promise.resolve(structuredClone(saved)),
+    );
+    prisma.supervisorTask.updateMany.mockImplementation(
+      (args: {
+        where: { id: string; updatedAt: Date };
+        data: Partial<SupervisorTask>;
+      }) => {
+        if (
+          args.where.id !== saved.id ||
+          args.where.updatedAt.getTime() !== saved.updatedAt.getTime()
+        ) {
+          return Promise.resolve({ count: 0 });
+        }
+        saved = structuredClone({ ...saved, ...args.data });
+        return Promise.resolve({ count: 1 });
+      },
+    );
+
+    const firstProcess = new PrismaSupervisorTaskStore(prisma as never);
+    const staleSnapshot = await firstProcess.get(initial.id);
+    expect(staleSnapshot).not.toBeNull();
+    if (!staleSnapshot?.evidence)
+      throw new Error('expected persisted evidence');
+
+    const reservedTask: SupervisorTask = {
+      ...staleSnapshot,
+      updatedAt: new Date(staleSnapshot.updatedAt.getTime() + 1),
+      evidence: {
+        ...staleSnapshot.evidence,
+        ownerDeploymentDispatchReservation: reservation,
+      },
+    };
+    await expect(
+      firstProcess.saveIfUnchanged(reservedTask, staleSnapshot.updatedAt),
+    ).resolves.toMatchObject({
+      evidence: { ownerDeploymentDispatchReservation: reservation },
+    });
+
+    // Reconstruct the store and rehydrate the persisted JSON record.
+    const restartedProcess = new PrismaSupervisorTaskStore(prisma as never);
+    const reloaded = await restartedProcess.get(initial.id);
+    expect(reloaded?.evidence?.ownerDeploymentDispatchReservation).toEqual(
+      reservation,
+    );
+    expect(
+      reloaded?.evidence?.ownerDeploymentAuthorizationConsumption,
+    ).toBeUndefined();
+
+    // An earlier process cannot overwrite the reservation with a stale copy.
+    await expect(
+      firstProcess.saveIfUnchanged(
+        {
+          ...staleSnapshot,
+          updatedAt: new Date(staleSnapshot.updatedAt.getTime() + 2),
+        },
+        staleSnapshot.updatedAt,
+      ),
+    ).resolves.toBeNull();
+    const intact = await restartedProcess.get(initial.id);
+    expect(intact?.evidence?.ownerDeploymentDispatchReservation).toEqual(
+      reservation,
+    );
+    expect(prisma.supervisorTask.updateMany).toHaveBeenCalledTimes(2);
+  });
+
   it('returns cloned arrays instead of retaining persistence record references', async () => {
     const prisma = mockPrisma();
     const persisted = record();
