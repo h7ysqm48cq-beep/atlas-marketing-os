@@ -3224,14 +3224,34 @@ describe('engineering-verifier bootstrap recovery authority', () => {
       const { task, executionId } =
         await failedQualificationFixture(service, executions);
 
+      const approval = testOwnerApprovalService(service);
+      const validCandidate = bootstrapCandidate();
+      const proof = approval.verifyAuthentication(
+        {
+          userId: 'owner-user-1',
+          ownerAction: '1',
+          ownerToken: OWNER_TOKEN,
+        },
+        {
+          action: 'DEPLOY',
+          candidate: validCandidate,
+          service: 'engineering-verifier',
+        },
+      );
+      const authorization = approval.issueDeployApproval(
+        proof,
+        validCandidate,
+        'engineering-verifier',
+      );
+
       await expect(
-        ownerAuthorization(
-          service,
+        service.authorizeVerifierBootstrapRecovery(
           task.id,
           candidate,
           'engineering-verifier',
           compatibility({ commitSha: candidate.headSha }),
           executionId,
+          authorization,
         ),
       ).rejects.toMatchObject({
         response: {
