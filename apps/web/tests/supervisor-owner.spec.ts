@@ -1883,6 +1883,297 @@ async function main() {
     /is not an eligible engineering-runner same-SHA deployment candidate/,
   );
 
+
+  const executorSha = "9".repeat(40);
+  const executorCandidate = {
+    action: "deploy_production" as const,
+    targetBranch: "production/atlas" as const,
+    baseSha: executorSha,
+    headSha: executorSha,
+    changedFiles: [],
+  };
+  let executorTaskReadCount = 0;
+  const executorCalls: Array<{
+    method: string;
+    url: string;
+    body?: string;
+  }> = [];
+  const executorAuthorized =
+    await authorizeEligibleWorkerDeployment(
+      async (url, init) => {
+        executorCalls.push({
+          method: init?.method ?? "GET",
+          url: String(url),
+          body:
+            typeof init?.body === "string"
+              ? init.body
+              : undefined,
+        });
+
+        if (
+          String(url).endsWith(
+            "/tasks/executor-same-sha-task",
+          )
+        ) {
+          executorTaskReadCount += 1;
+          return response(200, {
+            id: "executor-same-sha-task",
+            status:
+              executorTaskReadCount === 1
+                ? "READY_FOR_REVIEW"
+                : "APPROVED",
+            owner: "engineering",
+            allowedPaths: [
+              "tools/deployment/atlas-production-deploy-executor.mjs",
+            ],
+            forbiddenActions: [
+              "edit_assigned_files",
+              "commit_assigned_branch",
+              "deploy_production",
+              "change_runtime_config",
+            ],
+            acceptance: [
+              `baseSha=headSha=${executorSha}`,
+              "service=production-deploy-executor",
+              "zero git diff",
+              "sourceVerified=true",
+            ],
+            evidence: {
+              deploymentState: "NOT_DEPLOYED",
+              reviewCandidate: executorCandidate,
+              existingCandidateVerification: {
+                mode: "EXISTING_CANDIDATE",
+                taskId: "executor-same-sha-task",
+                executionId: "executor-same-sha-execution",
+                baseSha: executorSha,
+                headSha: executorSha,
+                productionBaselineSha: executorSha,
+                targetBranch: "production/atlas",
+                changedFiles: [],
+                sourceVerified: true,
+              },
+            },
+          });
+        }
+
+        if (
+          String(url).endsWith(
+            "/tasks/executor-same-sha-task/approve",
+          )
+        ) {
+          return response(201, {
+            id: "executor-same-sha-task",
+            status: "APPROVED",
+          });
+        }
+
+        if (
+          String(url).endsWith(
+            "/tasks/executor-same-sha-task/executions",
+          )
+        ) {
+          return response(200, [
+            {
+              id: "executor-same-sha-execution",
+              status: "COMPLETED",
+              assignment: {
+                executionPurpose: "INDEPENDENT_VERIFICATION",
+                verificationMode: "EXISTING_CANDIDATE",
+              },
+              result: {
+                evidence: {
+                  reviewCandidate: executorCandidate,
+                  existingCandidateVerification: {
+                    mode: "EXISTING_CANDIDATE",
+                    taskId: "executor-same-sha-task",
+                    executionId: "executor-same-sha-execution",
+                    baseSha: executorSha,
+                    headSha: executorSha,
+                    productionBaselineSha: executorSha,
+                    targetBranch: "production/atlas",
+                    changedFiles: [],
+                    sourceVerified: true,
+                  },
+                },
+              },
+            },
+          ]);
+        }
+
+        if (
+          String(url).endsWith(
+            "/tasks/executor-same-sha-task/authorize-production-deployment",
+          )
+        ) {
+          return response(201, {
+            id: "executor-same-sha-task",
+            status: "APPROVED",
+            evidence: {
+              deploymentState: "NOT_DEPLOYED",
+              ownerDeploymentAuthorization: {
+                service: "production-deploy-executor",
+                candidate: executorCandidate,
+                signature: "signed-executor-authorization",
+              },
+            },
+          });
+        }
+
+        throw new Error("unexpected request");
+      },
+      "production-deploy-executor",
+      "executor-same-sha-task",
+    );
+
+  assert.deepEqual(executorAuthorized, {
+    taskId: "executor-same-sha-task",
+    taskStatus: "APPROVED",
+    executionId: "executor-same-sha-execution",
+    executionStatus: "COMPLETED",
+  });
+  assert.equal(
+    executorCalls.at(-1)?.body,
+    JSON.stringify({
+      candidate: executorCandidate,
+      service: "production-deploy-executor",
+    }),
+  );
+
+  const executorBaseTask = {
+    id: "executor-invalid-task",
+    status: "APPROVED",
+    owner: "engineering",
+    allowedPaths: [
+      "tools/deployment/atlas-production-deploy-executor.mjs",
+    ],
+    forbiddenActions: [
+      "edit_assigned_files",
+      "commit_assigned_branch",
+      "deploy_production",
+      "change_runtime_config",
+    ],
+    acceptance: [
+      `baseSha=headSha=${executorSha}`,
+      "service=production-deploy-executor",
+    ],
+    evidence: {
+      deploymentState: "NOT_DEPLOYED",
+      reviewCandidate: executorCandidate,
+      existingCandidateVerification: {
+        mode: "EXISTING_CANDIDATE",
+        taskId: "executor-invalid-task",
+        executionId: "executor-invalid-execution",
+        baseSha: executorSha,
+        headSha: executorSha,
+        productionBaselineSha: executorSha,
+        targetBranch: "production/atlas",
+        changedFiles: [],
+        sourceVerified: true,
+      },
+    },
+  };
+
+  for (const [name, task] of [
+    [
+      "source-unverified",
+      {
+        ...executorBaseTask,
+        evidence: {
+          ...executorBaseTask.evidence,
+          existingCandidateVerification: {
+            ...executorBaseTask.evidence.existingCandidateVerification,
+            sourceVerified: false,
+          },
+        },
+      },
+    ],
+    [
+      "not-same-sha",
+      {
+        ...executorBaseTask,
+        evidence: {
+          ...executorBaseTask.evidence,
+          reviewCandidate: {
+            ...executorCandidate,
+            baseSha: "8".repeat(40),
+          },
+        },
+      },
+    ],
+    [
+      "non-zero-diff",
+      {
+        ...executorBaseTask,
+        evidence: {
+          ...executorBaseTask.evidence,
+          reviewCandidate: {
+            ...executorCandidate,
+            changedFiles: [
+              "tools/deployment/atlas-production-deploy-executor.mjs",
+            ],
+          },
+        },
+      },
+    ],
+    [
+      "active-authorization",
+      {
+        ...executorBaseTask,
+        evidence: {
+          ...executorBaseTask.evidence,
+          ownerDeploymentAuthorization: {
+            service: "production-deploy-executor",
+            candidate: executorCandidate,
+            authorizedAt: "2999-01-01T00:00:00.000Z",
+            signature: "active",
+          },
+        },
+      },
+    ],
+    [
+      "reservation",
+      {
+        ...executorBaseTask,
+        evidence: {
+          ...executorBaseTask.evidence,
+          ownerDeploymentDispatchReservation: {
+            reservationId: "reservation",
+          },
+        },
+      },
+    ],
+    [
+      "consumption",
+      {
+        ...executorBaseTask,
+        evidence: {
+          ...executorBaseTask.evidence,
+          ownerDeploymentAuthorizationConsumption: {},
+        },
+      },
+    ],
+  ] as const) {
+    await assert.rejects(
+      () =>
+        authorizeEligibleWorkerDeployment(
+          async (url) => {
+            if (
+              String(url).endsWith(
+                `/tasks/executor-invalid-task`,
+              )
+            ) {
+              return response(200, task);
+            }
+            throw new Error("unexpected request");
+          },
+          "production-deploy-executor",
+          "executor-invalid-task",
+        ),
+      /is not an eligible production-deploy-executor same-SHA deployment candidate/,
+      name,
+    );
+  }
+
   const mergeCandidate = {
     action: "merge" as const,
     targetBranch: "main" as const,
