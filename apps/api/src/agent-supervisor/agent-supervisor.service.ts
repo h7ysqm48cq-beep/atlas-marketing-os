@@ -894,17 +894,29 @@ export class AgentSupervisorService {
       });
     }
 
-    const requestedCandidate =
-      normalizeSupervisorReviewCandidate(candidate);
-    this.requireCanonicalProductionDeployment(requestedCandidate);
     if (
-      requestedCandidate.baseSha !== requestedCandidate.headSha ||
-      requestedCandidate.changedFiles.length !== 0
+      candidate?.action !== 'deploy_production' ||
+      candidate?.targetBranch !== 'production/atlas'
+    ) {
+      throw new BadRequestException({
+        code: 'verifier_bootstrap_recovery_canonical_target_required',
+      });
+    }
+    if (
+      typeof candidate.baseSha !== 'string' ||
+      typeof candidate.headSha !== 'string' ||
+      candidate.baseSha.toLowerCase() !== candidate.headSha.toLowerCase() ||
+      !Array.isArray(candidate.changedFiles) ||
+      candidate.changedFiles.length !== 0
     ) {
       throw new BadRequestException({
         code: 'verifier_bootstrap_recovery_same_sha_required',
       });
     }
+
+    const requestedCandidate =
+      normalizeSupervisorReviewCandidate(candidate);
+    this.requireCanonicalProductionDeployment(requestedCandidate);
 
     const canonicalSha = requestedCandidate.headSha;
     if (
