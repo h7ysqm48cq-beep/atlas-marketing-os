@@ -3241,6 +3241,31 @@ describe('engineering-verifier bootstrap recovery authority', () => {
     }
   });
 
+
+  it('rejects bootstrap recovery without a valid Human Owner signed approval', async () => {
+    const { service, executions } = bootstrapService();
+    const { task, executionId } =
+      await failedQualificationFixture(service, executions);
+    const candidate = bootstrapCandidate();
+
+    await expect(
+      service.authorizeVerifierBootstrapRecovery(
+        task.id,
+        candidate,
+        'engineering-verifier',
+        compatibility(),
+        executionId,
+        {
+          candidate,
+          service: 'engineering-verifier',
+          authorizedBy: 'owner-user-1',
+          authorizedAt: '2026-10-09T14:30:00.000Z',
+          signature: 'invalid-signature',
+        },
+      ),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
   it('rejects missing or stale bootstrap compatibility evidence', async () => {
     for (const compat of [
       compatibility({ runtimeVerified: false as true }),
