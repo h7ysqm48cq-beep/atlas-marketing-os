@@ -122,3 +122,5 @@ test('standing verifier runner claims independent verification without a publish
   assert.equal(options.candidatePublisher, undefined);
   assert.equal(typeof options.executorFactory, 'function');
 });
+
+// ATLAS worker qualification canary: no runtime behavior change.
