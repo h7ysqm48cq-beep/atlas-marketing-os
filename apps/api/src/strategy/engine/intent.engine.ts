@@ -78,6 +78,12 @@ export class IntentEngine {
         'rewrite',
         'facebook post',
         'telegram post',
+        'instagram post',
+        'ig post',
+        'instagram caption',
+        'ig caption',
+        'ig文案',
+        'instagram文案',
       ],
       reason:
         'The request asks for copywriting or content rewriting.',
