@@ -895,21 +895,97 @@ export class AgentGatewayService {
       }
     }
 
-    if (matchingExecutions.length === 0) {
-      throw new BadRequestException({
-        code: 'production_deployment_resolution_not_found',
-      });
-    }
     if (matchingExecutions.length > 1) {
       throw new BadRequestException({
         code: 'production_deployment_resolution_ambiguous',
       });
     }
 
-    const validated = await this.validatePersistedCandidate(
-      task.id,
-      matchingExecutions[0].id,
-    );
+    let resolvedExecution: SupervisorExecution;
+
+    if (matchingExecutions.length === 1) {
+      const validated = await this.validatePersistedCandidate(
+        task.id,
+        matchingExecutions[0].id,
+      );
+      resolvedExecution = validated.execution;
+    } else {
+      const recovery = task.evidence?.verifierBootstrapRecovery;
+      const compatibility = recovery?.compatibility;
+      const failedExecutions = recovery
+        ? executions.filter(
+            (execution) =>
+              execution.id === recovery.failedQualificationExecutionId,
+          )
+        : [];
+      const failedExecution =
+        failedExecutions.length === 1
+          ? failedExecutions[0]
+          : undefined;
+
+      let recoveryCandidate: SupervisorReviewCandidate | null = null;
+      try {
+        recoveryCandidate = recovery
+          ? this.normalizeCandidate(recovery.candidate)
+          : null;
+      } catch {
+        recoveryCandidate = null;
+      }
+
+      const assignment = failedExecution?.assignment;
+      const verifiedAtMs = compatibility?.verifiedAt
+        ? Date.parse(compatibility.verifiedAt)
+        : Number.NaN;
+
+      if (
+        input.service !== 'engineering-verifier' ||
+        !recovery ||
+        !recoveryCandidate ||
+        !compatibility ||
+        recovery.service !== 'engineering-verifier' ||
+        recovery.failedQualificationTaskId !== task.id ||
+        recovery.failureReason !== 'supervisor_execution_queued_timeout' ||
+        recovery.postRecoveryFormalQualificationRequired !== true ||
+        candidate.baseSha !== candidate.headSha ||
+        candidate.changedFiles.length !== 0 ||
+        !this.sameCandidate(candidate, recoveryCandidate) ||
+        compatibility.repositoryOwner !== 'h7ysqm48cq-beep' ||
+        compatibility.repositoryName !== 'atlas-marketing-os' ||
+        compatibility.branch !== 'production/atlas' ||
+        compatibility.commitSha?.toLowerCase() !== candidate.headSha ||
+        compatibility.buildVerified !== true ||
+        compatibility.runtimeVerified !== true ||
+        compatibility.method !== 'verified_image_receipt' ||
+        !Number.isInteger(compatibility.scopeCount) ||
+        compatibility.scopeCount < 1 ||
+        !Number.isFinite(verifiedAtMs) ||
+        new Date(verifiedAtMs).toISOString() !== compatibility.verifiedAt ||
+        !failedExecution ||
+        failedExecution.status !== 'FAILED' ||
+        failedExecution.workerRole !== 'verifier' ||
+        failedExecution.error !== 'supervisor_execution_queued_timeout' ||
+        failedExecution.result !== null ||
+        failedExecution.startedAt !== null ||
+        failedExecution.runnerId !== null ||
+        failedExecution.lastHeartbeatAt !== null ||
+        (assignment?.executionPurpose ?? 'IMPLEMENTATION') !==
+          'INDEPENDENT_VERIFICATION' ||
+        assignment?.verificationMode !== 'EXISTING_CANDIDATE' ||
+        assignment.candidateBaseSha?.toLowerCase() !== candidate.headSha ||
+        assignment.candidateHeadSha?.toLowerCase() !== candidate.headSha ||
+        assignment.productionBaselineSha?.toLowerCase() !==
+          candidate.headSha ||
+        (assignment.targetBranch ?? 'production/atlas') !==
+          'production/atlas'
+      ) {
+        throw new BadRequestException({
+          code: 'production_deployment_resolution_not_found',
+        });
+      }
+
+      resolvedExecution = failedExecution;
+    }
+
     if (phase === 'pre_deploy') {
       await this.supervisor.consumeProductionDeploymentAuthorization(
         task.id,
@@ -918,7 +994,8 @@ export class AgentGatewayService {
         deploymentConsumer,
       );
     }
-    return this.allowed(validated.task.id, validated.execution.id);
+
+    return this.allowed(task.id, resolvedExecution.id);
   }
 
   private validateCandidatePublicationBinding(
