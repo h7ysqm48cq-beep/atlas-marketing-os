@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '../generated/prisma/client';
 import { BrandsService } from '../brands/brands.service';
 import { PrismaService } from '../database/prisma.service';
 import { CreateCampaignDto } from './dto/create-campaign.dto';
@@ -23,6 +24,9 @@ export class CampaignsService {
         status: dto.status,
         startDate: dto.startDate ? new Date(dto.startDate) : undefined,
         endDate: dto.endDate ? new Date(dto.endDate) : undefined,
+        brandRenderingSettings: dto.brandRenderingSettings
+          ? (dto.brandRenderingSettings as Prisma.InputJsonValue)
+          : undefined,
       },
       include: {
         brand: {
@@ -42,8 +46,13 @@ export class CampaignsService {
     });
   }
 
-  findAll() {
+  async findAll() {
+    const brand = await this.brandsService.getActiveBrand();
+
     return this.prisma.campaign.findMany({
+      where: {
+        brandId: brand.id,
+      },
       orderBy: { updatedAt: 'desc' },
       include: {
         brand: {
@@ -64,8 +73,12 @@ export class CampaignsService {
   }
 
   async findOne(id: string) {
-    const campaign = await this.prisma.campaign.findUnique({
-      where: { id },
+    const brand = await this.brandsService.getActiveBrand();
+    const campaign = await this.prisma.campaign.findFirst({
+      where: {
+        id,
+        brandId: brand.id,
+      },
       include: {
         brand: {
           include: {
@@ -104,6 +117,10 @@ export class CampaignsService {
             : dto.endDate
               ? new Date(dto.endDate)
               : null,
+        brandRenderingSettings:
+          dto.brandRenderingSettings === undefined
+            ? undefined
+            : (dto.brandRenderingSettings as Prisma.InputJsonValue),
       },
       include: {
         brand: {
