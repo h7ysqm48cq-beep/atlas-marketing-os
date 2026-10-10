@@ -267,6 +267,57 @@ test('Existing candidate opens the exact detached head and verifies immutable ba
   }
 });
 
+test('canonical production head candidate does not invoke stale production-advance conflict checks', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'atlas-canonical-head-candidate-'));
+  try {
+    const { repo, head: base } = await sourceRepository(root);
+    await writeFile(path.join(repo, 'allowed.txt'), 'canonical deployment candidate\n');
+    await git(repo, ['add', '--', 'allowed.txt']);
+    await git(repo, ['commit', '-qm', 'canonical deployment candidate']);
+    const head = await git(repo, ['rev-parse', 'HEAD']);
+    let baselineChecks = 0;
+    let advanceChecks = 0;
+    const { CandidateWorkspaceManager } = await import('./candidate-workspace.ts');
+    const manager = new CandidateWorkspaceManager({
+      repositoryRoot: repo,
+      workspaceRoot: path.join(root, 'workspaces'),
+      ensureCandidate: async (candidateBase, candidateHead, targetBranch) => {
+        assert.equal(candidateBase, base);
+        assert.equal(candidateHead, head);
+        assert.equal(targetBranch, 'production/atlas');
+      },
+      ensureProductionHead: async expected => {
+        assert.equal(expected, head);
+        baselineChecks += 1;
+      },
+      ensureProductionAdvance: async () => {
+        advanceChecks += 1;
+        throw new Error('existing_candidate_production_scope_overlap');
+      },
+    });
+
+    const lease = await manager.prepare({
+      taskId: 'ATLAS-web-deploy-head',
+      executionId: 'ATLAS-EXEC-web-deploy-head',
+      candidateBaseSha: base,
+      candidateHeadSha: head,
+      productionBaselineSha: head,
+      targetBranch: 'production/atlas',
+      allowedPaths: ['allowed.txt'],
+    });
+
+    assert.equal(advanceChecks, 0);
+    assert.equal(baselineChecks, 2);
+    assert.equal(lease.verifiedHeadSha, head);
+    assert.deepEqual(lease.verifiedChangedPaths, ['allowed.txt']);
+    await lease.verifyProductionBaseline?.();
+    assert.equal(baselineChecks, 3);
+    await lease.cleanup();
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 test('Advanced baseline fails closed unless the source supplies an independent conflict verifier', async () => {
   const root = await mkdtemp(path.join(tmpdir(), 'atlas-post-merge-advance-'));
   try {
