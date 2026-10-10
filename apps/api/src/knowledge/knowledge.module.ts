@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { AiRuntimeModule } from '../ai-runtime/ai-runtime.module';
 import { BrandsModule } from '../brands/brands.module';
 import { StorageModule } from '../storage/storage.module';
 import { KnowledgeController } from './knowledge.controller';
@@ -8,7 +9,7 @@ import { KnowledgeRetrievalService } from './knowledge-retrieval.service';
 import { KnowledgeService } from './knowledge.service';
 
 @Module({
-  imports: [BrandsModule, StorageModule],
+  imports: [AiRuntimeModule, BrandsModule, StorageModule],
   controllers: [KnowledgeController],
   providers: [
     KnowledgeService,
