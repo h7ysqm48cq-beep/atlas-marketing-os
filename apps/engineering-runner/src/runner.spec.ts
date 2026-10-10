@@ -961,6 +961,84 @@ test('EngineeringRunner verifies an existing candidate in its detached workspace
   assert.equal(published, 0);
 });
 
+
+test('EngineeringRunner emits an exact Web deploy candidate for explicitly bound existing-candidate verification', async () => {
+  const mod = await loadModule();
+  const Runner = mod.EngineeringRunner as any;
+  const base = 'a'.repeat(40);
+  const head = 'b'.repeat(40);
+  const path = 'apps/web/src/components/engineering/SupervisorOwnerPanel.tsx';
+  const assignment = {
+    ...implementationAssignment,
+    allowedPaths: [path],
+    forbiddenActions: [
+      'edit_assigned_files',
+      'commit_assigned_branch',
+      'deploy_production',
+      'change_runtime_config',
+      'merge',
+    ],
+    acceptance: [
+      'reviewCandidate.action=deploy_production',
+      'deploymentService=web',
+      'targetBranch=production/atlas',
+      `productionBaselineSha=${head}`,
+    ],
+    executionPurpose: 'INDEPENDENT_VERIFICATION',
+    verificationMode: 'EXISTING_CANDIDATE',
+    candidateBaseSha: base,
+    candidateHeadSha: head,
+    productionBaselineSha: head,
+    targetBranch: 'production/atlas',
+  };
+  const active = session(assignment);
+  let completed: any;
+  active.complete = async (value: unknown) => { completed = value; };
+  const runner = new Runner({
+    client: { claimNext: async () => active },
+    executor: { execute: async () => result },
+    workspace: { listChangedFiles: async () => [] },
+    scopeGuard: {
+      assertImplementationScope: () => undefined,
+      assertVerificationNoDrift: () => undefined,
+    },
+    candidateWorkspaceManager: {
+      prepare: async () => ({
+        path: '/tmp/exact-web-deploy',
+        baseSha: base,
+        verifiedHeadSha: head,
+        verifiedChangedPaths: [path],
+        verifyProductionBaseline: async () => undefined,
+        workspace: {
+          listChangedFiles: async () => [],
+          fingerprint: async () => 'f'.repeat(64),
+        },
+        cleanup: async () => undefined,
+      }),
+    },
+    executorFactory: () => ({
+      execute: async () => ({
+        ...result,
+        evidence: { ...result.evidence, changedFiles: [path] },
+      }),
+    }),
+    heartbeatIntervalMs: 10_000,
+  });
+
+  assert.equal(await runner.runOnce(), 'completed');
+  assert.deepEqual(completed.evidence.reviewCandidate, {
+    action: 'deploy_production',
+    targetBranch: 'production/atlas',
+    baseSha: base,
+    headSha: head,
+    changedFiles: [path],
+  });
+  assert.equal(
+    completed.evidence.existingCandidateVerification.sourceVerified,
+    true,
+  );
+});
+
 test('Existing-candidate verifier fails closed when immutable Git fingerprint changes', async () => {
   const { EngineeringRunner } = await import('./runner.ts');
   const assignment = {
