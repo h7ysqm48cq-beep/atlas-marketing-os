@@ -219,6 +219,136 @@ describe('Production deployment resolver', () => {
     return { task: await supervisor.getTask(task.id), execution: completed };
   }
 
+  async function createApprovedVerifierBootstrapRecovery() {
+    const task = await supervisor.createTask({
+      objective:
+        'zero-git-diff engineering-verifier production qualification',
+      owner: 'engineering',
+      allowedPaths: [CHANGED_FILE],
+      forbiddenActions: [
+        'edit_assigned_files',
+        'commit_assigned_branch',
+        'deploy_production',
+        'change_runtime_config',
+      ],
+      dependsOn: [],
+      acceptance: [
+        'baseSha=headSha=' + HEAD_SHA,
+        'service=engineering-verifier',
+      ],
+    });
+
+    await supervisor.startTask(task.id);
+
+    const queued = await dispatcher.dispatch(
+      task.id,
+      'IMPLEMENTATION',
+    );
+
+    const candidate = {
+      action: 'deploy_production' as const,
+      targetBranch: 'production/atlas' as const,
+      baseSha: HEAD_SHA,
+      headSha: HEAD_SHA,
+      changedFiles: [],
+    };
+
+    const failed = {
+      ...queued.execution,
+      status: 'FAILED' as const,
+      workerRole: 'verifier' as const,
+      assignment: {
+        ...queued.execution.assignment,
+        executionPurpose: 'INDEPENDENT_VERIFICATION' as const,
+        verificationMode: 'EXISTING_CANDIDATE' as const,
+        candidateBaseSha: HEAD_SHA,
+        candidateHeadSha: HEAD_SHA,
+        productionBaselineSha: HEAD_SHA,
+        targetBranch: 'production/atlas' as const,
+      },
+      result: null,
+      error: 'supervisor_execution_queued_timeout',
+      startedAt: null,
+      completedAt: new Date(),
+      runnerId: null,
+      lastHeartbeatAt: null,
+      leaseExpiresAt: null,
+    };
+
+    await executionStore.save(failed);
+
+    const authorization = r2aDeploymentAuthorization(
+      supervisor,
+      candidate,
+      'engineering-verifier',
+      'owner-user-1',
+    );
+
+    const persisted = await taskStore.get(task.id);
+    expect(persisted).not.toBeNull();
+    if (!persisted) {
+      throw new Error('bootstrap_recovery_task_missing');
+    }
+
+    const expectedUpdatedAt = new Date(persisted.updatedAt);
+
+    persisted.status = 'APPROVED';
+    persisted.blockingReason = null;
+    persisted.failureReason = null;
+    persisted.evidence = {
+      rootCause: 'engineering_verifier_bootstrap_deadlock',
+      changedFiles: [],
+      tests: [
+        'bootstrap_compatibility_build=PASS',
+        'bootstrap_compatibility_runtime=PASS',
+        'failed_verifier_qualification_lineage=CONFIRMED',
+      ],
+      build: 'BOOTSTRAP_COMPATIBILITY_VERIFIED',
+      regression: [],
+      deploymentState: 'NOT_DEPLOYED',
+      gitState: 'NO_REPOSITORY_MUTATION',
+      remainingRisk: [
+        'post_recovery_formal_qualification_required',
+      ],
+      reviewCandidate: candidate,
+      ownerDeploymentAuthorization: authorization,
+      verifierBootstrapRecovery: {
+        service: 'engineering-verifier',
+        candidate,
+        failedQualificationTaskId: task.id,
+        failedQualificationExecutionId: failed.id,
+        failureReason: 'supervisor_execution_queued_timeout',
+        compatibility: {
+          repositoryOwner: 'h7ysqm48cq-beep',
+          repositoryName: 'atlas-marketing-os',
+          branch: 'production/atlas',
+          commitSha: HEAD_SHA,
+          buildVerified: true,
+          runtimeVerified: true,
+          scopeCount: 1,
+          method: 'verified_image_receipt',
+          verifiedAt: new Date().toISOString(),
+        },
+        authorizedBy: authorization.authorizedBy,
+        authorizedAt: authorization.authorizedAt,
+        postRecoveryFormalQualificationRequired: true,
+      },
+    } as never;
+    persisted.updatedAt = new Date(expectedUpdatedAt.getTime() + 1);
+
+    const saved = await taskStore.saveIfUnchanged(
+      persisted,
+      expectedUpdatedAt,
+    );
+
+    expect(saved).not.toBeNull();
+
+    return {
+      task: saved!,
+      execution: failed,
+    };
+  }
+
   async function moveQueuedToLegacyDispatched(executionId: string) {
     const execution = await executionStore.get(executionId);
     if (!execution) {
@@ -273,6 +403,58 @@ describe('Production deployment resolver', () => {
       consumedBy: 'deploy-gate',
       authorization: {
         service: 'engineering-verifier',
+      },
+    });
+  });
+
+  it('resolves and consumes an exact engineering-verifier bootstrap recovery receipt', async () => {
+    const { task, execution } =
+      await createApprovedVerifierBootstrapRecovery();
+
+    await expect(
+      resolve({
+        service: 'engineering-verifier',
+        github: CANONICAL_GITHUB,
+      }),
+    ).resolves.toEqual({
+      allowed: true,
+      reason: null,
+      taskId: task.id,
+      executionId: execution.id,
+    });
+
+    expect(
+      (await supervisor.getTask(task.id)).evidence
+        ?.ownerDeploymentAuthorizationConsumption,
+    ).toMatchObject({
+      consumedBy: 'deploy-gate',
+      authorization: {
+        service: 'engineering-verifier',
+      },
+    });
+  });
+
+  it('fails closed when engineering-verifier bootstrap recovery deadlock evidence is malformed', async () => {
+    const { execution } =
+      await createApprovedVerifierBootstrapRecovery();
+
+    const malformed = await executionStore.get(execution.id);
+    expect(malformed).not.toBeNull();
+    if (!malformed) {
+      throw new Error('bootstrap_recovery_execution_missing');
+    }
+
+    malformed.error = 'unexpected_failure';
+    await executionStore.save(malformed);
+
+    await expect(
+      resolve({
+        service: 'engineering-verifier',
+        github: CANONICAL_GITHUB,
+      }),
+    ).rejects.toMatchObject({
+      response: {
+        code: 'production_deployment_resolution_not_found',
       },
     });
   });
