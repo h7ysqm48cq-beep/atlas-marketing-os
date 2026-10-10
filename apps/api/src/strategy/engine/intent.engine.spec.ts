@@ -25,6 +25,10 @@ describe('IntentEngine', () => {
       '帮我设计一张 Facebook 海报',
       IntentType.IMAGE,
     ],
+    [
+      '帮我写一个 Instagram caption',
+      IntentType.COPYWRITING,
+    ],
   ])(
     'classifies "%s" as %s',
     (prompt, expectedIntent) => {
