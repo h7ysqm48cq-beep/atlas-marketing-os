@@ -1,0 +1,327 @@
+from __future__ import annotations
+
+from tools.ai_engineer import (
+    IntentType,
+    build_natural_language_engineer,
+)
+from tools.ai_engineer.request import (
+    AIEngineerMode,
+)
+from tools.repository import (
+    default_repository_cache,
+)
+
+
+def write_file(
+    root,
+    relative: str,
+    content: str,
+):
+    target = root / relative
+
+    target.parent.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    target.write_text(
+        content,
+        encoding="utf-8",
+    )
+
+    return target
+
+
+def build_repository(tmp_path):
+    write_file(
+        tmp_path,
+        "src/users/users.service.ts",
+        "export class UsersService {}\n",
+    )
+
+    write_file(
+        tmp_path,
+        "apps/web/src/components/"
+        "DashboardOverview.tsx",
+        (
+            "export function "
+            "DashboardOverview() {\n"
+            "  return null;\n"
+            "}\n"
+        ),
+    )
+
+    write_file(
+        tmp_path,
+        "apps/web/src/components/"
+        "DashboardOverview.module.css",
+        ".dashboard {}\n",
+    )
+
+    write_file(
+        tmp_path,
+        "apps/web/src/components/"
+        "AppLayout.tsx",
+        (
+            "export function AppLayout() {\n"
+            "  return null;\n"
+            "}\n"
+        ),
+    )
+
+
+def test_natural_language_rename_builds_plan(
+    tmp_path,
+):
+    build_repository(tmp_path)
+    default_repository_cache.clear()
+
+    result = (
+        build_natural_language_engineer()
+        .handle(
+            "把 UsersService 改成 "
+            "AccountsService",
+            target_project=str(
+                tmp_path
+            ),
+        )
+    )
+
+    assert result.success
+    assert result.intent.intent_type == (
+        IntentType.RENAME_SYMBOL
+    )
+
+    assert result.engineer_result is not None
+    assert not result.executed
+
+    target = (
+        tmp_path
+        / "src/users/users.service.ts"
+    )
+
+    assert "UsersService" in (
+        target.read_text(
+            encoding="utf-8",
+        )
+    )
+
+
+def test_natural_language_crud_defaults_to_plan(
+    tmp_path,
+):
+    result = (
+        build_natural_language_engineer()
+        .handle(
+            "创建 orders CRUD",
+            target_project=str(
+                tmp_path
+            ),
+        )
+    )
+
+    assert result.success
+    assert result.engineer_result is not None
+    assert not result.executed
+
+    assert not (
+        tmp_path / "src/orders"
+    ).exists()
+
+
+def test_ui_request_returns_reasoning_plan(
+    tmp_path,
+):
+    build_repository(tmp_path)
+    default_repository_cache.clear()
+
+    result = (
+        build_natural_language_engineer()
+        .handle(
+            "把 Dashboard 重新设计，"
+            "留白多一点，手机版也优化",
+            target_project=str(
+                tmp_path
+            ),
+        )
+    )
+
+    assert result.success
+    assert result.engineering_plan is not None
+    assert result.engineer_result is None
+    assert result.requires_review
+    assert not result.executed
+
+    paths = {
+        item.file_path
+        for item
+        in result.engineering_plan
+        .related_files
+    }
+
+    assert (
+        "apps/web/src/components/"
+        "DashboardOverview.tsx"
+        in paths
+    )
+
+
+def test_apply_is_blocked_by_default(
+    tmp_path,
+):
+    result = (
+        build_natural_language_engineer()
+        .handle(
+            "创建 orders CRUD",
+            target_project=str(
+                tmp_path
+            ),
+            mode=AIEngineerMode.APPLY,
+            allow_apply=False,
+        )
+    )
+
+    assert not result.success
+    assert result.error is not None
+    assert "not authorized" in (
+        result.error
+    )
+
+    assert not (
+        tmp_path / "src/orders"
+    ).exists()
+
+
+def test_authorized_apply_can_execute(
+    tmp_path,
+):
+    result = (
+        build_natural_language_engineer()
+        .handle(
+            "创建 orders CRUD",
+            target_project=str(
+                tmp_path
+            ),
+            mode=AIEngineerMode.APPLY,
+            allow_apply=True,
+        )
+    )
+
+    assert result.success
+
+    assert (
+        tmp_path
+        / "src/orders/orders.service.ts"
+    ).exists()
+
+def test_natural_language_connect_dependency_builds_bounded_plan(tmp_path):
+    write_file(
+        tmp_path,
+        "src/users/users.service.ts",
+        "export class UsersService {\n  constructor() {}\n}\n",
+    )
+    write_file(
+        tmp_path,
+        "src/users/audit.service.ts",
+        "export class AuditService {}\n",
+    )
+    default_repository_cache.clear()
+
+    result = build_natural_language_engineer().handle(
+        "Inject AuditService into UsersService",
+        target_project=str(tmp_path),
+    )
+
+    assert result.success
+    assert result.intent.intent_type == IntentType.CONNECT_DEPENDENCY
+    assert result.adaptation is not None
+    assert result.adaptation.request is not None
+    assert result.engineering_plan is None
+    assert result.engineer_result is not None
+    assert not result.executed
+    assert (
+        result.adaptation.request.arguments["target_file"]
+        == "src/users/users.service.ts"
+    )
+
+def test_natural_language_register_module_builds_bounded_plan(tmp_path):
+    write_file(
+        tmp_path,
+        "src/users/users.module.ts",
+        "import { Module } from '@nestjs/common';\n"
+        "@Module({ imports: [] })\n"
+        "export class UsersModule {}\n",
+    )
+    write_file(
+        tmp_path,
+        "src/audit/audit.module.ts",
+        "import { Module } from '@nestjs/common';\n"
+        "@Module({})\n"
+        "export class AuditModule {}\n",
+    )
+    default_repository_cache.clear()
+
+    result = build_natural_language_engineer().handle(
+        "Register AuditModule in UsersModule",
+        target_project=str(tmp_path),
+    )
+
+    assert result.success
+    assert result.intent.intent_type == IntentType.REGISTER_MODULE_IMPORT
+    assert result.adaptation is not None
+    assert result.adaptation.request is not None
+    assert result.engineering_plan is None
+    assert result.engineer_result is not None
+    assert not result.executed
+    assert result.adaptation.request.arguments["target_file"] == (
+        "src/users/users.module.ts"
+    )
+
+def test_register_module_apply_uses_trusted_modifier_runtime(tmp_path):
+    from tools.ai_engineer import build_default_ai_engineer
+    from tools.runtime import build_default_runtime
+    from pathlib import Path
+    import os
+
+    write_file(
+        tmp_path,
+        "src/users/users.module.ts",
+        "import { Module } from '@nestjs/common';\n\n"
+        "@Module({\n  imports: [],\n})\n"
+        "export class UsersModule {}\n",
+    )
+    write_file(
+        tmp_path,
+        "src/audit/audit.module.ts",
+        "import { Module } from '@nestjs/common';\n\n"
+        "@Module({})\n"
+        "export class AuditModule {}\n",
+    )
+
+    repo_root = Path(__file__).resolve().parents[2]
+    os.symlink(repo_root / "node_modules", tmp_path / "node_modules")
+    assert not (tmp_path / "tools" / "modifier").exists()
+
+    default_repository_cache.clear()
+    engineer = build_natural_language_engineer()
+    engineer.engineer = build_default_ai_engineer(
+        runtime=build_default_runtime(
+            project_root=str(tmp_path),
+            show_preview=False,
+        )
+    )
+
+    result = engineer.handle(
+        "Register AuditModule in UsersModule",
+        target_project=str(tmp_path),
+        mode=AIEngineerMode.APPLY,
+        allow_apply=True,
+    )
+
+    assert result.success
+    assert result.executed
+    target = (
+        tmp_path / "src/users/users.module.ts"
+    ).read_text(encoding="utf-8")
+    assert "import { AuditModule } from '../audit/audit.module';" in target
+    assert "imports: [AuditModule]" in target
